@@ -21,10 +21,14 @@ function Connexion() {
             setMotDePasse("");
             setMessage(res.data.message);
             setIsError(false);
+ //Updated upstream
             // ✅ Redirection après 500ms si connexion réussie
             setTimeout(() => {
               navigate("/affaires");
             }, 500);
+
+            navigate('/affaires');
+// Stashed changes
 
         }catch(err){
             setIsError(true);
