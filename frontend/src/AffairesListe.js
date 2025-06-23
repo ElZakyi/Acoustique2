@@ -39,7 +39,7 @@ const AffairesListe = () => {
   useEffect(() => {
     const fetchAffaires = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/affaires');
+        const response = await axios.get('http://localhost:5000/api/affaire');
         setAffaires(response.data);
       } catch (err) {
         setError('Impossible de charger les données. Vérifiez que le serveur backend est bien lancé.');

@@ -91,6 +91,49 @@ app.get("/api/affaires",(req,res)=>{
     })
 })
 
+
+// Route POST pour créer une nouvelle affaire
+app.post('/api/affaires', (req, res) => {
+  // 1. On récupère les données envoyées par le formulaire via req.body
+  const { objet, client, responsable, numero_affaire, observation } = req.body;
+
+  // 2. On fait une petite validation pour s'assurer que les champs importants ne sont pas vides
+  if (!objet || !client || !numero_affaire) {
+    return res.status(400).json({ message: "Les champs 'objet', 'client' et 'numero_affaire' sont obligatoires." });
+  }
+
+  // 3. On prépare la requête SQL pour l'insertion
+  // Les '?' sont des "placeholders" pour éviter les injections SQL, c'est une bonne pratique de sécurité.
+  const sql = "INSERT INTO affaire (objet, client, responsable, numero_affaire, observation) VALUES (?, ?, ?, ?, ?)";
+  
+  const values = [
+    objet,
+    client,
+    responsable, 
+    numero_affaire,
+    observation  
+  ];
+
+  // 4. On exécute la requête sur la base de données
+  db.query(sql, values, (err, result) => {
+    // S'il y a une erreur avec db
+    if (err) {
+      console.error("Erreur lors de la création de l'affaire :", err);
+      return res.status(500).json({ message: "Erreur serveur lors de la création de l'affaire." });
+    }
+
+    // 5. Si bien passé, on renvoie une réponse de succès au frontend
+    console.log("Nouvelle affaire créée avec l'ID :", result.insertId);
+    
+    // On renvoie un statut 201 (Created) et un objet JSON avec les infos
+    res.status(201).json({ 
+      message: "Affaire créée avec succès !",
+      id_affaire: result.insertId,
+      ...req.body 
+    });
+  });
+});
+
 app.listen(port,()=>{
     console.log(`🚀 Serveur lancé sur http://localhost:${port}`);
 })
