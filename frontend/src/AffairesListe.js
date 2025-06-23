@@ -100,10 +100,11 @@ const AffairesListe = () => {
               <td>{affaire.numero_affaire}</td>
               <td>{affaire.observation}</td>
               <td>
-                <button className="action-btn">Voir</button>
-                <button className="action-btn">Modifier</button>
-                <button className="action-btn">Supprimer</button>
+                <button className="btn-view">Voir</button>
+                <button className="btn-edit">Modifier</button>
+                <button className="btn-delete">Supprimer</button>
               </td>
+
             </tr>
           ))}
         </tbody>
