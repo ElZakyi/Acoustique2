@@ -37,7 +37,7 @@
   }
 }
 
-/* Dans src/App.css */
+
 
 table {
   width: 100%;
@@ -64,9 +64,12 @@ td button {
   cursor: pointer;
 }
 
-/* Dans src/App.css */
 
-/* Le conteneur principal, comme sur la page de connexion */
+
+
+
+
+
 .container-box {
   background-color: white;
   padding: 30px 40px;
@@ -76,7 +79,7 @@ td button {
   margin: 50px auto; /* Centre le conteneur sur la page */
 }
 
-/* Pour l'en-tête de la page (titre + bouton) */
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -91,12 +94,12 @@ td button {
   font-size: 24px;
   font-weight: 600;
   color: #333;
-  margin: 0; /* Enlève la marge par défaut du h1 */
+  margin: 0; 
 }
 
-/* Le style du bouton bleu principal */
+
 .btn-primary {
-  background-color: #0d6efd; /* Un bleu standard et joli */
+  background-color: #0d6efd; 
   color: white;
   border: none;
   padding: 10px 20px;
@@ -107,10 +110,10 @@ td button {
 }
 
 .btn-primary:hover {
-  background-color: #0b5ed7; /* Un bleu un peu plus foncé au survol */
+  background-color: #0b5ed7; 
 }
 
-/* Les styles pour le tableau que nous avions déjà */
+
 table {
   width: 100%;
   border-collapse: collapse;
