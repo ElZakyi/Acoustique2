@@ -57,6 +57,7 @@ app.post("/api/utilisateurs",(req,res)=>{
     });
     })
 });
+
 // ✅ Route POST pour la connexion
 app.post("/api/connexion",(req,res)=>{
     const {nom,mot_de_passe} = req.body;
@@ -75,6 +76,18 @@ app.post("/api/connexion",(req,res)=>{
         else {
             return res.status(401).json({message:"identifiant ou mot de passe incorrect"});
         }
+    })
+})
+
+//recuperation de toutes les affaires 
+app.get("/api/affaire",(req,res)=>{
+    const sql = "SELECT * FROM affaire";
+    db.query(sql,(err,result)=>{
+        if(err){
+            console.error("Erreur lors de recuperation des affaires : ",err);
+            return res.status(500).json({message:"Erreur serveur"});
+        }
+        return res.status(200).json(result);
     })
 })
 
