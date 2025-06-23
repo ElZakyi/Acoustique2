@@ -36,3 +36,105 @@
     transform: rotate(360deg);
   }
 }
+
+/* Dans src/App.css */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+thead {
+  background-color: #f2f2f2;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+td button {
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+/* Dans src/App.css */
+
+/* Le conteneur principal, comme sur la page de connexion */
+.container-box {
+  background-color: white;
+  padding: 30px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 800px; /* Augmenté pour une page de liste */
+  margin: 50px auto; /* Centre le conteneur sur la page */
+}
+
+/* Pour l'en-tête de la page (titre + bouton) */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+/* Le titre de la page */
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin: 0; /* Enlève la marge par défaut du h1 */
+}
+
+/* Le style du bouton bleu principal */
+.btn-primary {
+  background-color: #0d6efd; /* Un bleu standard et joli */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7; /* Un bleu un peu plus foncé au survol */
+}
+
+/* Les styles pour le tableau que nous avions déjà */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 12px;
+}
+
+thead {
+  background-color: #f2f2f2;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+td button {
+  margin-right: 5px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
