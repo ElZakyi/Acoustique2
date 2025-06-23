@@ -1,39 +1,41 @@
-// src/AffairesListe.js
-
 import React, { useState, useEffect } from 'react';
-
-// Données de test 
-const fakeAffaires = [
-  { id_affaire: 1, objet: 'Etude acoustique', client: 'Société', numero_affaire: 'AF2024-001' },
-  { id_affaire: 2, objet: ' hôpital', client: 'HP', responsable: 'Marie Curie', numero_affaire: 'AF2024-002' },
-  { id_affaire: 3, objet: 'Conception un silencieux', client: 'Tech', responsable: 'Pierre Martin', numero_affaire: 'AF2024-003' }
-];
+import axios from 'axios';
 
 const AffairesListe = () => {
   const [affaires, setAffaires] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    setTimeout(() => {
-      setAffaires(fakeAffaires);
-      setLoading(false);
-    }, 500);
+    const fetchAffaires = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/affaires');
+        setAffaires(response.data);
+      } catch (err) {
+        setError('Impossible de charger les données. Vérifiez que le serveur backend est bien lancé.');
+        console.error("Erreur lors de la récupération des affaires :", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAffaires();
   }, []);
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return <div className="container-box"><h1 className="page-title">Chargement...</h1></div>;
+  }
+
+  if (error) {
+    return <div className="container-box"><h1 className="page-title" style={{ color: 'red' }}>{error}</h1></div>;
   }
 
   return (
-  
     <div className="container-box">
-      
       <div className="page-header">
         <h1 className="page-title">Liste des Affaires</h1>
         <button className="btn-primary">Ajouter une affaire</button>
       </div>
-
-
       <table>
         <thead>
           <tr>
