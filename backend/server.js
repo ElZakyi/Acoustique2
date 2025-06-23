@@ -80,7 +80,7 @@ app.post("/api/connexion",(req,res)=>{
 })
 
 //recuperation de toutes les affaires 
-app.get("/api/affaire",(req,res)=>{
+app.get("/api/affaires",(req,res)=>{
     const sql = "SELECT * FROM affaire";
     db.query(sql,(err,result)=>{
         if(err){

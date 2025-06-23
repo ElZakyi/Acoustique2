@@ -21,6 +21,10 @@ function Connexion() {
             setMotDePasse("");
             setMessage(res.data.message);
             setIsError(false);
+            // ✅ Redirection après 500ms si connexion réussie
+            setTimeout(() => {
+              navigate("/affaires");
+            }, 500);
 
         }catch(err){
             setIsError(true);

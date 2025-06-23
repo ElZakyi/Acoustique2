@@ -42,6 +42,9 @@ const AffairesListe = () => {
             <th>Numéro</th>
             <th>Objet</th>
             <th>Client</th>
+            <th>Responsable</th>
+            <th>NumeroAffaire</th>
+            <th>Observation</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -51,6 +54,9 @@ const AffairesListe = () => {
               <td>{affaire.numero_affaire}</td>
               <td>{affaire.objet}</td>
               <td>{affaire.client}</td>
+              <td>{affaire.responsable}</td>
+              <td>{affaire.numero_affaire}</td>
+              <td>{affaire.observation}</td>
               <td>
                 <button>Voir</button>
                 <button>Modifier</button>
