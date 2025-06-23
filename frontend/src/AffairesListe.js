@@ -1,45 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './AffairesListe.css';
+
 
 const AffairesListe = () => {
   const [affaires, setAffaires] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm,setShowForm] = useState(false);
-  const [formData,setFormData] = useState({
-    numero_affaire:'',
-    objet : '',
-    client : '',
-    reponsable : '',
-    observation : ''
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    numero_affaire: '',
+    objet: '',
+    client: '',
+    responsable: '',
+    observation: ''
   });
-  const [message,setMessage] = useState('');
+  const [message, setMessage] = useState('');
+  const [erreur, setIsErreur] = useState(false);
 
-  //fonction du soumission du formulaire 
   const handleInputChange = (e) => {
-    setFormData({...formData,[e.target.name] : e.target.value});
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleFormSubmit = async(e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:5000/api/affaires', formData);
       setMessage(response.data.message);
+      setIsErreur(false);
       setFormData({ numero_affaire: '', objet: '', client: '', responsable: '', observation: '' });
-      setShowForm(false);
-      // recharge les données
+      setTimeout(() => {
+        setShowForm(false);
+      }, 2000);
+
       const res = await axios.get('http://localhost:5000/api/affaires');
       setAffaires(res.data);
-    }catch(err){
-      console.error("Erreur ajout d'affaire : ",err);
+    } catch (err) {
+      console.error("Erreur ajout d'affaire :", err);
+      setIsErreur(true);
       setMessage("Erreur lors de l'ajout de l'affaire");
     }
-  }
+  };
 
   useEffect(() => {
     const fetchAffaires = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/affaire');
+        const response = await axios.get('http://localhost:5000/api/affaires');
         setAffaires(response.data);
       } catch (err) {
         setError('Impossible de charger les données. Vérifiez que le serveur backend est bien lancé.');
@@ -57,23 +63,29 @@ const AffairesListe = () => {
   }
 
   if (error) {
-    return <div className="container-box"><h1 className="page-title" style={{ color: 'red' }}>{error}</h1></div>;
+    return <div className="container-box"><h1 className="page-title error">{error}</h1></div>;
   }
 
   return (
     <div className="container-box">
       <div className="page-header">
         <h1 className="page-title">Liste des Affaires</h1>
-        <button className="btn-primary" onClick={()=>setShowForm(!showForm)}>{showForm? "Annuler" : "Ajouter une affaire"}</button>
+        <button className="btn-primary" onClick={() => {
+          setShowForm(!showForm);
+          setMessage("");
+        }}>
+          {showForm ? "Annuler" : "Ajouter une affaire"}
+        </button>
       </div>
-      <table>
+
+      <table className="affaires-table">
         <thead>
           <tr>
             <th>Numéro</th>
             <th>Objet</th>
             <th>Client</th>
             <th>Responsable</th>
-            <th>NumeroAffaire</th>
+            <th>Numéro Affaire</th>
             <th>Observation</th>
             <th>Actions</th>
           </tr>
@@ -88,60 +100,25 @@ const AffairesListe = () => {
               <td>{affaire.numero_affaire}</td>
               <td>{affaire.observation}</td>
               <td>
-                <button>Voir</button>
-                <button>Modifier</button>
-                <button>Supprimer</button>
+                <button className="action-btn">Voir</button>
+                <button className="action-btn">Modifier</button>
+                <button className="action-btn">Supprimer</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {showForm&&(
-        <form onSubmit={handleFormSubmit} className='box'>
-          <h3>Nouvelle affaire</h3>
-          <input 
-            className="input"
-            type = "text"
-            name = "numero_affaire"
-            placeholder="numero d'affaire"
-            value = {formData.numero_affaire}
-            onChange={handleInputChange}
-            />
-            <input
-              className="input"
-              type="text"
-              name = "objet"
-              placeholder='Objet'
-              value={formData.objet}
-              onChange={handleInputChange}
-            />
-            <input
-              className="input"
-              type="text"
-              name="client"
-              placeholder="Client"
-              value={formData.client}
-              onChange={handleInputChange}
-          />
-          <input
-              className="input"
-              type="text"
-              name="responsable"
-              placeholder="Responsable"
-              value={formData.responsable}
-              onChange={handleInputChange}
-          />
-          <input
-              className="input"
-              type="text"
-              name="observation"
-              placeholder="Observation"
-              value={formData.observation}
-              onChange={handleInputChange}
-          />
-          <button className='btn' type='submit'>Valider</button>
-          {message && <p className="succes">{message}</p>}
 
+      {showForm && (
+        <form onSubmit={handleFormSubmit} className="affaires-form">
+          <h3 className="form-title">Nouvelle affaire</h3>
+          <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={formData.numero_affaire} onChange={handleInputChange} />
+          <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} />
+          <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} />
+          <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} />
+          <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
+          <button className="form-button" type="submit">Valider</button>
+          {message && <p className={erreur ? "form-error" : "form-success"}>{message}</p>}
         </form>
       )}
     </div>

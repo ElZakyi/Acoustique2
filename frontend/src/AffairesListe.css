@@ -1,0 +1,121 @@
+.container-box {
+  background-color: white;
+  padding: 30px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 50px auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+}
+
+.affaires-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.affaires-table th, .affaires-table td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 12px;
+}
+
+.affaires-table thead {
+  background-color: #f2f2f2;
+}
+
+.affaires-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.action-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  margin-right: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.action-btn:hover {
+  background-color: #5a6268;
+}
+
+.affaires-form {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.form-title {
+  margin-bottom: 20px;
+  font-size: 20px;
+  color: #333;
+}
+
+.form-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-button {
+  background-color: #198754;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-button:hover {
+  background-color: #157347;
+}
+
+.form-success {
+  color: green;
+  margin-top: 12px;
+  font-weight: bold;
+}
+
+.form-error {
+  color: red;
+  margin-top: 12px;
+  font-weight: bold;
+}
