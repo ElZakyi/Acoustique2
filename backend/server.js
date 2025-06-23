@@ -144,6 +144,19 @@ app.delete('/api/affaires/:id',(req,res)=>{
         }
         return res.status(200).json({message:"Affaire supprimée avec succès !"})
     })
+});
+// Mettre à jour une affaire par ID
+app.put('/api/affaires/:id',(req,res)=>{
+    const {id} = req.params;
+    const { objet, client, responsable, numero_affaire, observation } = req.body;
+    const sql = "UPDATE affaire SET objet = ?, client = ?, responsable = ?, numero_affaire = ?, observation = ? WHERE id_affaire = ?";
+    db.query(sql,[objet,client,responsable,numero_affaire,observation,id],(err,result)=>{
+        if(err){
+            console.error("error lors de la modification de l'affaire : ",err);
+            return res.status(500).json({message : "erreur serveur lors de la mise a jour "});
+        }
+        return res.status(200).json({message : "Affaire modifié avec succés ! "});
+    })
 })
 
 app.listen(port,()=>{

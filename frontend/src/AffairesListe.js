@@ -9,6 +9,7 @@ const AffairesListe = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
+    id_affaire: null,
     numero_affaire: '',
     objet: '',
     client: '',
@@ -25,13 +26,16 @@ const AffairesListe = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/affaires', formData);
-      setMessage(response.data.message);
+      if(formData.id_affaire){
+        const response = await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, formData);
+        setMessage(response.data.message);
+      } else {
+        const response = await axios.post('http://localhost:5000/api/affaires', formData);
+        setMessage(response.data.message);
+      }
       setIsErreur(false);
       setFormData({ numero_affaire: '', objet: '', client: '', responsable: '', observation: '' });
-      setTimeout(() => {
-        setShowForm(false);
-      }, 2000);
+      setShowForm(false);
 
       const res = await axios.get('http://localhost:5000/api/affaires');
       setAffaires(res.data);
@@ -54,6 +58,12 @@ const AffairesListe = () => {
       setIsErreur(true);
       alert("erreur lors de supression");
     }
+  }
+
+  const handleEdit = (affaire) => {
+    setFormData(affaire);
+    setShowForm(true);
+    setMessage("");
   }
 
   useEffect(() => {
@@ -116,7 +126,7 @@ const AffairesListe = () => {
               <td>{affaire.observation}</td>
               <td>
                 <button className="btn-view">Voir</button>
-                <button className="btn-edit">Modifier</button>
+                <button className="btn-edit" onClick={()=>handleEdit(affaire)}>Modifier</button>
                 <button className="btn-delete" onClick={()=> handleDelete(affaire.id_affaire)}>Supprimer</button>
               </td>
 
@@ -133,8 +143,7 @@ const AffairesListe = () => {
           <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} />
           <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} />
           <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
-          <button className="form-button" type="submit">Valider</button>
-          {message && <p className={erreur ? "form-error" : "form-success"}>{message}</p>}
+          <button className="form-button" type="submit">{formData.id_affaire? "modifier l'affaire" : "Valider"}</button>
         </form>
       )}
     </div>
