@@ -42,6 +42,20 @@ const AffairesListe = () => {
     }
   };
 
+  const handleDelete = async(id) => {
+    if(!window.confirm("Êtes-vous sûr de vouloir supprimer cette affaire ?")) return;
+    try {
+      await axios.delete(`http://localhost:5000/api/affaires/${id}`);
+      setAffaires(affaires.filter(a=>a.id_affaire !== id));
+      setMessage("affaire supprimé avec succés ! ");
+      setIsErreur(false);
+    }catch(err){
+      console.error("erreur lors de la supression de l'affaire :  ",err);
+      setIsErreur(true);
+      alert("erreur lors de supression");
+    }
+  }
+
   useEffect(() => {
     const fetchAffaires = async () => {
       try {
@@ -70,6 +84,7 @@ const AffairesListe = () => {
     <div className="container-box">
       <div className="page-header">
         <h1 className="page-title">Liste des Affaires</h1>
+        {message && <p className={erreur ? "form-error" : "form-success"}>{message}</p>}
         <button className="btn-primary" onClick={() => {
           setShowForm(!showForm);
           setMessage("");
@@ -102,7 +117,7 @@ const AffairesListe = () => {
               <td>
                 <button className="btn-view">Voir</button>
                 <button className="btn-edit">Modifier</button>
-                <button className="btn-delete">Supprimer</button>
+                <button className="btn-delete" onClick={()=> handleDelete(affaire.id_affaire)}>Supprimer</button>
               </td>
 
             </tr>

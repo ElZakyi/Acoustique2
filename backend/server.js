@@ -9,7 +9,7 @@ const port = 5000;
 app.use(express.json());
 app.use(cors({
     origin: 'http://localhost:3000',
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST','DELETE', 'PUT', 'OPTIONS'],
     allowedHeaders: ['Content-Type']
 }));
 
@@ -120,11 +120,7 @@ app.post('/api/affaires', (req, res) => {
     if (err) {
       console.error("Erreur lors de la création de l'affaire :", err);
       return res.status(500).json({ message: "Erreur serveur lors de la création de l'affaire." });
-    }
-
-    // 5. Si bien passé, on renvoie une réponse de succès au frontend
-    console.log("Nouvelle affaire créée avec l'ID :", result.insertId);
-    
+    }    
     // On renvoie un statut 201 (Created) et un objet JSON avec les infos
     res.status(201).json({ 
       message: "Affaire créée avec succès !",
@@ -133,6 +129,22 @@ app.post('/api/affaires', (req, res) => {
     });
   });
 });
+
+// Supprimer une affaire par ID
+app.delete('/api/affaires/:id',(req,res)=>{
+    const {id} = req.params;
+    const sql = "DELETE FROM affaire WHERE id_affaire = ?";
+    db.query(sql,[id],(err,result)=>{
+        if(err){
+            console.error("Erreur lors de supression de l'affaire : ",err);
+            return res.status(500).json({message : "Erreur serveur"});
+        }
+        if(result.affectedRows === 0){
+            return res.status(404).json({message:"Affaire non trouvé"});
+        }
+        return res.status(200).json({message:"Affaire supprimée avec succès !"})
+    })
+})
 
 app.listen(port,()=>{
     console.log(`🚀 Serveur lancé sur http://localhost:${port}`);
