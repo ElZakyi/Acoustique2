@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Connexion from './Connexion';
 import Inscription from './Inscription';
 import AffairesListe from './AffairesListe';
-import SallesListe from './SallesListe';
 
 function App() {
   return (
@@ -12,7 +11,6 @@ function App() {
         <Route path="/connexion" element={<Connexion/>}/>
         <Route path="/inscription" element={<Inscription/>}/>
         <Route path="/affaires" element={<AffairesListe />} />
-        <Route path="/affaires/:id_affaire/salles" element={<SallesListe />} />
       </Routes>
     </Router>
   );
