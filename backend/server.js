@@ -30,7 +30,7 @@ db.connect((err)=>{
     }else {
         console.log('✅ Connecté à la base de données MySQL');
     }
-})
+});
 
 // Route POST pour l’inscription
 app.post("/api/utilisateurs",(req,res)=>{
@@ -76,8 +76,8 @@ app.post("/api/connexion",(req,res)=>{
         else {
             return res.status(401).json({message:"identifiant ou mot de passe incorrect"});
         }
-    })
-})
+    });
+});
 
 //recuperation de toutes les affaires 
 app.get("/api/affaires",(req,res)=>{
@@ -88,8 +88,8 @@ app.get("/api/affaires",(req,res)=>{
             return res.status(500).json({message:"Erreur serveur"});
         }
         return res.status(200).json(result);
-    })
-})
+    });
+});
 
 
 // Route POST pour créer une nouvelle affaire
@@ -143,7 +143,7 @@ app.delete('/api/affaires/:id',(req,res)=>{
             return res.status(404).json({message:"Affaire non trouvé"});
         }
         return res.status(200).json({message:"Affaire supprimée avec succès !"})
-    })
+    });
 });
 // Mettre à jour une affaire par ID
 app.put('/api/affaires/:id',(req,res)=>{
@@ -156,8 +156,50 @@ app.put('/api/affaires/:id',(req,res)=>{
             return res.status(500).json({message : "erreur serveur lors de la mise a jour "});
         }
         return res.status(200).json({message : "Affaire modifié avec succés ! "});
-    })
-})
+    });
+});
+
+// Liste des salles d'une affaire spécifique
+app.get('/api/affaires/:id_affaire/salles', (req, res) => {
+  const { id_affaire } = req.params;
+  const sql = "SELECT * FROM salle WHERE id_affaire = ?";
+
+  db.query(sql, [id_affaire], (err, result) => {
+    if (err) {
+      console.error("Erreur lors de la récupération des salles :", err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+    return res.status(200).json(result);
+  });
+});
+
+//inserer une salle dans une affaire 
+app.post('/api/affaires/:id_affaire/salles', (req, res) => {
+  const { id_affaire } = req.params;
+  const { longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, surface_totale } = req.body;
+
+  if (!longueur || !largeur || !hauteur || !tr ) {
+    return res.status(400).json({ message: "Tous les champs sont obligatoires." });
+  }
+
+  const sql = `
+    INSERT INTO salle 
+    (longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, id_affaire, surface_totale)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  const values = [longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, id_affaire, surface_totale];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("Erreur lors de l'insertion de la salle :", err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+    res.status(201).json({ message: "Salle insérée avec succès !", id_salle: result.insertId });
+  });
+});
+
+
 
 app.listen(port,()=>{
     console.log(`🚀 Serveur lancé sur http://localhost:${port}`);
