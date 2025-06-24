@@ -252,3 +252,27 @@
   font-weight: bold;
   color: #222;
 }
+.logout-container {
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+.btn-logout {
+  padding: 8px 16px;
+  background-color: #d9534f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-logout:hover {
+  background-color: #c9302c;
+}
+.logout-global {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px 50px 0 0;
+}
+

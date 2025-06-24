@@ -1,6 +1,6 @@
 // -- MODIFIÉ -- On importe Link pour la navigation et les icônes
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaEye, FaPencilAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import './AffairesListe.css'; // Assurez-vous que ce fichier contient les styles des icônes
@@ -21,6 +21,8 @@ const AffairesListe = () => {
   });
   const [message, setMessage] = useState('');
   const [erreur, setIsErreur] = useState(false);
+
+  const navigate = useNavigate();
 
   const fetchAffaires = async () => {
     try {
@@ -85,6 +87,12 @@ const AffairesListe = () => {
     setShowForm(true);
     setMessage("");
   }
+
+  const handleLogout = () => {
+    localStorage.removeItem("email");
+    localStorage.removeItem("id_utilisateur");
+    navigate('/connexion');
+  }
   
   // ... (le reste de vos fonctions ne change pas) ...
 
@@ -97,6 +105,10 @@ const AffairesListe = () => {
   }
 
   return (
+    <>
+    <div className="logout-global">
+      <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
+    </div>
     <div className="container-box">
       <div className="page-header">
         <h1 className="page-title">Liste des Affaires</h1>
@@ -169,6 +181,7 @@ const AffairesListe = () => {
         </form>
       )}
     </div>
+    </>
   );
 };
 

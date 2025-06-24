@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FaEye, FaPencilAlt, FaTrash } from 'react-icons/fa';
 import './AffairesListe.css'; // Réutilisation du style
@@ -24,6 +24,7 @@ const SallesListe = () => {
     r:0,
   })
   const [message,setMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,6 +52,11 @@ const SallesListe = () => {
       });
     }
   };
+  const handleLogout = () => {
+    localStorage.removeItem("email");
+    localStorage.removeItem("id_utilisateur");
+    navigate("/connexion");
+    };
 
   const handleSubmit = async(e) => {
     e.preventDefault();
@@ -99,6 +105,10 @@ const SallesListe = () => {
   if (error) return <div className="container-box"><h1 className="page-title" style={{ color: 'red' }}>{error}</h1></div>;
 
   return (
+    <>
+    <div className="logout-global">
+      <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
+    </div>
     <div className="container-box">
       <div className="page-header">
         <h1 className="page-title">Liste des Salles de l'Affaire #{id_affaire}</h1>
@@ -173,6 +183,7 @@ const SallesListe = () => {
         </form>
       )}
     </div>
+    </>
     
   );
 };
