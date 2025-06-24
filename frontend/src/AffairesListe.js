@@ -49,7 +49,10 @@ const AffairesListe = () => {
         await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, formData);
         setMessage("Affaire mise à jour avec succès !");
       } else {
-        await axios.post('http://localhost:5000/api/affaires', formData);
+        await axios.post('http://localhost:5000/api/affaires', {
+          ...formData,
+          id_utilisateur:localStorage.getItem("id_utilisateur"),
+          responsable:localStorage.getItem("email")});
         setMessage("Affaire ajoutée avec succès !");
       }
       setIsErreur(false);
@@ -160,7 +163,7 @@ const AffairesListe = () => {
           <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={formData.numero_affaire} onChange={handleInputChange} />
           <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} />
           <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} />
-          <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} />
+          {/* <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} /> */}
           <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
           <button className="form-button" type="submit">{formData.id_affaire ? "Mettre à jour" : "Valider"}</button>
         </form>

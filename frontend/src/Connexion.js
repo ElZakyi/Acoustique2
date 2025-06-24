@@ -37,6 +37,10 @@ function Connexion() {
               navigate("/affaires");
             }, 500);
 
+            // ✅ Stocker les infos du user
+            localStorage.setItem("email", res.data.utilisateur.email);
+            localStorage.setItem("id_utilisateur", res.data.utilisateur.id);
+
             navigate('/affaires');
 // Stashed changes
 

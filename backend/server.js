@@ -95,7 +95,7 @@ app.get("/api/affaires",(req,res)=>{
 // Route POST pour créer une nouvelle affaire
 app.post('/api/affaires', (req, res) => {
   // 1. On récupère les données envoyées par le formulaire via req.body
-  const { objet, client, responsable, numero_affaire, observation } = req.body;
+  const { objet, client, responsable, numero_affaire, observation, id_utilisateur } = req.body;
 
   // 2. On fait une petite validation pour s'assurer que les champs importants ne sont pas vides
   if (!objet || !client || !numero_affaire) {
@@ -104,14 +104,15 @@ app.post('/api/affaires', (req, res) => {
 
   // 3. On prépare la requête SQL pour l'insertion
   // Les '?' sont des "placeholders" pour éviter les injections SQL, c'est une bonne pratique de sécurité.
-  const sql = "INSERT INTO affaire (objet, client, responsable, numero_affaire, observation) VALUES (?, ?, ?, ?, ?)";
+  const sql = "INSERT INTO affaire (objet, client, responsable, numero_affaire, observation, id_utilisateur) VALUES (?, ?, ?, ?, ?, ?)";
   
   const values = [
     objet,
     client,
     responsable, 
     numero_affaire,
-    observation  
+    observation,
+    id_utilisateur
   ];
 
   // 4. On exécute la requête sur la base de données
@@ -203,4 +204,4 @@ app.post('/api/affaires/:id_affaire/salles', (req, res) => {
 
 app.listen(port,()=>{
     console.log(`🚀 Serveur lancé sur http://localhost:${port}`);
-})
+});
