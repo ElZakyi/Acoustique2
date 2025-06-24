@@ -14,30 +14,48 @@
   color: #333;
 }
 
+/* On applique ce style à la fois aux inputs et aux selects qui ont la classe .input */
 .input {
-  width: 90%;
-  padding: 10px;
+  /* AMÉLIORATION : 100% pour remplir tout l'espace disponible dans le conteneur */
+  width: 100%; 
+  padding: 12px; /* Un peu plus de padding pour un meilleur confort visuel */
   margin-bottom: 15px;
   border: 1px solid #aaa;
   border-radius: 6px;
   font-size: 16px;
   text-align: center;
+  
+  /* ✅ CORRECTION PRINCIPALE : Cette ligne force tous les éléments
+     (input, select) à calculer leur largeur de la même manière, 
+     en incluant le padding et la bordure. */
+  box-sizing: border-box; 
 }
+
+/* Ajout d'une petite spécificité pour le select pour un meilleur rendu */
+select.input {
+    cursor: pointer;
+    /* Assure que le texte est centré, même si c'est souvent le cas par défaut */
+    text-align-last: center; 
+}
+
 
 .buttons {
   display: flex;
   justify-content: center;
   gap: 10px;
+  margin-top: 10px; /* Ajoute un peu d'espace au-dessus des boutons */
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: 12px 20px; /* Un peu plus de hauteur */
   background-color: #2c7be5;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  width: 40%;
+  width: 50%; /* On augmente un peu la largeur pour un meilleur équilibre */
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .btn:hover {
@@ -47,9 +65,11 @@
 .success {
   color: green;
   margin-top: 15px;
+  font-weight: bold;
 }
 
 .error {
   color: red;
   margin-top: 15px;
+  font-weight: bold;
 }

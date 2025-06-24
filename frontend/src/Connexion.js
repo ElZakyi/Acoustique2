@@ -65,7 +65,7 @@ function Connexion() {
         <input
           className="input"
           type="text"
-          placeholder="Nom d'utilisateur"
+          placeholder="Adresse e-mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
