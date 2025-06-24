@@ -3,21 +3,31 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 function Connexion() {
-    const [nom,setNom] = useState("");
+    const [email,setEmail] = useState("");
     const [motDePasse,setMotDePasse] = useState("");
     const [message,setMessage] = useState("");
     const [isError, setIsError] = useState(false);
     
     const navigate = useNavigate();
 
+    const validateEmail = (email) => {
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(email);
+    };
+
     const handleSubmit = async(e) => {
         e.preventDefault();
+        if(!validateEmail(email)){
+          setMessage("Veuillez entrer un email valide.");
+          setIsError(true);
+          return;
+        }
         try {
             const res = await axios.post("http://localhost:5000/api/connexion",{
-                nom,
+                email,
                 mot_de_passe : motDePasse
             });
-            setNom("");
+            setEmail("");
             setMotDePasse("");
             setMessage(res.data.message);
             setIsError(false);
@@ -52,8 +62,8 @@ function Connexion() {
           className="input"
           type="text"
           placeholder="Nom d'utilisateur"
-          value={nom}
-          onChange={(e) => setNom(e.target.value)}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <input
           className="input"

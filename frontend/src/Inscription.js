@@ -4,23 +4,34 @@ import { useNavigate } from "react-router-dom";
 import "./Inscription.css";
 
 function Inscription(){
-    const [nom,setNom] = useState("");
+    const [email,setEmail] = useState("");
     const [motDePasse,setMotDePasse] = useState("");
     const [message,setMessage] = useState("");
     const [isError,setIsError] = useState(false);
 
     const navigate = useNavigate();
 
+    //valider la forme d'email 
+    const validateEmail = (email) => {
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(email);
+    };
+
     const handleSubmit = async(e) => {
         e.preventDefault();
+        if(!validateEmail(email)){
+          setMessage("Veuillez entrer un email valide.");
+          setIsError(true);
+          return;
+        }
         try {
             const res = await axios.post("http://localhost:5000/api/utilisateurs", {
-                nom ,
+                email ,
                 mot_de_passe : motDePasse
             });
             setMessage(res.data.message);
             setIsError(false);
-            setNom("");
+            setEmail("");
             setMotDePasse("");
         }catch(err){
             if(err.response && err.response.data && err.response.data.message){
@@ -45,8 +56,8 @@ function Inscription(){
         <input
           type="text"
           placeholder="Nom Utilisateur"
-          value={nom}
-          onChange={(e) => setNom(e.target.value)}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="input"
         />
         <input

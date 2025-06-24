@@ -34,21 +34,21 @@ db.connect((err)=>{
 
 // Route POST pour l’inscription
 app.post("/api/utilisateurs",(req,res)=>{
-    const {nom,mot_de_passe} = req.body;
-    if(!nom || !mot_de_passe){
+    const {email,mot_de_passe} = req.body;
+    if(!email || !mot_de_passe){
         return res.status(400).json({message : "champs manquant"});
     }
-    const checkSql = "SELECT * FROM utilisateur WHERE nom = ? AND mot_de_passe = ?";
-    db.query(checkSql,[nom,mot_de_passe],(err,results)=>{
+    const checkSql = "SELECT * FROM utilisateur WHERE email = ? ";
+    db.query(checkSql,[email],(err,results)=>{
         if(err){
             console.err("Erreur lors de la verification : ",err);   
             return res.status(500).json({message: "Erreur Serveur"});
         }
         if(results.length>0){
-            return res.status(409).json({message:"ce compte est déja créé ! "});
+            return res.status(409).json({message:"cet email est déja utilisé ! "});
         }
-        const sql = "INSERT INTO utilisateur (nom,mot_de_passe) VALUES (?,?)";
-        db.query(sql,[nom,mot_de_passe],(err,result)=>{
+        const sql = "INSERT INTO utilisateur (email,mot_de_passe) VALUES (?,?)";
+        db.query(sql,[email,mot_de_passe],(err,result)=>{
         if(err){
             console.error("Erreur lors de l'inscription :",err);
             return res.status(500).json({message:"Erreur serveur"});
@@ -60,12 +60,12 @@ app.post("/api/utilisateurs",(req,res)=>{
 
 // ✅ Route POST pour la connexion
 app.post("/api/connexion",(req,res)=>{
-    const {nom,mot_de_passe} = req.body;
-    if(!nom || !mot_de_passe){
+    const {email,mot_de_passe} = req.body;
+    if(!email || !mot_de_passe){
         return res.status(400).json({message:"champs manquant"});
     }
-    const sql = "SELECT * FROM utilisateur WHERE nom = ? AND mot_de_passe = ? ";
-    db.query(sql,[nom,mot_de_passe],(err,results)=>{
+    const sql = "SELECT * FROM utilisateur WHERE email = ? AND mot_de_passe = ? ";
+    db.query(sql,[email,mot_de_passe],(err,results)=>{
         if(err) {
             console.error("Erreur lors de la connexion : ",err);
             return res.status(500).json({message : "Erreur serveur"});
