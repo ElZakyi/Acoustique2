@@ -1,6 +1,9 @@
+// -- MODIFIÉ -- On importe Link pour la navigation et les icônes
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { FaEye, FaPencilAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
-import './AffairesListe.css';
+import './AffairesListe.css'; // Assurez-vous que ce fichier contient les styles des icônes
 
 
 const AffairesListe = () => {
@@ -19,6 +22,22 @@ const AffairesListe = () => {
   const [message, setMessage] = useState('');
   const [erreur, setIsErreur] = useState(false);
 
+  const fetchAffaires = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/affaires');
+      setAffaires(response.data);
+    } catch (err) {
+      setError('Impossible de charger les données. Vérifiez que le serveur backend est bien lancé.');
+      console.error("Erreur lors de la récupération des affaires :", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAffaires();
+  }, []);
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -26,61 +45,45 @@ const AffairesListe = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      if(formData.id_affaire){
-        const response = await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, formData);
-        setMessage(response.data.message);
+      if (formData.id_affaire) {
+        await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, formData);
+        setMessage("Affaire mise à jour avec succès !");
       } else {
-        const response = await axios.post('http://localhost:5000/api/affaires', formData);
-        setMessage(response.data.message);
+        await axios.post('http://localhost:5000/api/affaires', formData);
+        setMessage("Affaire ajoutée avec succès !");
       }
       setIsErreur(false);
-      setFormData({ numero_affaire: '', objet: '', client: '', responsable: '', observation: '' });
+      setFormData({ id_affaire: null, numero_affaire: '', objet: '', client: '', responsable: '', observation: '' });
       setShowForm(false);
-
-      const res = await axios.get('http://localhost:5000/api/affaires');
-      setAffaires(res.data);
+      fetchAffaires(); // On rafraîchit la liste
     } catch (err) {
-      console.error("Erreur ajout d'affaire :", err);
+      console.error("Erreur soumission formulaire :", err);
       setIsErreur(true);
-      setMessage("Erreur lors de l'ajout de l'affaire");
+      setMessage("Erreur lors de l'opération.");
     }
   };
 
-  const handleDelete = async(id) => {
-    if(!window.confirm("Êtes-vous sûr de vouloir supprimer cette affaire ?")) return;
+  const handleDelete = async (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette affaire ?")) return;
     try {
       await axios.delete(`http://localhost:5000/api/affaires/${id}`);
-      setAffaires(affaires.filter(a=>a.id_affaire !== id));
-      setMessage("affaire supprimé avec succés ! ");
+      setMessage("Affaire supprimée avec succès !");
       setIsErreur(false);
-    }catch(err){
-      console.error("erreur lors de la supression de l'affaire :  ",err);
+      fetchAffaires(); // On rafraîchit la liste au lieu de filtrer
+    } catch (err) {
+      console.error("Erreur lors de la suppression de l'affaire :", err);
       setIsErreur(true);
-      alert("erreur lors de supression");
+      alert("Erreur lors de la suppression");
     }
   }
 
   const handleEdit = (affaire) => {
-    setFormData(affaire);
+    setFormData({ ...affaire }); // Copie toutes les propriétés de l'affaire
     setShowForm(true);
     setMessage("");
   }
-
-  useEffect(() => {
-    const fetchAffaires = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/affaires');
-        setAffaires(response.data);
-      } catch (err) {
-        setError('Impossible de charger les données. Vérifiez que le serveur backend est bien lancé.');
-        console.error("Erreur lors de la récupération des affaires :", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAffaires();
-  }, []);
+  
+  // ... (le reste de vos fonctions ne change pas) ...
 
   if (loading) {
     return <div className="container-box"><h1 className="page-title">Chargement...</h1></div>;
@@ -97,6 +100,7 @@ const AffairesListe = () => {
         {message && <p className={erreur ? "form-error" : "form-success"}>{message}</p>}
         <button className="btn-primary" onClick={() => {
           setShowForm(!showForm);
+          setFormData({ id_affaire: null, numero_affaire: '', objet: '', client: '', responsable: '', observation: '' }); // Réinitialise le form
           setMessage("");
         }}>
           {showForm ? "Annuler" : "Ajouter une affaire"}
@@ -110,7 +114,7 @@ const AffairesListe = () => {
             <th>Objet</th>
             <th>Client</th>
             <th>Responsable</th>
-            <th>Numéro Affaire</th>
+
             <th>Observation</th>
             <th>Actions</th>
           </tr>
@@ -122,12 +126,27 @@ const AffairesListe = () => {
               <td>{affaire.objet}</td>
               <td>{affaire.client}</td>
               <td>{affaire.responsable}</td>
-              <td>{affaire.numero_affaire}</td>
+
               <td>{affaire.observation}</td>
-              <td>
-                <button className="btn-view">Voir</button>
-                <button className="btn-edit" onClick={()=>handleEdit(affaire)}>Modifier</button>
-                <button className="btn-delete" onClick={()=> handleDelete(affaire.id_affaire)}>Supprimer</button>
+              {/* -- MODIFIÉ -- La cellule des actions a été entièrement revue */}
+              <td className="actions-cell">
+                <Link to={`/affaires/${affaire.id_affaire}/salles`}>
+                  <button className="btn-primary">Gérer les salles</button>
+                </Link>
+                <div className="action-icons">
+                  <FaEye 
+                    className="icon-action icon-view"
+                    onClick={() => alert(`Détails de l'affaire:\n\nNuméro: ${affaire.numero_affaire}\nObjet: ${affaire.objet}\nClient: ${affaire.client}`)}
+                  />
+                  <FaPencilAlt 
+                    className="icon-action icon-edit"
+                    onClick={() => handleEdit(affaire)} 
+                  />
+                  <FaTrash 
+                    className="icon-action icon-delete" 
+                    onClick={() => handleDelete(affaire.id_affaire)} 
+                  />
+                </div>
               </td>
 
             </tr>
@@ -137,17 +156,18 @@ const AffairesListe = () => {
 
       {showForm && (
         <form onSubmit={handleFormSubmit} className="affaires-form">
-          <h3 className="form-title">Nouvelle affaire</h3>
+          <h3 className="form-title">{formData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
           <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={formData.numero_affaire} onChange={handleInputChange} />
           <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} />
           <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} />
           <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} />
           <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
-          <button className="form-button" type="submit">{formData.id_affaire? "modifier l'affaire" : "Valider"}</button>
+          <button className="form-button" type="submit">{formData.id_affaire ? "Mettre à jour" : "Valider"}</button>
         </form>
       )}
     </div>
   );
 };
+
 
 export default AffairesListe;
