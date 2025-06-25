@@ -197,13 +197,8 @@ const AffairesListe = () => {
                         ))}
                     </tbody>
                 </table>
-                
-                {/* ✅ Le bouton de retour est aussi conservé, venant de votre version */}
-                <div className="footer-actions">
-                  <button className="btn-secondary" onClick={() => navigate('/connexion')}>
-                   Retour à la page de connexion 
-                   </button>
-                </div>
+
+            
             </div>
         </>
     );
