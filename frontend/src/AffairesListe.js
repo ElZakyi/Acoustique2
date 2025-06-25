@@ -138,19 +138,6 @@ const AffairesListe = () => {
                         {showForm ? "Annuler" : "Ajouter une affaire"}
                     </button>
                 </div>
-
-                {showForm && (
-                    <form onSubmit={handleFormSubmit} className="affaires-form">
-                        <h3 className="form-title">{formData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
-                        <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={formData.numero_affaire} onChange={handleInputChange} required />
-                        <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} required/>
-                        <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} required/>
-                        <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} required />
-                        <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
-                        <button className="form-button" type="submit">{formData.id_affaire ? "Mettre à jour" : "Valider"}</button>
-                    </form>
-                )}
-
                 <table className="affaires-table">
                     <thead>
                         <tr>
@@ -199,6 +186,17 @@ const AffairesListe = () => {
                         ))}
                     </tbody>
                 </table>
+                {showForm && (
+                    <form onSubmit={handleFormSubmit} className="affaires-form">
+                        <h3 className="form-title">{formData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
+                        <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={formData.numero_affaire} onChange={handleInputChange} required />
+                        <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} required/>
+                        <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} required/>
+                        <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} required />
+                        <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
+                        <button className="form-button" type="submit">{formData.id_affaire ? "Mettre à jour" : "Valider"}</button>
+                    </form>
+                )}
             </div>
         </>
     );
