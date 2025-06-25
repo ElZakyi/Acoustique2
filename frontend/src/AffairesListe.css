@@ -336,3 +336,53 @@
 .btn-action:hover {
   background-color: #0b5ed7; /* Bleu plus foncé au survol */
 }
+
+/* Styles pour la fenêtre modale du spectre Lw */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  width: 90%;
+  max-width: 800px;
+}
+
+.spectre-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.spectre-input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.spectre-input-group label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}

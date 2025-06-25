@@ -1,9 +1,85 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaPencilAlt, FaTrash } from 'react-icons/fa';
-import './AffairesListe.css'; // On réutilise les mêmes styles
+import { FaPencilAlt, FaTrash, FaPlus } from 'react-icons/fa';
+import './AffairesListe.css'; // Assurez-vous d'avoir les styles pour les modales ici
 
+// On définit les bandes de fréquence standard
+const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000, 8000];
+
+// --- SOUS-COMPOSANT POUR LE FORMULAIRE DU SPECTRE LW ---
+const LwSourceForm = ({ source, onClose }) => {
+    const [spectre, setSpectre] = useState({});
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        axios.get(`http://localhost:5000/api/sources/${source.id_source}/lwsource`)
+            .then(response => {
+                const spectreInitial = {};
+                BANDES_FREQUENCE.forEach(bande => {
+                    const data = response.data.find(d => d.bande === bande);
+                    spectreInitial[bande] = data ? data.valeur_lw : '';
+                });
+                setSpectre(spectreInitial);
+            })
+            .catch(error => console.error("Erreur de chargement du spectre", error))
+            .finally(() => setLoading(false));
+    }, [source.id_source]);
+
+    const handleChange = (bande, valeur) => {
+        setSpectre(prev => ({ ...prev, [bande]: valeur }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const spectreArray = Object.entries(spectre).map(([bande, valeur_lw]) => ({
+            bande: parseInt(bande),
+            valeur_lw: parseFloat(valeur_lw) || 0
+        }));
+
+        try {
+            await axios.post(`http://localhost:5000/api/sources/${source.id_source}/lwsource`, { spectre: spectreArray });
+            alert("Spectre Lw sauvegardé !");
+            onClose();
+        } catch (error) {
+            alert("Erreur lors de la sauvegarde du spectre.");
+            console.error(error);
+        }
+    };
+    
+    if (loading) return (
+        <div className="modal-overlay">
+            <div className="modal-content">Chargement du spectre...</div>
+        </div>
+    );
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h3>Spectre Lw pour la source "{source.nom}"</h3>
+                <form onSubmit={handleSubmit}>
+                    <div className="spectre-grid">
+                        {BANDES_FREQUENCE.map(bande => (
+                            <div key={bande} className="spectre-input-group">
+                                <label>{bande} Hz</label>
+                                <input type="number" step="0.1" className="form-input"
+                                    value={spectre[bande] || ''}
+                                    onChange={(e) => handleChange(bande, e.target.value)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="modal-actions">
+                        <button type="submit" className="btn-primary">Enregistrer</button>
+                        <button type="button" className="btn-secondary" onClick={onClose}>Fermer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// --- COMPOSANT PRINCIPAL ---
 const SourcesSonoresListe = () => {
     const { id_salle } = useParams();
     const navigate = useNavigate();
@@ -13,14 +89,15 @@ const SourcesSonoresListe = () => {
     const [error, setError] = useState(null);
 
     const [showForm, setShowForm] = useState(false);
-    // ✅ CORRECTION : La valeur par défaut du 'type' doit correspondre à une des options.
-    const [formData, setFormData] = useState({ id_source: null, nom: '', type: 'soufflage' }); 
+    const [formData, setFormData] = useState({ id_source: null, nom: '', type: 'soufflage' });
     const [message, setMessage] = useState('');
     const [isErreur, setIsErreur] = useState(false);
+    const [selectedSource, setSelectedSource] = useState(null);
 
-    // Fonction pour récupérer les sources de la salle actuelle
+
     const fetchSources = async () => {
         try {
+            setLoading(true);
             const response = await axios.get(`http://localhost:5000/api/salles/${id_salle}/sources`);
             setSources(response.data);
         } catch (err) {
@@ -48,14 +125,16 @@ const SourcesSonoresListe = () => {
         e.preventDefault();
         try {
             if (formData.id_source) {
-                alert("La modification n'est pas encore implémentée.");
+                // await axios.put(`http://localhost:5000/api/sources/${formData.id_source}`, formData);
+                // setMessage("Source mise à jour avec succès !");
+                 alert("La modification n'est pas encore implémentée.");
             } else {
                 await axios.post(`http://localhost:5000/api/salles/${id_salle}/sources`, formData);
                 setMessage("Source ajoutée avec succès !");
             }
             setIsErreur(false);
             setShowForm(false);
-            setFormData({ id_source: null, nom: '', type: 'soufflage' }); // Réinitialiser le formulaire
+            setFormData({ id_source: null, nom: '', type: 'soufflage' });
             fetchSources();
         } catch (err) {
             setMessage(err.response?.data?.message || "Erreur lors de l'opération.");
@@ -81,13 +160,13 @@ const SourcesSonoresListe = () => {
         setShowForm(true);
         setMessage("");
     };
-    
+
     const handleLogout = () => {
         localStorage.removeItem("utilisateur");
         navigate('/connexion');
     };
 
-    if (loading) return <div className="container-box"><h1>Chargement...</h1></div>;
+    if (loading && sources.length === 0) return <div className="container-box"><h1>Chargement...</h1></div>;
     if (error) return <div className="container-box"><h1 className="error">{error}</h1></div>;
 
     return (
@@ -109,77 +188,62 @@ const SourcesSonoresListe = () => {
                 {showForm && (
                     <form onSubmit={handleFormSubmit} className="affaires-form">
                         <h3>{formData.id_source ? "Modifier la Source" : "Nouvelle Source Sonore"}</h3>
-                        <input
-                            className="form-input" type="text" name="nom"
-                            placeholder="Nom de la source sonore"
-                            value={formData.nom} onChange={handleInputChange} required
-                        />
-                        <select
-                            className="form-input" name="type"
-                            value={formData.type} onChange={handleInputChange} required
-                        >
-                            {/* ✅ CORRECTION : Chaque option a maintenant une valeur unique. */}
+                        <input className="form-input" type="text" name="nom" placeholder="Nom de la source" value={formData.nom} onChange={handleInputChange} required />
+                        <select className="form-input" name="type" value={formData.type} onChange={handleInputChange} required>
                             <option value="soufflage">Soufflage</option>
                             <option value="extraction">Extraction</option>
                             <option value="VC CRSL-ECM 2 /soufflage">VC CRSL-ECM 2 /soufflage</option>
                             <option value="VC CRSL-ECM 2 /reprise">VC CRSL-ECM 2 /reprise</option>
                         </select>
-                        <button type="submit" className="form-button">
-                            {formData.id_source ? "Mettre à jour" : "Enregistrer"}
-                        </button>
+                        <button type="submit" className="form-button">{formData.id_source ? "Mettre à jour" : "Enregistrer"}</button>
                     </form>
                 )}
 
                 <table className="affaires-table">
                     <thead>
                         <tr>
-                            <th>ID Source</th>
+                            <th>ID</th>
                             <th>Nom</th>
                             <th>Type</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {sources.length > 0 ? (
-                            sources.map((source) => (
-                                <tr key={source.id_source}>
-                                    <td>{source.id_source}</td>
-                                    <td>{source.nom}</td>
-                                    <td>{source.type}</td>
-                                    <td className="actions-cell">
-                                        {/* ✅ CORRECTION : Le texte du bouton a été changé. */}
-                                        <Link to={`/sources/${source.id_source}/composants`} className="btn-action">
-                                            Gérer les composants
-                                        </Link>
-                                        <div className="action-icons">
-                                            <FaPencilAlt
-                                                className="icon-action icon-edit"
-                                                title="Modifier"
-                                                onClick={() => handleEdit(source)}
-                                            />
-                                            <FaTrash
-                                                className="icon-action icon-delete"
-                                                title="Supprimer"
-                                                onClick={() => handleDelete(source.id_source)}
-                                            />
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="4" style={{ textAlign: 'center' }}>Aucune source sonore ajoutée pour cette salle.</td>
+                        {sources.map((source) => (
+                            <tr key={source.id_source}>
+                                <td>{source.id_source}</td>
+                                <td>{source.nom}</td>
+                                <td>{source.type}</td>
+                                <td className="actions-cell">
+                                    <button className="btn-action" onClick={() => setSelectedSource(source)}>
+                                        Spectre Lw initial
+                                    </button>
+                                    <Link to={`/sources/${source.id_source}/composants`} className="btn-action">
+                                        Gérer les composants
+                                    </Link>
+                                    <div className="action-icons">
+                                        <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEdit(source)} />
+                                        <FaTrash className="icon-action icon-delete" onClick={() => handleDelete(source.id_source)} />
+                                    </div>
+                                </td>
                             </tr>
-                        )}
+                        ))}
                     </tbody>
                 </table>
                 
                 <div className="footer-actions">
                     <button className="btn-secondary" onClick={() => navigate(-1)}>
-                        Retour à la page précédente
+                        Retour
                     </button>
                 </div>
             </div>
+            
+            {selectedSource && (
+                <LwSourceForm 
+                    source={selectedSource}
+                    onClose={() => setSelectedSource(null)}
+                />
+            )}
         </>
     );
 };

@@ -275,6 +275,46 @@ app.delete('/api/sources/:id_source', (req, res) => {
     });
 });
 
+// =================================================================
+// GESTION DU SPECTRE LWSOURCE
+// =================================================================
+
+// GET : Récupérer le spectre Lw d'une source sonore
+app.get('/api/sources/:id_source/lwsource', (req, res) => {
+    const { id_source } = req.params;
+    // On récupère les valeurs ordonnées par bande
+    const sql = "SELECT * FROM lwsource WHERE id_source = ? ORDER BY bande ASC";
+    db.query(sql, [id_source], (err, result) => {
+        if (err) return res.status(500).json({ message: "Erreur serveur" });
+        res.status(200).json(result);
+    });
+});
+
+// POST : Mettre à jour ou insérer le spectre Lw d'une source (méthode "upsert")
+app.post('/api/sources/:id_source/lwsource', (req, res) => {
+    const { id_source } = req.params;
+    const spectre = req.body.spectre; // On s'attend à recevoir un tableau d'objets [{bande, valeur_lw}, ...]
+
+    if (!spectre || !Array.isArray(spectre)) {
+        return res.status(400).json({ message: "Le spectre doit être un tableau." });
+    }
+
+    // On utilise REPLACE INTO qui est une extension MySQL. 
+    // Il supprime l'ancienne ligne si elle existe (basé sur la clé primaire/unique) et en insère une nouvelle.
+    // Pour que cela fonctionne bien, il faut une clé unique sur (id_source, bande).
+    // ALTER TABLE lwsource ADD UNIQUE KEY `unique_source_bande` (`id_source`, `bande`);
+    const sql = "REPLACE INTO lwsource (id_source, bande, valeur_lw) VALUES ?";
+    const values = spectre.map(item => [id_source, item.bande, item.valeur_lw]);
+
+    db.query(sql, [values], (err, result) => {
+        if (err) {
+            console.error("Erreur lors de la mise à jour du spectre Lw:", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        res.status(200).json({ message: "Spectre Lw mis à jour avec succès." });
+    });
+});
+
 
 // =================================================================
 // DÉMARRAGE DU SERVEUR
