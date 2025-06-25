@@ -10,18 +10,8 @@ function Connexion() {
     
     const navigate = useNavigate();
 
-    const validateEmail = (email) => {
-      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return regex.test(email);
-    };
-
     const handleSubmit = async(e) => {
         e.preventDefault();
-        if(!validateEmail(email)){
-          setMessage("Veuillez entrer un email valide.");
-          setIsError(true);
-          return;
-        }
         try {
             const res = await axios.post("http://localhost:5000/api/connexion",{
                 email,

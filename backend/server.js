@@ -36,8 +36,12 @@ db.connect((err) => {
 // Route POST pour l’inscription (Avec la gestion du rôle)
 app.post("/api/utilisateurs", (req, res) => {
     const { email, mot_de_passe, role } = req.body;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !mot_de_passe || !role) {
         return res.status(400).json({ message: "Tous les champs (email, mot de passe, rôle) sont requis." });
+    }
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Format d'adresse e-mail invalide." });
     }
     if (role !== 'technicien' && role !== 'administrateur') {
         return res.status(400).json({ message: "Le rôle fourni est invalide." });
@@ -65,8 +69,12 @@ app.post("/api/utilisateurs", (req, res) => {
 // Route POST pour la connexion
 app.post("/api/connexion", (req, res) => {
     const { email, mot_de_passe } = req.body;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !mot_de_passe) {
         return res.status(400).json({ message: "Champs manquants" });
+    }
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Format d'adresse e-mail invalide." });
     }
     const sql = "SELECT * FROM utilisateur WHERE email = ? AND mot_de_passe = ? ";
     db.query(sql, [email, mot_de_passe], (err, results) => {

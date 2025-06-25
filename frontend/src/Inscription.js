@@ -14,19 +14,9 @@ function Inscription() {
     const navigate = useNavigate();
 
     // Fonction pour valider le format de l'email
-    const validateEmail = (email) => {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regex.test(email);
-    };
-
     // Gère la soumission du formulaire
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!validateEmail(email)) {
-            setMessage("Veuillez entrer un email valide.");
-            setIsError(true);
-            return;
-        }
         try {
             // Envoi des données (email, mot de passe, et rôle) au backend
             const res = await axios.post("http://localhost:5000/api/utilisateurs", {
@@ -67,7 +57,6 @@ function Inscription() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input"
-                    required
                 />
                 <input
                     type="password"
@@ -75,7 +64,6 @@ function Inscription() {
                     value={motDePasse}
                     onChange={(e) => setMotDePasse(e.target.value)}
                     className="input"
-                    required
                 />
                 
                 {/* Le menu déroulant pour le rôle, qui utilise la même classe CSS */}
@@ -83,7 +71,6 @@ function Inscription() {
                     value={role} 
                     onChange={(e) => setRole(e.target.value)}
                     className="input"
-                    required
                 >
                     <option value="technicien">Technicien</option>
                     <option value="administrateur">Administrateur</option>
