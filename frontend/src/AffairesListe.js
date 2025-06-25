@@ -75,10 +75,10 @@ const AffairesListe = () => {
             let response;
             if (formData.id_affaire) {
                 response = await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, dataToSend);
-                setMessage("Affaire mise à jour avec succès !");
+                setMessage(response.data.message);
             } else {
                 response = await axios.post('http://localhost:5000/api/affaires', dataToSend);
-                setMessage("Affaire ajoutée avec succès !");
+                setMessage(response.data.message);
             }
             
             setIsErreur(false);
@@ -197,8 +197,11 @@ const AffairesListe = () => {
                         ))}
                     </tbody>
                 </table>
+                
+                {/* ✅ Le bouton de retour est aussi conservé, venant de votre version */}
+                <div className="footer-actions">
+                </div>
 
-            
             </div>
         </>
     );
