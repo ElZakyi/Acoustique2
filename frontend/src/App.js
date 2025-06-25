@@ -3,6 +3,7 @@ import Connexion from './Connexion';
 import Inscription from './Inscription';
 import AffairesListe from './AffairesListe';
 import SallesListe from './SallesListe';
+import SourcesSonoresListe from './SourcesSonoresListe'; 
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/inscription" element={<Inscription/>}/>
         <Route path="/affaires" element={<AffairesListe />} />
         <Route path="/affaires/:id_affaire/salles" element={<SallesListe />} />
+        <Route path="/salles/:id_salle/sources" element={<SourcesSonoresListe />} />
       </Routes>
     </Router>
   );

@@ -1,6 +1,6 @@
 .container-box {
   background-color: white;
-  overflow-x: auto;         /* ✅ Laisse-le prendre toute la largeur dispo */
+  overflow-x: auto;  
   width: 95%;
   padding: 30px 40px;
   border-radius: 8px;
@@ -167,13 +167,13 @@
 .actions-cell {
   display: flex;
   align-items: center;
-  gap: 15px; /* Espace entre le bouton et le groupe d'icônes */
+  gap: 15px; 
 }
 
 .action-icons {
   display: flex;
   align-items: center;
-  gap: 15px; /* Espace entre chaque icône */
+  gap: 15px; 
 }
 
 .icon-action {
@@ -193,7 +193,7 @@
 .actions-cell .btn-primary {
   padding: 5px 10px;
   font-size: 14px;
-  white-space: nowrap; /* Empêche le texte de passer à la ligne */
+  white-space: nowrap;
 }
 .affaires-form {
   background-color: #f8f9fa;
@@ -276,3 +276,63 @@
   padding: 20px 50px 0 0;
 }
 
+
+.footer-actions {
+  margin-top: 2rem; 
+  width: 100%;
+  display: flex;
+  justify-content: flex-start; 
+}
+
+
+.btn-secondary {
+  padding: 10px 20px;
+  background-color: #6c757d; 
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  text-decoration: none; 
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+/* ... (tous vos styles existants) ... */
+
+/* ✅ NOUVEAU STYLE À AJOUTER */
+.link-action {
+  color: #0d6efd; /* La même couleur bleue que vos boutons primaires */
+  text-decoration: underline; /* Le soulignement classique d'un lien */
+  font-weight: 600; /* Un peu plus gras pour être bien visible */
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.link-action:hover {
+  color: #0b5ed7; 
+}
+
+.btn-action {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: #0d6efd; /* Bleu, comme btn-primary */
+  color: white;
+  text-align: center;
+  text-decoration: none; /* Important pour enlever le soulignement du Link */
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap; /* Empêche le texte de passer à la ligne */
+}
+
+.btn-action:hover {
+  background-color: #0b5ed7; /* Bleu plus foncé au survol */
+}

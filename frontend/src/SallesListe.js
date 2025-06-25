@@ -163,6 +163,11 @@ const SallesListe = () => {
           )}
         </tbody>
       </table>
+      <div className="footer-actions">
+         <button className="btn-secondary" onClick={() => navigate(-1)}>
+          Retour à la page précédente
+        </button>
+      </div>
       {showForm && (
         <form onSubmit={handleSubmit} className='affaires-form'>
             <h3 className='form-title'>Nouvelle salle</h3>

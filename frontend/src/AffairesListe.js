@@ -158,7 +158,6 @@ const AffairesListe = () => {
                             <th>Objet</th>
                             <th>Client</th>
                             <th>Responsable</th>
-                            {/* ✅ 1. La colonne Observation a été ré-ajoutée */}
                             <th>Observation</th>
                             <th>Actions</th>
                         </tr>
@@ -170,14 +169,12 @@ const AffairesListe = () => {
                                 <td>{affaire.objet}</td>
                                 <td>{affaire.client}</td>
                                 <td>{affaire.responsable}</td>
-                                {/* ✅ 2. La donnée d'observation est maintenant affichée */}
                                 <td>{affaire.observation}</td>
                                 <td className="actions-cell">
                                     <Link to={`/affaires/${affaire.id_affaire}/salles`} className="btn-action">
                                         Gérer les salles
                                     </Link>
                                     <div className="action-icons">
-                                        {/* ✅ 3. L'icône "œil" a été ré-ajoutée */}
                                         <FaEye 
                                             className="icon-action icon-view" 
                                             title="Voir les détails"
@@ -199,6 +196,11 @@ const AffairesListe = () => {
                         ))}
                     </tbody>
                 </table>
+                <div className="footer-actions">
+                  <button className="btn-secondary" onClick={() => navigate(-1)}>
+                   Retour à la page de connexion 
+                   </button>
+                </div>
             </div>
         </>
     );
