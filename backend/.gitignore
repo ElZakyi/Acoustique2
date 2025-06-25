@@ -1,0 +1,8 @@
+# Dépendances
+node_modules
+
+# Fichier de variables d'environnement (très important de l'ignorer)
+.env
+
+# Logs et fichiers de débogage
+npm-debug.log*
