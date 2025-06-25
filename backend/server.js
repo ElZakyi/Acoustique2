@@ -94,10 +94,35 @@ app.post("/api/connexion", (req, res) => {
 // GESTION DES AFFAIRES
 // =================================================================
 
-// Récupération de toutes les affaires
+// Récupération des affaires avec gestion des rôles
 app.get("/api/affaires", (req, res) => {
-    const sql = "SELECT * FROM affaire";
-    db.query(sql, (err, result) => {
+    // 1. On récupère l'ID et le rôle envoyés par le frontend via les paramètres d'URL
+    const { id_utilisateur, role } = req.query;
+
+    // 2. Sécurité : on vérifie que les informations sont bien présentes
+    if (!id_utilisateur || !role) {
+        return res.status(400).json({ message: "ID utilisateur et rôle sont requis pour accéder aux données." });
+    }
+
+    let sql;
+    let params = [];
+
+    // 3. C'est ici que la magie opère : on adapte la requête SQL en fonction du rôle
+    if (role === 'administrateur') {
+        // Si c'est un admin, on sélectionne TOUTES les affaires
+        sql = "SELECT * FROM affaire";
+        // Pas besoin de paramètres pour cette requête
+    } else if (role === 'technicien') {
+        // Si c'est un technicien, on sélectionne UNIQUEMENT les affaires où id_utilisateur correspond
+        sql = "SELECT * FROM affaire WHERE id_utilisateur = ?";
+        params.push(id_utilisateur);
+    } else {
+        // Si le rôle n'est ni l'un ni l'autre, on renvoie une erreur
+        return res.status(403).json({ message: "Rôle non autorisé." });
+    }
+
+    // 4. On exécute la requête SQL appropriée
+    db.query(sql, params, (err, result) => {
         if (err) {
             console.error("Erreur lors de la récupération des affaires : ", err);
             return res.status(500).json({ message: "Erreur serveur" });
