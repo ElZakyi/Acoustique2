@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaEye, FaPencilAlt, FaTrash } from 'react-icons/fa';
+import {FaPencilAlt, FaTrash } from 'react-icons/fa';
 import './AffairesListe.css'; // Réutilisation du style
 
 const SallesListe = () => {
@@ -10,7 +10,9 @@ const SallesListe = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm,setShowForm] = useState(false);
+  const [isError,setIsError] = useState(false);
   const [formData,setFormData] = useState({
+    id_salle : null,
     longueur: '',
     largeur : '',
     hauteur : '',
@@ -69,8 +71,16 @@ const SallesListe = () => {
         r: parseFloat(calculs.r),
     };
     try {
-        await axios.post(`http://localhost:5000/api/affaires/${id_affaire}/salles`, payload);
-        setMessage("Salle ajoutée avec succès !");
+        if(formData.id_salle){
+          // 🛠 Mise à jour d’une salle existante
+          const response = await axios.put(`http://localhost:5000/api/salles/${formData.id_salle}`,payload);
+          setMessage(response.data.message);
+        }else{
+          // ➕ Création
+          const response = await axios.post(`http://localhost:5000/api/affaires/${id_affaire}/salles`, payload);
+          setMessage(response.data.message);
+        }
+        setIsError(false);
         setFormData({ longueur: '', largeur: '', hauteur: '', tr: '' });
         setShowForm(false);
 
@@ -79,8 +89,39 @@ const SallesListe = () => {
     }catch(err){
         console.error("Erreur lors de l'ajout :", err);
         setMessage("Erreur serveur !");
+        setIsError(true);
     }
   };
+  // gerer la modification
+  const handleEdit = (salle) => {
+    setFormData({
+      id_salle : salle.id_salle,
+      longueur : salle.longueur,
+      largeur : salle.largeur,
+      hauteur : salle.hauteur,
+      tr : salle.tr
+    });
+    setShowForm(true);
+    setMessage('');
+    setIsError(false);
+  };
+  //gerer la suppression 
+  const handleDelete = async (id_salle) => {
+    if(!window.confirm("Voulez-vous vraiement supprimer cette salle ?")) return ;
+    try {
+      const response = await axios.delete(`http://localhost:5000/api/salles/${id_salle}`);
+      setMessage(response.data.message);
+      setIsError(false);
+      // Mise à jour de la liste des salles après suppression
+      const reload = await axios.get(`http://localhost:5000/api/affaires/${id_affaire}/salles`);
+      setSalles(reload.data);
+
+    }catch(err){
+      console.error("Erreur lors de suppression de la salle : ",err);
+      setMessage("Erreur lors de suppression ");
+      setIsError(true);
+    }
+  }
 
   useEffect(() => {
     if (id_affaire) {
@@ -112,6 +153,7 @@ const SallesListe = () => {
     <div className="container-box">
       <div className="page-header">
         <h1 className="page-title">Liste des Salles de l'Affaire #{id_affaire}</h1>
+        {message && <p className={isError ? 'form-error' : 'form-success'}>{message}</p>}
         <button className="btn-primary" onClick={()=>setShowForm(!showForm)}>{showForm? 'annuler' : 'ajouter une salle'}</button>
       </div>
       <table className="affaires-table">
@@ -153,9 +195,8 @@ const SallesListe = () => {
                     <button className="btn-primary">Gérer les sources</button>
                   </Link>
                   <div className="action-icons">
-                    <FaEye className="icon-action icon-view" title="Détails" />
-                    <FaPencilAlt className="icon-action icon-edit" title="Modifier" />
-                    <FaTrash className="icon-action icon-delete" title="Supprimer" />
+                    <FaPencilAlt className="icon-action icon-edit" title="Modifier" onClick={()=>handleEdit(salle)}/>
+                    <FaTrash className="icon-action icon-delete" title="Supprimer" onClick={()=>handleDelete(salle.id_salle)} />
                   </div>
                 </td>
               </tr>
@@ -170,7 +211,7 @@ const SallesListe = () => {
       </div>
       {showForm && (
         <form onSubmit={handleSubmit} className='affaires-form'>
-            <h3 className='form-title'>Nouvelle salle</h3>
+            <h3 className='form-title'>{formData.id_salle? 'Modifier la salle' : 'Nouvelle salle'}</h3>
             <input type="number" name="longueur" placeholder="Longueur" value={formData.longueur} onChange={handleChange} required />
             <input type="number" name="largeur" placeholder="Largeur" value={formData.largeur} onChange={handleChange} required />
             <input type="number" name="hauteur" placeholder="Hauteur" value={formData.hauteur} onChange={handleChange} required />
@@ -183,8 +224,8 @@ const SallesListe = () => {
             <p>R : {calculs.r}</p>
             </div>
 
-            <button type="submit" className="btn-primary">Enregistrer</button>
-            {message && <p>{message}</p>}
+            <button type="submit" className="btn-primary">{formData.id_salle? "Mettre a jour " : "Enregistrer"}</button>
+            
         </form>
       )}
     </div>

@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEye, FaPencilAlt, FaTrash } from 'react-icons/fa'; // On s'assure que FaEye est bien importé
+import { FaEye, FaPencilAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import './AffairesListe.css';
 
@@ -23,7 +22,6 @@ const AffairesListe = () => {
 
     const navigate = useNavigate();
 
-    // Effet pour charger les données au montage du composant
     useEffect(() => {
         const fetchAffaires = async () => {
             try {
@@ -60,7 +58,6 @@ const AffairesListe = () => {
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-
         const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
         if (!utilisateur || !utilisateur.id) {
             setMessage("Utilisateur non identifié. Impossible de créer l'affaire.");
@@ -71,20 +68,23 @@ const AffairesListe = () => {
         const dataToSend = {
             ...formData,
             id_utilisateur: utilisateur.id,
-            responsable: formData.responsable || utilisateur.email // On garde le responsable du formulaire, ou l'email par défaut
+            responsable: formData.responsable || utilisateur.email
         };
 
         try {
+            let response;
             if (formData.id_affaire) {
-                await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, dataToSend);
+                response = await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, dataToSend);
                 setMessage("Affaire mise à jour avec succès !");
             } else {
-                await axios.post('http://localhost:5000/api/affaires', dataToSend);
+                response = await axios.post('http://localhost:5000/api/affaires', dataToSend);
                 setMessage("Affaire ajoutée avec succès !");
             }
+            
             setIsErreur(false);
             setShowForm(false);
-            window.location.reload();
+            // Pour rafraîchir la liste, il est plus propre de rappeler fetchAffaires que de recharger la page
+            window.location.reload(); 
         } catch (err) {
             console.error("Erreur soumission formulaire :", err);
             setIsErreur(true);
@@ -138,7 +138,8 @@ const AffairesListe = () => {
                         {showForm ? "Annuler" : "Ajouter une affaire"}
                     </button>
                 </div>
-
+                
+                {/* ✅ Le formulaire est maintenant présent, venant de la version de votre binôme */}
                 {showForm && (
                     <form onSubmit={handleFormSubmit} className="affaires-form">
                         <h3 className="form-title">{formData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
@@ -196,8 +197,10 @@ const AffairesListe = () => {
                         ))}
                     </tbody>
                 </table>
+                
+                {/* ✅ Le bouton de retour est aussi conservé, venant de votre version */}
                 <div className="footer-actions">
-                  <button className="btn-secondary" onClick={() => navigate(-1)}>
+                  <button className="btn-secondary" onClick={() => navigate('/connexion')}>
                    Retour à la page de connexion 
                    </button>
                 </div>
@@ -205,6 +208,5 @@ const AffairesListe = () => {
         </>
     );
 };
-
 
 export default AffairesListe;

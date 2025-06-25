@@ -189,6 +189,38 @@ app.post('/api/affaires/:id_affaire/salles', (req, res) => {
     });
 });
 
+//modifier une salle 
+app.put("/api/salles/:id",(req,res)=>{
+    const {id} = req.params;
+    const {
+    longueur, largeur, hauteur, tr,
+    surface, volume, surface_totale,
+    a_moyenne, r
+    } = req.body;
+    const sql = "UPDATE salle SET longueur = ?, largeur = ?, hauteur = ?, tr = ?, surface = ?, volume = ?, surface_totale = ?,a_moyenne = ?, r = ? WHERE id_salle = ?";
+    db.query(sql,[longueur,largeur,hauteur,tr,surface,volume,surface_totale,a_moyenne,r,id],(err,result)=>{
+        if(err){
+            console.error("Erreur de mise a jour de la salle : ",err);
+            return res.status(500).json({message : "Erreur serveur"});
+        }
+        return res.status(200).json({message:"mise a jour de la salle avec succes ! "});
+    })
+});
+//supprimer une salle 
+app.delete('/api/salles/:id',(req,res)=>{
+    const {id} = req.params;
+    const sql = "DELETE FROM salle WHERE id_salle = ?";
+    db.query(sql,[id],(err,result)=>{
+        if(err){
+            console.error("Erreur lors de la suppression de la salle ");
+            return res.status(500).json({message:"Erreur serveur"});
+        }
+        if(result.affectedRows === 0){
+            return res.status(404).json({message : "Salle non trouvé "});
+        }
+        return res.status(200).json({message : "Salle supprimé avec succés !!"});
+    })
+})
 // =================================================================
 // GESTION DES SOURCES SONORES (AVEC LE NOM DE TABLE CORRIGÉ)
 // =================================================================
