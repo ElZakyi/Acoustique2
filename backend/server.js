@@ -275,6 +275,25 @@ app.delete('/api/sources/:id_source', (req, res) => {
     });
 });
 
+// Modifier : modifier une source sonor par son ID 
+app.put('/api/sources/:id_sonore',(req,res)=>{
+    const {id_sonore} = req.params;
+    const {nom,type} = req.body;
+    if(!nom || !type){
+        return res.status(400).json({message : "tous les champs sont requis"});
+    }
+    const sql = "UPDATE sourcesonore SET nom = ?, type = ? WHERE id_source = ?";
+    db.query(sql,[nom,type,id_sonore],(err,result)=>{
+        if(err){
+            console.error("Erreur lors de la mise a jour de la source : ",err);
+            return res.status(500).json({message:"Erreur serveur"});
+        }
+        if(result.affectedRows === 0){
+            return res.status(404).json({message : "Source sonore non trouvé"});
+        }
+        return res.status(200).json({message : "Source sonore modifié avec succés!" });
+    })
+})
 // =================================================================
 // GESTION DU SPECTRE LWSOURCE
 // =================================================================
