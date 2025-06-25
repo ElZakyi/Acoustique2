@@ -10,6 +10,7 @@ const SallesListe = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm,setShowForm] = useState(false);
+  const [isError,setIsError] = useState(false);
   const [formData,setFormData] = useState({
     longueur: '',
     largeur : '',
@@ -69,8 +70,9 @@ const SallesListe = () => {
         r: parseFloat(calculs.r),
     };
     try {
-        await axios.post(`http://localhost:5000/api/affaires/${id_affaire}/salles`, payload);
-        setMessage("Salle ajoutée avec succès !");
+        const response = await axios.post(`http://localhost:5000/api/affaires/${id_affaire}/salles`, payload);
+        setMessage(response.data.message);
+        setIsError(false);
         setFormData({ longueur: '', largeur: '', hauteur: '', tr: '' });
         setShowForm(false);
 
@@ -79,6 +81,7 @@ const SallesListe = () => {
     }catch(err){
         console.error("Erreur lors de l'ajout :", err);
         setMessage("Erreur serveur !");
+        setIsError(true);
     }
   };
 
@@ -112,6 +115,7 @@ const SallesListe = () => {
     <div className="container-box">
       <div className="page-header">
         <h1 className="page-title">Liste des Salles de l'Affaire #{id_affaire}</h1>
+        {message && <p className={isError ? 'form-error' : 'form-success'}>{message}</p>}
         <button className="btn-primary" onClick={()=>setShowForm(!showForm)}>{showForm? 'annuler' : 'ajouter une salle'}</button>
       </div>
       <table className="affaires-table">
@@ -179,7 +183,7 @@ const SallesListe = () => {
             </div>
 
             <button type="submit" className="btn-primary">Enregistrer</button>
-            {message && <p>{message}</p>}
+            
         </form>
       )}
     </div>
