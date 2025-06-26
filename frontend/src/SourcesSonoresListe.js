@@ -258,8 +258,8 @@ const SourcesSonoresListe = () => {
                                     <button className="btn-action" onClick={() => setSelectedSource(source)}>
                                         Spectre Lw initial
                                     </button>
-                                    <Link to={`/sources/${source.id_source}/composants`} className="btn-action">
-                                        Gérer les composants
+                                    <Link to={`/sources/${source.id_source}/troncons`} className="btn-action">
+                                        Gérer le troncon
                                     </Link>
                                     <div className="action-icons">
                                         <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEdit(source)} />

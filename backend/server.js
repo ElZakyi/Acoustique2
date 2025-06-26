@@ -343,8 +343,38 @@ app.post('/api/sources/:id_source/lwsource', (req, res) => {
     });
 });
 
-
-// ======================
+// =================================================================
+// GESTION DU troncon
+// =================================================================
+//recuperer les troncons
+app.get(`/api/sources/:id_source/troncons`,(req,res)=>{
+    const {id_source} = req.params
+    const sql = "SELECT * FROM troncon WHERE id_source = ?";
+    db.query(sql,[id_source],(err,result)=>{
+        if(err){
+            console.error("Erreur lors du recuperation des troncons ");
+            return res.status(500).json({message:"Erreur serveur"});
+        }
+        return res.status(200).json(result);
+    })
+})
+//inserer un troncon 
+app.post('/api/sources/:id_source/troncons',(req,res)=>{
+    const {id_source} = req.params;
+    const {forme , largeur,hauteur,vitesse,debit} = req.body;
+    if (!forme || !largeur || !hauteur || !vitesse || !debit) {
+        return res.status(400).json({ message: "Tous les champs sont requis." });
+    }
+    const sql = "INSERT INTO troncon (forme, largeur, hauteur, vitesse, debit, id_source) VALUES (?, ?, ?, ?, ?, ?)";
+    db.query(sql,[forme , largeur,hauteur,vitesse,debit,id_source],(err,result)=>{
+        if (err) {
+            console.error("Erreur lors de l'ajout du tronçon :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        return res.status(201).json({ message: "Tronçon ajouté avec succès !" });
+    })
+})
+// =================================================================
 // DÉMARRAGE DU SERVEUR
 // ======================
 
