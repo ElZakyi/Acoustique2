@@ -6,19 +6,19 @@ import "./Inscription.css";
 function Inscription() {
     const [email, setEmail] = useState("");
     const [motDePasse, setMotDePasse] = useState("");
-    const [role, setRole] = useState("technicien"); // Valeur par défaut
+    const [role, setRole] = useState("technicien"); 
     
     const [message, setMessage] = useState("");
     const [isError, setIsError] = useState(false);
 
     const navigate = useNavigate();
 
-    // Fonction pour valider le format de l'email
-    // Gère la soumission du formulaire
+    
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Envoi des données (email, mot de passe, et rôle) au backend
+            
             const res = await axios.post("http://localhost:5000/api/utilisateurs", {
                 email,
                 mot_de_passe: motDePasse,
@@ -26,7 +26,7 @@ function Inscription() {
             });
             setMessage(res.data.message);
             setIsError(false);
-            // Réinitialiser les champs après succès
+            
             setEmail("");
             setMotDePasse("");
             setRole("technicien");
@@ -66,7 +66,7 @@ function Inscription() {
                     className="input"
                 />
                 
-                {/* Le menu déroulant pour le rôle, qui utilise la même classe CSS */}
+                
                 <select 
                     value={role} 
                     onChange={(e) => setRole(e.target.value)}
@@ -81,7 +81,7 @@ function Inscription() {
                     <button type="button" onClick={goToConnexion} className="btn">Se connecter</button>
                 </div>
             </form>
-            {/* Affichage conditionnel des messages de succès ou d'erreur */}
+            
             {message && (
                 <p className={isError ? "error" : "success"}>{message}</p>
             )}

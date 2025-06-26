@@ -29,9 +29,9 @@ db.connect((err) => {
     }
 });
 
-// =================================================================
+// ==================
 // AUTHENTIFICATION
-// =================================================================
+// ==================
 
 app.post("/api/utilisateurs", (req, res) => {
     const { email, mot_de_passe, role } = req.body;
@@ -80,9 +80,9 @@ app.post("/api/connexion", (req, res) => {
     });
 });
 
-// =================================================================
+// ======================
 // GESTION DES AFFAIRES
-// =================================================================
+// ======================
 
 app.get("/api/affaires", (req, res) => {
     const { id_utilisateur, role } = req.query;
@@ -164,9 +164,9 @@ app.put('/api/affaires/:id', (req, res) => {
     });
 });
 
-// =================================================================
+// ====================
 // GESTION DES SALLES
-// =================================================================
+// ====================
 
 app.get('/api/affaires/:id_affaire/salles', (req, res) => {
     const { id_affaire } = req.params;
@@ -176,13 +176,30 @@ app.get('/api/affaires/:id_affaire/salles', (req, res) => {
         return res.status(200).json(result);
     });
 });
+app.get('/api/salles/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = "SELECT * FROM salle WHERE id_salle = ?";
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            console.error("Erreur lors de la récupération de la salle :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ message: "Salle non trouvée" });
+        }
+        return res.status(200).json(results[0]);
+    });
+});
+
 
 app.post('/api/affaires/:id_affaire/salles', (req, res) => {
     const { id_affaire } = req.params;
-    const { longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, surface_totale } = req.body;
+    const { nom,longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, surface_totale } = req.body;
     if (!longueur || !largeur || !hauteur || !tr) { /* ... */ }
-    const sql = `INSERT INTO salle (longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, id_affaire, surface_totale) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    const values = [longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, id_affaire, surface_totale];
+    const sql = `INSERT INTO salle (nom, longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, id_affaire, surface_totale)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const values = [nom, longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, id_affaire, surface_totale];
+
     db.query(sql, values, (err, result) => {
         if (err) { /* ... */ }
         res.status(201).json({ message: "Salle insérée avec succès !", id_salle: result.insertId });
@@ -192,13 +209,16 @@ app.post('/api/affaires/:id_affaire/salles', (req, res) => {
 //modifier une salle 
 app.put("/api/salles/:id",(req,res)=>{
     const {id} = req.params;
-    const {
-    longueur, largeur, hauteur, tr,
+   const {
+    nom, longueur, largeur, hauteur, tr,
     surface, volume, surface_totale,
     a_moyenne, r
     } = req.body;
-    const sql = "UPDATE salle SET longueur = ?, largeur = ?, hauteur = ?, tr = ?, surface = ?, volume = ?, surface_totale = ?,a_moyenne = ?, r = ? WHERE id_salle = ?";
-    db.query(sql,[longueur,largeur,hauteur,tr,surface,volume,surface_totale,a_moyenne,r,id],(err,result)=>{
+
+    const sql = "UPDATE salle SET nom = ?, longueur = ?, largeur = ?, hauteur = ?, tr = ?, surface = ?, volume = ?, surface_totale = ?, a_moyenne = ?, r = ? WHERE id_salle = ?";
+    const values = [nom, longueur, largeur, hauteur, tr, surface, volume, surface_totale, a_moyenne, r, id];
+
+    db.query(sql,[nom,longueur,largeur,hauteur,tr,surface,volume,surface_totale,a_moyenne,r,id],(err,result)=>{
         if(err){
             console.error("Erreur de mise a jour de la salle : ",err);
             return res.status(500).json({message : "Erreur serveur"});
@@ -216,19 +236,19 @@ app.delete('/api/salles/:id',(req,res)=>{
             return res.status(500).json({message:"Erreur serveur"});
         }
         if(result.affectedRows === 0){
-            return res.status(404).json({message : "Salle non trouvé "});
+            return res.status(404).json({message : "Salle non trouvée "});
         }
-        return res.status(200).json({message : "Salle supprimé avec succés !!"});
+        return res.status(200).json({message : "Salle supprimée avec succès !!"});
     })
 })
-// =================================================================
-// GESTION DES SOURCES SONORES (AVEC LE NOM DE TABLE CORRIGÉ)
-// =================================================================
+// =============================
+// GESTION DES SOURCES SONORES 
+// =============================
 
-// GET : Récupérer toutes les sources sonores d'une salle spécifique
+// Récupérer toutes les sources d'une salle
 app.get('/api/salles/:id_salle/sources', (req, res) => {
     const { id_salle } = req.params;
-    // ✅ CORRECTION
+
     const sql = "SELECT * FROM sourcesonore WHERE id_salle = ?";
     db.query(sql, [id_salle], (err, result) => {
         if (err) {
@@ -239,14 +259,14 @@ app.get('/api/salles/:id_salle/sources', (req, res) => {
     });
 });
 
-// POST : Ajouter une nouvelle source sonore à une salle
+// Ajouter une nouvelle source à une salle
 app.post('/api/salles/:id_salle/sources', (req, res) => {
     const { id_salle } = req.params;
     const { nom, type } = req.body;
     if (!nom || !type) {
         return res.status(400).json({ message: "Le nom et le type de la source sont obligatoires." });
     }
-    // ✅ CORRECTION
+  
     const sql = "INSERT INTO sourcesonore (nom, type, id_salle) VALUES (?, ?, ?)";
     const values = [nom, type, id_salle];
     db.query(sql, values, (err, result) => {
@@ -258,10 +278,10 @@ app.post('/api/salles/:id_salle/sources', (req, res) => {
     });
 });
 
-// DELETE : Supprimer une source sonore par son ID
+//Supprimer une source par ID
 app.delete('/api/sources/:id_source', (req, res) => {
     const { id_source } = req.params;
-    // ✅ CORRECTION
+
     const sql = "DELETE FROM sourcesonore WHERE id_source = ?";
     db.query(sql, [id_source], (err, result) => {
         if (err) {
@@ -275,14 +295,14 @@ app.delete('/api/sources/:id_source', (req, res) => {
     });
 });
 
-// =================================================================
-// GESTION DU SPECTRE LWSOURCE
-// =================================================================
+// =====================
+// GESTION DU LWSOURCE
+// =====================
 
-// GET : Récupérer le spectre Lw d'une source sonore
+// Récupérer le Lw d'une source
 app.get('/api/sources/:id_source/lwsource', (req, res) => {
     const { id_source } = req.params;
-    // On récupère les valeurs ordonnées par bande
+
     const sql = "SELECT * FROM lwsource WHERE id_source = ? ORDER BY bande ASC";
     db.query(sql, [id_source], (err, result) => {
         if (err) return res.status(500).json({ message: "Erreur serveur" });
@@ -290,19 +310,16 @@ app.get('/api/sources/:id_source/lwsource', (req, res) => {
     });
 });
 
-// POST : Mettre à jour ou insérer le spectre Lw d'une source (méthode "upsert")
+
 app.post('/api/sources/:id_source/lwsource', (req, res) => {
     const { id_source } = req.params;
-    const spectre = req.body.spectre; // On s'attend à recevoir un tableau d'objets [{bande, valeur_lw}, ...]
+    const spectre = req.body.spectre; 
 
     if (!spectre || !Array.isArray(spectre)) {
         return res.status(400).json({ message: "Le spectre doit être un tableau." });
     }
 
-    // On utilise REPLACE INTO qui est une extension MySQL. 
-    // Il supprime l'ancienne ligne si elle existe (basé sur la clé primaire/unique) et en insère une nouvelle.
-    // Pour que cela fonctionne bien, il faut une clé unique sur (id_source, bande).
-    // ALTER TABLE lwsource ADD UNIQUE KEY `unique_source_bande` (`id_source`, `bande`);
+
     const sql = "REPLACE INTO lwsource (id_source, bande, valeur_lw) VALUES ?";
     const values = spectre.map(item => [id_source, item.bande, item.valeur_lw]);
 
@@ -316,9 +333,9 @@ app.post('/api/sources/:id_source/lwsource', (req, res) => {
 });
 
 
-// =================================================================
+// ======================
 // DÉMARRAGE DU SERVEUR
-// =================================================================
+// ======================
 
 app.listen(port, () => {
     console.log(`🚀 Serveur lancé sur http://localhost:${port}`);

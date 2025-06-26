@@ -83,7 +83,7 @@ const AffairesListe = () => {
             
             setIsErreur(false);
             setShowForm(false);
-            // Pour rafraîchir la liste, il est plus propre de rappeler fetchAffaires que de recharger la page
+
             window.location.reload(); 
         } catch (err) {
             console.error("Erreur soumission formulaire :", err);
@@ -138,8 +138,8 @@ const AffairesListe = () => {
                         {showForm ? "Annuler" : "Ajouter une affaire"}
                     </button>
                 </div>
+
                 
-                {/* ✅ Le formulaire est maintenant présent, venant de la version de votre binôme */}
                 {showForm && (
                     <form onSubmit={handleFormSubmit} className="affaires-form">
                         <h3 className="form-title">{formData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
@@ -155,6 +155,7 @@ const AffairesListe = () => {
                 <table className="affaires-table">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Numéro</th>
                             <th>Objet</th>
                             <th>Client</th>
@@ -164,17 +165,23 @@ const AffairesListe = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {affaires.map((affaire) => (
+                        {affaires.map((affaire, index) => (
                             <tr key={affaire.id_affaire}>
+                                <td>{index + 1}</td>
                                 <td>{affaire.numero_affaire}</td>
                                 <td>{affaire.objet}</td>
                                 <td>{affaire.client}</td>
                                 <td>{affaire.responsable}</td>
                                 <td>{affaire.observation}</td>
                                 <td className="actions-cell">
-                                    <Link to={`/affaires/${affaire.id_affaire}/salles`} className="btn-action">
-                                        Gérer les salles
+                                   <Link 
+                                    to={`/affaires/${affaire.id_affaire}/salles`} 
+                                    state={{ numero_affaire: affaire.numero_affaire, ordre: index + 1 }} 
+                                    className="btn-action"
+                                    >
+                                    Gérer les salles
                                     </Link>
+
                                     <div className="action-icons">
                                         <FaEye 
                                             className="icon-action icon-view" 
@@ -198,7 +205,6 @@ const AffairesListe = () => {
                     </tbody>
                 </table>
 
-            
             </div>
         </>
     );

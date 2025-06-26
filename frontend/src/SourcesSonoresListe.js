@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { FaPencilAlt, FaTrash, FaPlus } from 'react-icons/fa';
-import './AffairesListe.css'; // Assurez-vous d'avoir les styles pour les modales ici
+import { FaPencilAlt, FaTrash } from 'react-icons/fa';
+import './AffairesListe.css'; 
 
-// On définit les bandes de fréquence standard
+// les bandes de fréquence
 const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000, 8000];
 
-// --- SOUS-COMPOSANT POUR LE FORMULAIRE DU SPECTRE LW ---
+// --- SOUS-COMPOSANT  FORMULAIRE  LW  ---
 const LwSourceForm = ({ source, onClose }) => {
     const [spectre, setSpectre] = useState({});
     const [loading, setLoading] = useState(true);
@@ -79,12 +79,18 @@ const LwSourceForm = ({ source, onClose }) => {
     );
 };
 
+
 // --- COMPOSANT PRINCIPAL ---
 const SourcesSonoresListe = () => {
     const { id_salle } = useParams();
     const navigate = useNavigate();
-    
+    const location = useLocation();
+
     const [sources, setSources] = useState([]);
+    const [salleInfo, setSalleInfo] = useState({
+        nom: location.state?.nomSalle || '',
+        numero: location.state?.numeroSalle || id_salle 
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -94,17 +100,14 @@ const SourcesSonoresListe = () => {
     const [isErreur, setIsErreur] = useState(false);
     const [selectedSource, setSelectedSource] = useState(null);
 
-
+  
     const fetchSources = async () => {
         try {
-            setLoading(true);
+
             const response = await axios.get(`http://localhost:5000/api/salles/${id_salle}/sources`);
             setSources(response.data);
         } catch (err) {
-            setError("Impossible de charger les sources sonores.");
-            console.error(err);
-        } finally {
-            setLoading(false);
+            console.error("Erreur de rechargement des sources :", err);
         }
     };
 
@@ -112,9 +115,33 @@ const SourcesSonoresListe = () => {
         const utilisateur = localStorage.getItem("utilisateur");
         if (!utilisateur) {
             navigate('/connexion');
-        } else {
-            fetchSources();
+            return;
         }
+
+        const fetchAllData = async () => {
+            setLoading(true);
+            try {
+
+                const [sourcesResponse, salleDetailsResponse] = await Promise.all([
+                    axios.get(`http://localhost:5000/api/salles/${id_salle}/sources`),
+                    axios.get(`http://localhost:5000/api/salles/${id_salle}`)
+                ]);
+
+                setSources(sourcesResponse.data);
+                setSalleInfo(prevInfo => ({
+                    ...prevInfo,
+                    nom: salleDetailsResponse.data.nom || prevInfo.nom,
+                    numero: salleDetailsResponse.data.numero || prevInfo.numero 
+                }));
+            } catch (err) {
+                setError("Impossible de charger les données.");
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAllData();
     }, [id_salle, navigate]);
 
     const handleInputChange = (e) => {
@@ -125,9 +152,7 @@ const SourcesSonoresListe = () => {
         e.preventDefault();
         try {
             if (formData.id_source) {
-                // await axios.put(`http://localhost:5000/api/sources/${formData.id_source}`, formData);
-                // setMessage("Source mise à jour avec succès !");
-                 alert("La modification n'est pas encore implémentée.");
+                alert("La modification n'est pas encore implémentée.");
             } else {
                 await axios.post(`http://localhost:5000/api/salles/${id_salle}/sources`, formData);
                 setMessage("Source ajoutée avec succès !");
@@ -166,7 +191,7 @@ const SourcesSonoresListe = () => {
         navigate('/connexion');
     };
 
-    if (loading && sources.length === 0) return <div className="container-box"><h1>Chargement...</h1></div>;
+    if (loading) return <div className="container-box"><h1>Chargement...</h1></div>;
     if (error) return <div className="container-box"><h1 className="error">{error}</h1></div>;
 
     return (
@@ -177,7 +202,11 @@ const SourcesSonoresListe = () => {
 
             <div className="container-box">
                 <div className="page-header">
-                    <h1 className="page-title">Sources Sonores de la Salle #{id_salle}</h1>
+                    <h1 className="page-title">
+                        {salleInfo.nom && salleInfo.numero
+                            ? `Sources sonores de la salle "${salleInfo.numero}" - ${salleInfo.nom}`
+                            : 'Chargement...'}
+                    </h1>
                     <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
                         {showForm ? 'Annuler' : 'Ajouter une Source'}
                     </button>
@@ -189,7 +218,7 @@ const SourcesSonoresListe = () => {
                     <form onSubmit={handleFormSubmit} className="affaires-form">
                         <h3>{formData.id_source ? "Modifier la Source" : "Nouvelle Source Sonore"}</h3>
                         <input className="form-input" type="text" name="nom" placeholder="Nom de la source" value={formData.nom} onChange={handleInputChange} required />
-                        <select className="form-input" name="type" value={formData.type} onChange={handleInputChange} required>
+                        <select className="form-input" name="type" value={formData.type} onChange={handleInputChange} required >
                             <option value="soufflage">Soufflage</option>
                             <option value="extraction">Extraction</option>
                             <option value="VC CRSL-ECM 2 /soufflage">VC CRSL-ECM 2 /soufflage</option>
@@ -202,16 +231,16 @@ const SourcesSonoresListe = () => {
                 <table className="affaires-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>#</th>
                             <th>Nom</th>
                             <th>Type</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {sources.map((source) => (
+                        {sources.map((source, index) => (
                             <tr key={source.id_source}>
-                                <td>{source.id_source}</td>
+                                <td>{index + 1}</td>
                                 <td>{source.nom}</td>
                                 <td>{source.type}</td>
                                 <td className="actions-cell">
