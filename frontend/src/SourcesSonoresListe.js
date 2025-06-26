@@ -8,7 +8,7 @@ import './AffairesListe.css'; // Assurez-vous d'avoir les styles pour les modale
 const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000];
 
 // --- SOUS-COMPOSANT POUR LE FORMULAIRE DU SPECTRE LW ---
-const LwSourceForm = ({ source, onClose }) => {
+const LwSourceForm = ({ source, onClose ,refreshLwData}) => {
     const [spectre, setSpectre] = useState({});
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
@@ -43,6 +43,8 @@ const LwSourceForm = ({ source, onClose }) => {
             const response = await axios.post(`http://localhost:5000/api/sources/${source.id_source}/lwsource`, { spectre: spectreArray });
             setMessage(response.data.message);
             setIsError(false);
+            // Appel pour recharger les données du tableau principal
+            refreshLwData();
             setTimeout(() => {
                 setMessage('');
                 onClose();
@@ -90,6 +92,7 @@ const LwSourceForm = ({ source, onClose }) => {
 // --- COMPOSANT PRINCIPAL ---
 const SourcesSonoresListe = () => {
     const { id_salle } = useParams();
+    const [lwData,setLwData] = useState([]);
     const navigate = useNavigate();
     
     const [sources, setSources] = useState([]);
@@ -116,12 +119,23 @@ const SourcesSonoresListe = () => {
         }
     },[id_salle]);
 
+    //recupere les lwSource
+    const fetchLwData = async() => {
+        try {
+            const response = await axios.get("http://localhost:5000/api/lwsource");
+            setLwData(response.data);
+        }catch(error){
+            console.error("Erreur lors du chargement des données Lw :", error);
+        }
+    }
+
     useEffect(() => {
         const utilisateur = localStorage.getItem("utilisateur");
         if (!utilisateur) {
             navigate('/connexion');
         } else {
             fetchSources();
+            fetchLwData();
         }
     }, [navigate,fetchSources]);
 
@@ -236,7 +250,38 @@ const SourcesSonoresListe = () => {
                         </select>
                         <button type="submit" className="form-button">{formData.id_source ? "Mettre à jour" : "Enregistrer"}</button>
                     </form>
-                )}
+                )};
+                <h2 style = {{marginTop:'40px'}}>Tableau des spectres</h2>
+                <table className="affaires-table">
+                <thead>
+                    <tr>
+                    <th>ID Source</th>
+                    {BANDES_FREQUENCE.map(freq => (
+                        <th key={freq}>{freq} Hz</th>
+                    ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {sources.map(source => {
+                    const valeurs = lwData.filter(item => item.id_source === source.id_source);
+                    const spectreMap = {};
+                    valeurs.forEach(item => {
+                        spectreMap[item.bande] = item.valeur_lw;
+                    });
+
+                    if (valeurs.length === 0) return null;
+
+                    return (
+                        <tr key={source.id_source}>
+                        <td>{source.id_source}</td>
+                        {BANDES_FREQUENCE.map(freq => (
+                            <td key={freq}>{spectreMap[freq] || 0}</td>
+                        ))}
+                        </tr>
+                    );
+                    })}
+                </tbody>
+                </table>
                 
                 <div className="footer-actions">
                     <button className="btn-secondary" onClick={() => navigate(-1)}>
@@ -249,6 +294,7 @@ const SourcesSonoresListe = () => {
                 <LwSourceForm 
                     source={selectedSource}
                     onClose={() => setSelectedSource(null)}
+                    refreshLwData = {fetchLwData}
                 />
             )}
         </>

@@ -308,7 +308,17 @@ app.get('/api/sources/:id_source/lwsource', (req, res) => {
         res.status(200).json(result);
     });
 });
-
+//GET : Recuperer tous le lwsource pour les afficher dans un tableau
+app.get('/api/lwsource',(req,res)=>{
+    const sql = "SELECT * FROM lwsource ORDER BY id_source,bande";
+    db.query(sql,(err,result)=>{
+        if(err){
+            console.error("Erreur recuperation lwsource : ",err);
+            return res.status(500).json({message:"Erreur serveur"});
+        }
+        return res.json(result);
+    })
+})
 // POST : Mettre à jour ou insérer le spectre Lw d'une source (méthode "upsert")
 app.post('/api/sources/:id_source/lwsource', (req, res) => {
     const { id_source } = req.params;
