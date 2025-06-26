@@ -4,6 +4,7 @@ import Inscription from './Inscription';
 import AffairesListe from './AffairesListe';
 import SallesListe from './SallesListe';
 import SourcesSonoresListe from './SourcesSonoresListe'; 
+import TronconsListe from './TronconsListe';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/affaires" element={<AffairesListe />} />
         <Route path="/affaires/:id_affaire/salles" element={<SallesListe />} />
         <Route path="/salles/:id_salle/sources" element={<SourcesSonoresListe />} />
+        <Route path="/sources/:id_source/troncons" element={<TronconsListe />} />
       </Routes>
     </Router>
   );
