@@ -195,10 +195,6 @@ app.get('/api/salles/:id', (req, res) => {
 app.post('/api/affaires/:id_affaire/salles', (req, res) => {
     const { id_affaire } = req.params;
     const { nom, longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, surface_totale } = req.body;
-<<<<<<< Updated upstream
-    
-=======
->>>>>>> Stashed changes
     if (!longueur || !largeur || !hauteur || !tr) {
         return res.status(400).json({ message: "Les champs longueur, largeur, hauteur et tr sont obligatoires." });
     }

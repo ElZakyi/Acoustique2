@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState ,useCallback} from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
@@ -22,11 +22,10 @@ const TronconsListe = () => {
         largeur: '',
         hauteur: '',
         diametre: '', 
-        vitesse: '',
         debit: ''
     });
 
-    const fetchTroncons = async () => {
+    const fetchTroncons = useCallback(async () => {
         try {
             const res = await axios.get(`http://localhost:5000/api/sources/${id_source}/troncons`);
             setTroncons(res.data);
@@ -36,9 +35,9 @@ const TronconsListe = () => {
         } finally {
             setLoading(false);
         }
-    };
+    },[id_source]);
 
-    const fetchSourceInfo = async () => {
+    const fetchSourceInfo = useCallback(async () => {
     try {
         const res = await axios.get(`http://localhost:5000/api/sources/${id_source}`);
         setSourceInfo({
@@ -48,12 +47,15 @@ const TronconsListe = () => {
     } catch (err) {
         console.error("Erreur lors de la récupération des infos source :", err);
     }
-};
+},[id_source]);
 
     useEffect(() => {
-    fetchTroncons();
-    fetchSourceInfo();
-}, [id_source]);
+    const loadData = async () => {
+        await fetchTroncons();
+        await fetchSourceInfo();
+    };
+    loadData();
+}, [fetchTroncons, fetchSourceInfo]);
 
 
     const handleFormChange = (e) => {
@@ -73,7 +75,22 @@ const TronconsListe = () => {
     const handleAddTroncon = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`http://localhost:5000/api/sources/${id_source}/troncons`, formData);
+            let vitesse = 0;
+            const debit_m3s = parseFloat(formData.debit)/3600;
+            if(formData.forme === 'rectangulaire'){
+                const surface = (parseFloat(formData.largeur)/1000)*(parseFloat(formData.hauteur)/1000);
+                vitesse = debit_m3s/surface;
+            }else if (formData.forme === 'circulaire'){
+                const diametre_m = parseFloat(formData.diametre) * 0.001; // mm → m
+                const surface = Math.PI * Math.pow(diametre_m, 2) / 4;     // Surface du cercle
+                const debit_m3h = parseFloat(formData.debit);              // Débit en m³/h
+                vitesse = (debit_m3h / surface) / 3600;  
+            }
+            const payload = {
+                ...formData,
+                vitesse: vitesse.toFixed(2)  // On arrondit à 2 chiffres
+            };
+            const res = await axios.post(`http://localhost:5000/api/sources/${id_source}/troncons`, payload);
             setMessage(res.data.message);
             setIsErreur(false);
             // Réinitialisation 
@@ -123,8 +140,6 @@ const TronconsListe = () => {
                     {formData.forme === 'circulaire' && (
                         <input type="number" name="diametre" placeholder="Diamètre (mm)" value={formData.diametre} onChange={handleFormChange} className="form-input" required />
                     )}
-
-                    <input type="number" name="vitesse" placeholder="Vitesse (m/s)" value={formData.vitesse} onChange={handleFormChange} className="form-input" required />
                     <input type="number" name="debit" placeholder="Débit (m³/h)" value={formData.debit} onChange={handleFormChange} className="form-input" required />
                     <button className="form-button" type="submit">Ajouter</button>
                 </form>
