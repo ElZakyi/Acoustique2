@@ -206,6 +206,19 @@ const SourcesSonoresListe = () => {
                 </div>
 
                 {message && <p className={isErreur ? "form-error" : "form-success"}>{message}</p>}
+                {showForm && (
+                    <form onSubmit={handleFormSubmit} className="affaires-form">
+                        <h3>{formData.id_source ? "Modifier la Source" : "Nouvelle Source Sonore"}</h3>
+                        <input className="form-input" type="text" name="nom" placeholder="Nom de la source" value={formData.nom} onChange={handleInputChange} required />
+                        <select className="form-input" name="type" value={formData.type} onChange={handleInputChange} required>
+                            <option value="soufflage">Soufflage</option>
+                            <option value="extraction">Extraction</option>
+                            <option value="VC CRSL-ECM 2 /soufflage">VC CRSL-ECM 2 /soufflage</option>
+                            <option value="VC CRSL-ECM 2 /reprise">VC CRSL-ECM 2 /reprise</option>
+                        </select>
+                        <button type="submit" className="form-button">{formData.id_source ? "Mettre à jour" : "Enregistrer"}</button>
+                    </form>
+                )};
 
                 <table className="affaires-table">
                     <thead>
@@ -238,19 +251,6 @@ const SourcesSonoresListe = () => {
                         ))}
                     </tbody>
                 </table>
-                {showForm && (
-                    <form onSubmit={handleFormSubmit} className="affaires-form">
-                        <h3>{formData.id_source ? "Modifier la Source" : "Nouvelle Source Sonore"}</h3>
-                        <input className="form-input" type="text" name="nom" placeholder="Nom de la source" value={formData.nom} onChange={handleInputChange} required />
-                        <select className="form-input" name="type" value={formData.type} onChange={handleInputChange} required>
-                            <option value="soufflage">Soufflage</option>
-                            <option value="extraction">Extraction</option>
-                            <option value="VC CRSL-ECM 2 /soufflage">VC CRSL-ECM 2 /soufflage</option>
-                            <option value="VC CRSL-ECM 2 /reprise">VC CRSL-ECM 2 /reprise</option>
-                        </select>
-                        <button type="submit" className="form-button">{formData.id_source ? "Mettre à jour" : "Enregistrer"}</button>
-                    </form>
-                )};
                 <h2 style = {{marginTop:'40px'}}>Tableau des spectres</h2>
                 <table className="affaires-table">
                 <thead>

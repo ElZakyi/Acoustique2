@@ -156,6 +156,25 @@ const SallesListe = () => {
         {message && <p className={isError ? 'form-error' : 'form-success'}>{message}</p>}
         <button className="btn-primary" onClick={()=>setShowForm(!showForm)}>{showForm? 'annuler' : 'ajouter une salle'}</button>
       </div>
+      {showForm && (
+        <form onSubmit={handleSubmit} className='affaires-form'>
+            <h3 className='form-title'>{formData.id_salle? 'Modifier la salle' : 'Nouvelle salle'}</h3>
+            <input type="number" name="longueur" placeholder="Longueur" value={formData.longueur} onChange={handleChange} required />
+            <input type="number" name="largeur" placeholder="Largeur" value={formData.largeur} onChange={handleChange} required />
+            <input type="number" name="hauteur" placeholder="Hauteur" value={formData.hauteur} onChange={handleChange} required />
+            <input type="number" name="tr" placeholder="TR" value={formData.tr} onChange={handleChange} required />
+            <div className="results">
+            <p>Surface : {calculs.surface} m²</p>
+            <p>Volume : {calculs.volume} m³</p>
+            <p>Surface Totale : {calculs.surface_totale} m²</p>
+            <p>a_moyenne : {calculs.a_moyenne}</p>
+            <p>R : {calculs.r}</p>
+            </div>
+
+            <button type="submit" className="btn-primary">{formData.id_salle? "Mettre a jour " : "Enregistrer"}</button>
+            
+        </form>
+      )}
       <table className="affaires-table">
         <thead>
           <tr>
@@ -209,25 +228,6 @@ const SallesListe = () => {
           Retour à la page précédente
         </button>
       </div>
-      {showForm && (
-        <form onSubmit={handleSubmit} className='affaires-form'>
-            <h3 className='form-title'>{formData.id_salle? 'Modifier la salle' : 'Nouvelle salle'}</h3>
-            <input type="number" name="longueur" placeholder="Longueur" value={formData.longueur} onChange={handleChange} required />
-            <input type="number" name="largeur" placeholder="Largeur" value={formData.largeur} onChange={handleChange} required />
-            <input type="number" name="hauteur" placeholder="Hauteur" value={formData.hauteur} onChange={handleChange} required />
-            <input type="number" name="tr" placeholder="TR" value={formData.tr} onChange={handleChange} required />
-            <div className="results">
-            <p>Surface : {calculs.surface} m²</p>
-            <p>Volume : {calculs.volume} m³</p>
-            <p>Surface Totale : {calculs.surface_totale} m²</p>
-            <p>a_moyenne : {calculs.a_moyenne}</p>
-            <p>R : {calculs.r}</p>
-            </div>
-
-            <button type="submit" className="btn-primary">{formData.id_salle? "Mettre a jour " : "Enregistrer"}</button>
-            
-        </form>
-      )}
     </div>
     </>
     
