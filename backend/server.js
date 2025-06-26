@@ -295,11 +295,11 @@ app.delete('/api/sources/:id_source', (req, res) => {
     });
 });
 
-// =====================
-// GESTION DU LWSOURCE
-// =====================
+// ==========================
+// GESTION DU SPECTRE LWSOURCE
+// ==========================
 
-// Récupérer le Lw d'une source
+// Récupérer le Lw d'une source spécifique
 app.get('/api/sources/:id_source/lwsource', (req, res) => {
     const { id_source } = req.params;
 
@@ -310,7 +310,19 @@ app.get('/api/sources/:id_source/lwsource', (req, res) => {
     });
 });
 
+// Récupérer tous les spectres Lw de toutes les sources
+app.get('/api/lwsource', (req, res) => {
+    const sql = "SELECT * FROM lwsource ORDER BY id_source, bande";
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.error("Erreur récupération lwsource :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        res.json(result);
+    });
+});
 
+// Mettre à jour ou insérer (upsert) un spectre Lw pour une source
 app.post('/api/sources/:id_source/lwsource', (req, res) => {
     const { id_source } = req.params;
     const spectre = req.body.spectre; 
@@ -318,7 +330,6 @@ app.post('/api/sources/:id_source/lwsource', (req, res) => {
     if (!spectre || !Array.isArray(spectre)) {
         return res.status(400).json({ message: "Le spectre doit être un tableau." });
     }
-
 
     const sql = "REPLACE INTO lwsource (id_source, bande, valeur_lw) VALUES ?";
     const values = spectre.map(item => [id_source, item.bande, item.valeur_lw]);

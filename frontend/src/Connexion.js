@@ -61,7 +61,6 @@ function Connexion() {
                     placeholder="Adresse e-mail"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                 />
                 <input
                     className="input"
@@ -69,7 +68,6 @@ function Connexion() {
                     placeholder="Mot de passe"
                     value={motDePasse}
                     onChange={(e) => setMotDePasse(e.target.value)}
-                    required
                 />
                 <div className="buttons">
                     <button className="btn" type="submit">Se connecter</button>

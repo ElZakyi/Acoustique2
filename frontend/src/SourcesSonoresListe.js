@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
-import './AffairesListe.css'; 
+import './AffairesListe.css';
 
-// les bandes de fréquence
 const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000, 8000];
 
-// --- SOUS-COMPOSANT  FORMULAIRE  LW  ---
-const LwSourceForm = ({ source, onClose }) => {
+const LwSourceForm = ({ source, onClose, refreshLwData }) => {
     const [spectre, setSpectre] = useState({});
     const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState('');
+    const [isError, setIsError] = useState(false);
 
     useEffect(() => {
         axios.get(`http://localhost:5000/api/sources/${source.id_source}/lwsource`)
@@ -38,15 +38,21 @@ const LwSourceForm = ({ source, onClose }) => {
         }));
 
         try {
-            await axios.post(`http://localhost:5000/api/sources/${source.id_source}/lwsource`, { spectre: spectreArray });
-            alert("Spectre Lw sauvegardé !");
-            onClose();
+            const response = await axios.post(`http://localhost:5000/api/sources/${source.id_source}/lwsource`, { spectre: spectreArray });
+            setMessage(response.data.message);
+            setIsError(false);
+            refreshLwData();
+            setTimeout(() => {
+                setMessage('');
+                onClose();
+            }, 1000);
         } catch (error) {
-            alert("Erreur lors de la sauvegarde du spectre.");
+            setMessage(error.response?.data.message || "Erreur lors de la sauvegarde du spectre.");
+            setIsError(true);
             console.error(error);
         }
     };
-    
+
     if (loading) return (
         <div className="modal-overlay">
             <div className="modal-content">Chargement du spectre...</div>
@@ -57,6 +63,7 @@ const LwSourceForm = ({ source, onClose }) => {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <h3>Spectre Lw pour la source "{source.nom}"</h3>
+                {message && <p className={isError ? 'form-error' : 'form-success'}>{message}</p>}
                 <form onSubmit={handleSubmit}>
                     <div className="spectre-grid">
                         {BANDES_FREQUENCE.map(bande => (
@@ -79,35 +86,40 @@ const LwSourceForm = ({ source, onClose }) => {
     );
 };
 
-
-// --- COMPOSANT PRINCIPAL ---
 const SourcesSonoresListe = () => {
     const { id_salle } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
 
     const [sources, setSources] = useState([]);
+    const [lwData, setLwData] = useState([]);
     const [salleInfo, setSalleInfo] = useState({
         nom: location.state?.nomSalle || '',
-        numero: location.state?.numeroSalle || id_salle 
+        numero: location.state?.numeroSalle || id_salle
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({ id_source: null, nom: '', type: 'soufflage' });
     const [message, setMessage] = useState('');
     const [isErreur, setIsErreur] = useState(false);
     const [selectedSource, setSelectedSource] = useState(null);
 
-  
-    const fetchSources = async () => {
+    const fetchSources = useCallback(async () => {
         try {
-
             const response = await axios.get(`http://localhost:5000/api/salles/${id_salle}/sources`);
             setSources(response.data);
         } catch (err) {
             console.error("Erreur de rechargement des sources :", err);
+        }
+    }, [id_salle]);
+
+    const fetchLwData = async () => {
+        try {
+            const response = await axios.get("http://localhost:5000/api/lwsource");
+            setLwData(response.data);
+        } catch (error) {
+            console.error("Erreur lors du chargement des données Lw :", error);
         }
     };
 
@@ -115,34 +127,33 @@ const SourcesSonoresListe = () => {
         const utilisateur = localStorage.getItem("utilisateur");
         if (!utilisateur) {
             navigate('/connexion');
-            return;
+        } else {
+            const fetchAllData = async () => {
+                setLoading(true);
+                try {
+                    const [sourcesResponse, salleDetailsResponse] = await Promise.all([
+                        axios.get(`http://localhost:5000/api/salles/${id_salle}/sources`),
+                        axios.get(`http://localhost:5000/api/salles/${id_salle}`)
+                    ]);
+
+                    setSources(sourcesResponse.data);
+                    setSalleInfo(prevInfo => ({
+                        ...prevInfo,
+                        nom: salleDetailsResponse.data.nom || prevInfo.nom,
+                        numero: salleDetailsResponse.data.numero || prevInfo.numero
+                    }));
+                    fetchLwData();
+                } catch (err) {
+                    setError("Impossible de charger les données.");
+                    console.error(err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            fetchAllData();
         }
-
-        const fetchAllData = async () => {
-            setLoading(true);
-            try {
-
-                const [sourcesResponse, salleDetailsResponse] = await Promise.all([
-                    axios.get(`http://localhost:5000/api/salles/${id_salle}/sources`),
-                    axios.get(`http://localhost:5000/api/salles/${id_salle}`)
-                ]);
-
-                setSources(sourcesResponse.data);
-                setSalleInfo(prevInfo => ({
-                    ...prevInfo,
-                    nom: salleDetailsResponse.data.nom || prevInfo.nom,
-                    numero: salleDetailsResponse.data.numero || prevInfo.numero 
-                }));
-            } catch (err) {
-                setError("Impossible de charger les données.");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAllData();
-    }, [id_salle, navigate]);
+    }, [id_salle, navigate, fetchSources]);
 
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -152,7 +163,8 @@ const SourcesSonoresListe = () => {
         e.preventDefault();
         try {
             if (formData.id_source) {
-                alert("La modification n'est pas encore implémentée.");
+                const response = await axios.put(`http://localhost:5000/api/sources/${formData.id_source}`, formData);
+                setMessage(response.data.message);
             } else {
                 await axios.post(`http://localhost:5000/api/salles/${id_salle}/sources`, formData);
                 setMessage("Source ajoutée avec succès !");
@@ -213,7 +225,6 @@ const SourcesSonoresListe = () => {
                 </div>
 
                 {message && <p className={isErreur ? "form-error" : "form-success"}>{message}</p>}
-
                 {showForm && (
                     <form onSubmit={handleFormSubmit} className="affaires-form">
                         <h3>{formData.id_source ? "Modifier la Source" : "Nouvelle Source Sonore"}</h3>
@@ -259,18 +270,51 @@ const SourcesSonoresListe = () => {
                         ))}
                     </tbody>
                 </table>
-                
+
+                <h2 style={{ marginTop: '40px' }}>Tableau des spectres</h2>
+                <table className="affaires-table">
+                    <thead>
+                        <tr>
+                            <th>ID Source</th>
+                            {BANDES_FREQUENCE.map(freq => (
+                                <th key={freq}>{freq} Hz</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sources.map(source => {
+                            const valeurs = lwData.filter(item => item.id_source === source.id_source);
+                            const spectreMap = {};
+                            valeurs.forEach(item => {
+                                spectreMap[item.bande] = item.valeur_lw;
+                            });
+
+                            if (valeurs.length === 0) return null;
+
+                            return (
+                                <tr key={source.id_source}>
+                                    <td>{source.id_source}</td>
+                                    {BANDES_FREQUENCE.map(freq => (
+                                        <td key={freq}>{spectreMap[freq] || 0}</td>
+                                    ))}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+
                 <div className="footer-actions">
                     <button className="btn-secondary" onClick={() => navigate(-1)}>
                         Retour
                     </button>
                 </div>
             </div>
-            
+
             {selectedSource && (
-                <LwSourceForm 
+                <LwSourceForm
                     source={selectedSource}
                     onClose={() => setSelectedSource(null)}
+                    refreshLwData={fetchLwData}
                 />
             )}
         </>

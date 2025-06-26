@@ -39,7 +39,7 @@ const AffairesListe = () => {
                         role: utilisateur.role
                     }
                 });
-                
+
                 setAffaires(response.data);
             } catch (err) {
                 setError('Impossible de charger les données. Le serveur backend est-il lancé ?');
@@ -75,16 +75,15 @@ const AffairesListe = () => {
             let response;
             if (formData.id_affaire) {
                 response = await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, dataToSend);
-                setMessage("Affaire mise à jour avec succès !");
+                setMessage(response.data.message);
             } else {
                 response = await axios.post('http://localhost:5000/api/affaires', dataToSend);
-                setMessage("Affaire ajoutée avec succès !");
+                setMessage(response.data.message);
             }
-            
+
             setIsErreur(false);
             setShowForm(false);
-
-            window.location.reload(); 
+            window.location.reload();
         } catch (err) {
             console.error("Erreur soumission formulaire :", err);
             setIsErreur(true);
@@ -139,13 +138,12 @@ const AffairesListe = () => {
                     </button>
                 </div>
 
-                
                 {showForm && (
                     <form onSubmit={handleFormSubmit} className="affaires-form">
                         <h3 className="form-title">{formData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
                         <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={formData.numero_affaire} onChange={handleInputChange} required />
-                        <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} required/>
-                        <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} required/>
+                        <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} required />
+                        <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} required />
                         <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} required />
                         <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
                         <button className="form-button" type="submit">{formData.id_affaire ? "Mettre à jour" : "Valider"}</button>
@@ -174,29 +172,28 @@ const AffairesListe = () => {
                                 <td>{affaire.responsable}</td>
                                 <td>{affaire.observation}</td>
                                 <td className="actions-cell">
-                                   <Link 
-                                    to={`/affaires/${affaire.id_affaire}/salles`} 
-                                    state={{ numero_affaire: affaire.numero_affaire, ordre: index + 1 }} 
-                                    className="btn-action"
+                                    <Link
+                                        to={`/affaires/${affaire.id_affaire}/salles`}
+                                        state={{ numero_affaire: affaire.numero_affaire, ordre: index + 1 }}
+                                        className="btn-action"
                                     >
-                                    Gérer les salles
+                                        Gérer les salles
                                     </Link>
-
                                     <div className="action-icons">
-                                        <FaEye 
-                                            className="icon-action icon-view" 
+                                        <FaEye
+                                            className="icon-action icon-view"
                                             title="Voir les détails"
                                             onClick={() => alert(`Détails de l'affaire:\n\nNuméro: ${affaire.numero_affaire}\nObjet: ${affaire.objet}\nClient: ${affaire.client}\nObservation: ${affaire.observation}`)}
                                         />
-                                        <FaPencilAlt 
-                                            className="icon-action icon-edit" 
+                                        <FaPencilAlt
+                                            className="icon-action icon-edit"
                                             title="Modifier"
-                                            onClick={() => handleEdit(affaire)} 
+                                            onClick={() => handleEdit(affaire)}
                                         />
-                                        <FaTrash 
-                                            className="icon-action icon-delete" 
+                                        <FaTrash
+                                            className="icon-action icon-delete"
                                             title="Supprimer"
-                                            onClick={() => handleDelete(affaire.id_affaire)} 
+                                            onClick={() => handleDelete(affaire.id_affaire)}
                                         />
                                     </div>
                                 </td>
@@ -204,7 +201,6 @@ const AffairesListe = () => {
                         ))}
                     </tbody>
                 </table>
-
             </div>
         </>
     );
