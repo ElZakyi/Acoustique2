@@ -240,7 +240,7 @@ const SallesListe = () => {
 
         <div className="footer-actions">
           <button className="btn-secondary" onClick={() => navigate(-1)}>
-            Retour à la page précédente
+            Retour 
           </button>
         </div>
       </div>

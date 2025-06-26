@@ -195,7 +195,10 @@ app.get('/api/salles/:id', (req, res) => {
 app.post('/api/affaires/:id_affaire/salles', (req, res) => {
     const { id_affaire } = req.params;
     const { nom, longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, surface_totale } = req.body;
+<<<<<<< Updated upstream
     
+=======
+>>>>>>> Stashed changes
     if (!longueur || !largeur || !hauteur || !tr) {
         return res.status(400).json({ message: "Les champs longueur, largeur, hauteur et tr sont obligatoires." });
     }
@@ -209,8 +212,6 @@ app.post('/api/affaires/:id_affaire/salles', (req, res) => {
             console.error("Erreur lors de l'insertion de la salle :", err);
             return res.status(500).json({ message: "Erreur serveur lors de l'insertion de la salle." });
         }
-
-
         if (!result || typeof result.insertId === 'undefined') {
             console.error("Resultat inattendu lors de l'insertion :", result);
             return res.status(500).json({ message: "Salle insérée mais ID introuvable." });
