@@ -216,7 +216,7 @@ const SourcesSonoresListe = () => {
                 <div className="page-header">
                     <h1 className="page-title">
                         {salleInfo.nom && salleInfo.numero
-                            ? `Sources sonores de la salle "${salleInfo.numero}" - ${salleInfo.nom}`
+                            ? `Sources sonores de la salle "${salleInfo.nom}" - n° ${salleInfo.numero} `
                             : 'Chargement...'}
                     </h1>
                     <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
@@ -259,7 +259,7 @@ const SourcesSonoresListe = () => {
                                         Spectre Lw initial
                                     </button>
                                     <Link to={`/sources/${source.id_source}/troncons`} className="btn-action">
-                                        Gérer le troncon
+                                        Gérer les troncons
                                     </Link>
                                     <div className="action-icons">
                                         <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEdit(source)} />

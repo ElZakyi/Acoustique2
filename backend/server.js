@@ -195,8 +195,7 @@ app.get('/api/salles/:id', (req, res) => {
 app.post('/api/affaires/:id_affaire/salles', (req, res) => {
     const { id_affaire } = req.params;
     const { nom, longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, surface_totale } = req.body;
-
-    // Vérification des champs obligatoires
+    
     if (!longueur || !largeur || !hauteur || !tr) {
         return res.status(400).json({ message: "Les champs longueur, largeur, hauteur et tr sont obligatoires." });
     }
@@ -211,7 +210,7 @@ app.post('/api/affaires/:id_affaire/salles', (req, res) => {
             return res.status(500).json({ message: "Erreur serveur lors de l'insertion de la salle." });
         }
 
-        // S’assurer que result est défini et contient insertId
+
         if (!result || typeof result.insertId === 'undefined') {
             console.error("Resultat inattendu lors de l'insertion :", result);
             return res.status(500).json({ message: "Salle insérée mais ID introuvable." });
@@ -274,6 +273,39 @@ app.get('/api/salles/:id_salle/sources', (req, res) => {
         res.status(200).json(result);
     });
 });
+
+// Récupérer les informations d'une source (nom et ordre dans la salle)
+app.get('/api/sources/:id_source', (req, res) => {
+    const { id_source } = req.params;
+
+    const sql = `
+        SELECT 
+            s.nom, 
+            s.type,
+            s.id_salle,
+            (
+                SELECT COUNT(*) + 1
+                FROM sourcesonore s2
+                WHERE s2.id_salle = s.id_salle
+                  AND s2.id_source < s.id_source
+            ) AS ordre
+        FROM sourcesonore s
+        WHERE s.id_source = ?`;
+
+    db.query(sql, [id_source], (err, results) => {
+        if (err) {
+            console.error("Erreur lors de la récupération de la source :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: "Source sonore non trouvée." });
+        }
+
+        res.status(200).json(results[0]);
+    });
+});
+
 
 // Ajouter une nouvelle source à une salle
 app.post('/api/salles/:id_salle/sources', (req, res) => {
@@ -359,11 +391,13 @@ app.post('/api/sources/:id_source/lwsource', (req, res) => {
     });
 });
 
+
+
 // =================================================================
 // GESTION DU troncon
 // =================================================================
 //recuperer les troncons
-app.get(`/api/sources/:id_source/troncons`,(req,res)=>{
+app.get('/api/sources/:id_source/troncons',(req,res) =>{
     const {id_source} = req.params
     const sql = "SELECT * FROM troncon WHERE id_source = ?";
     db.query(sql,[id_source],(err,result)=>{
@@ -375,22 +409,48 @@ app.get(`/api/sources/:id_source/troncons`,(req,res)=>{
     })
 })
 //inserer un troncon 
-app.post('/api/sources/:id_source/troncons',(req,res)=>{
-    const {id_source} = req.params;
-    const {forme , largeur,hauteur,vitesse,debit} = req.body;
-    if (!forme || !largeur || !hauteur || !vitesse || !debit) {
-        return res.status(400).json({ message: "Tous les champs sont requis." });
+
+app.post('/api/sources/:id_source/troncons', (req, res) => {
+    const { id_source } = req.params;
+    const { forme, largeur, hauteur, diametre, vitesse, debit } = req.body;
+
+    if (!forme || !vitesse || !debit) {
+        return res.status(400).json({ message: "La forme, la vitesse et le débit sont requis." });
     }
-    const sql = "INSERT INTO troncon (forme, largeur, hauteur, vitesse, debit, id_source) VALUES (?, ?, ?, ?, ?, ?)";
-    db.query(sql,[forme , largeur,hauteur,vitesse,debit,id_source],(err,result)=>{
+
+    let sql;
+    let values;
+
+    if (forme === 'rectangulaire') {
+        if (!largeur || !hauteur) {
+            return res.status(400).json({ message: "La largeur et la hauteur sont requises pour un tronçon rectangulaire." });
+        }
+        
+        sql = "INSERT INTO troncon (forme, largeur, hauteur, diametre, vitesse, debit, id_source) VALUES (?, ?, ?, NULL, ?, ?, ?)";
+        values = [forme, largeur, hauteur, vitesse, debit, id_source];
+    } 
+    else if (forme === 'circulaire') {
+        if (!diametre) {
+            return res.status(400).json({ message: "Le diamètre est requis for un tronçon circulaire." });
+        }
+
+        sql = "INSERT INTO troncon (forme, largeur, hauteur, diametre, vitesse, debit, id_source) VALUES (?, NULL, NULL, ?, ?, ?, ?)";
+        values = [forme, diametre, vitesse, debit, id_source];
+    } 
+    else {
+        return res.status(400).json({ message: "La forme doit être 'rectangulaire' ou 'circulaire'." });
+    }
+
+ 
+    db.query(sql, values, (err, result) => {
         if (err) {
             console.error("Erreur lors de l'ajout du tronçon :", err);
             return res.status(500).json({ message: "Erreur serveur" });
         }
-        return res.status(201).json({ message: "Tronçon ajouté avec succès !" });
-    })
-})
-// =================================================================
+        return res.status(201).json({ message: "Tronçon ajouté avec succès !", id_troncon: result.insertId });
+    });
+});
+// ======================
 // DÉMARRAGE DU SERVEUR
 // ======================
 

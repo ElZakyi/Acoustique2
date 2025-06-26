@@ -156,7 +156,7 @@ const SallesListe = () => {
         <div className="page-header">
           <h1 className="page-title">
             Liste des salles de l'affaire {numero_affaire ? `"${numero_affaire}"` : ''} 
-            {ordre ? ` numéro ${ordre}` : ''}
+            {ordre ? ` - n° ${ordre}` : ''}
           </h1>
 
           {message && <p className={isError ? 'form-error' : 'form-success'}>{message}</p>}
