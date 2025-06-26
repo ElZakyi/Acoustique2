@@ -4,7 +4,7 @@ import axios from 'axios';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import './AffairesListe.css';
 
-const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000, 8000];
+const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000];
 
 const LwSourceForm = ({ source, onClose, refreshLwData }) => {
     const [spectre, setSpectre] = useState({});
