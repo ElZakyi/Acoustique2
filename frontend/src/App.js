@@ -5,6 +5,7 @@ import AffairesListe from './AffairesListe';
 import SallesListe from './SallesListe';
 import SourcesSonoresListe from './SourcesSonoresListe'; 
 import TronconsListe from './TronconsListe';
+import ElementsReseau from './ElementsReseau';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/affaires/:id_affaire/salles" element={<SallesListe />} />
         <Route path="/salles/:id_salle/sources" element={<SourcesSonoresListe />} />
         <Route path="/sources/:id_source/troncons" element={<TronconsListe />} />
+        <Route path="/troncons/:id_troncon/elements" element={<ElementsReseau />} />
       </Routes>
     </Router>
   );

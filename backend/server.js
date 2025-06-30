@@ -504,6 +504,38 @@ app.delete('/api/troncons/:id_troncon', (req, res) => {
     });
 });
 // ======================
+// GESTION D'ELEMENT RESEAU
+// ======================
+
+//GET Element reseau d'un troncon 
+app.get('/api/troncons/:id_troncon/elements',(req,res)=>{
+    const {id_troncon} = req.params;
+    const sql = "SELECT * FROM elementreseau WHERE id_troncon = ?";
+    db.query(sql,[id_troncon],(err,result)=>{
+        if(err){
+            console.error("Erreur lors du recuperation des element reseau : ",err);
+            return res.status(500).json({message:"Erreur serveur"});
+
+        }
+        return res.status(200).json(result);
+    })
+});
+//POST : ajouter une element reseau 
+app.post('/api/troncons/:id_troncon/elements',(req,res)=>{
+    const {id_troncon} = req.params;
+    const {type} = req.body;
+    const sql = "INSERT INTO elementreseau (id_troncon,type) VALUES (?,?)";
+    db.query(sql,[id_troncon,type],(err,result)=>{
+        if(err){
+            console.error("Erreur lors de l'insertion d'element reseau : ",err);
+            return res.status(500).json({message:"erreur serveur"});
+        }
+        return res.status(200).json({message:"insertion d'element reseau avec succés !!"});
+    })
+})
+
+
+// ======================
 // DÉMARRAGE DU SERVEUR
 // ======================
 
