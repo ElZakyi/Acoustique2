@@ -1,19 +1,17 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import './AffairesListe.css';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 
+
 const ELEMENT_CONFIG = {
-    silencieux: {
-        label: 'Silencieux',
-        fields: [],
-    },
+    silencieux: { label: 'Silencieux', fields: [] },
     conduit: {
         label: 'Conduit',
         fields: [
-            { name: 'longueur', label: 'Longueur (m)', type: 'number'},
-            { name: 'materiau', label: 'Matériau', type: 'text'},
+            { name: 'longueur', label: 'Longueur (m)', type: 'number' },
+            { name: 'materiau', label: 'Matériau', type: 'text' },
         ]
     },
     coude: {
@@ -25,7 +23,10 @@ const ELEMENT_CONFIG = {
         ]
     },
     piecetransformation: { label: 'Pièce de transformation', fields: [] },
-    grillesoufflage: { label: 'Grille de soufflage', fields: [] },
+    grillesoufflage: {
+        label: 'Grille de soufflage',
+        fields: [{ name: 'distance_r', label: 'Distance R', type: 'number' }]
+    },
     plenum: { label: 'Plénum', fields: [] },
 
     'vc_crsl_ecm_2_soufflage': { label: 'VC CRSL-ECM 2 / Soufflage', fields: [] },
@@ -44,32 +45,30 @@ const ElementsReseau = () => {
     const [formData, setFormData] = useState({});
     const [ordreTroncon, setOrdreTroncon] = useState(null);
 
-    const fetchElements = useCallback(async () => {
+    const fetchElements = async () => {
         try {
             const res = await axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`);
             setElements(res.data);
-        } catch (err) { console.error("Erreur récupération éléments :", err); }
-    }, [id_troncon]);
+            console.log("Éléments récupérés :", res.data);
+        } catch (err) {
+            console.error("Erreur récupération éléments :", err);
+        }
+    };
 
-     useEffect(() => {
-        const fetchElements = async () => {
-            try {
-                const res = await axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`);
-                setElements(res.data);
-            } catch (err) { console.error("Erreur récupération éléments :", err); }
-        };
-
+    useEffect(() => {
+        fetchElements();
         const fetchOrdreTroncon = async () => {
             try {
 
                 const res = await axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`);
-                setOrdreTroncon(res.data.ordre_troncon); 
-            } catch (err) { console.error("Erreur récupération ordre tronçon:", err); }
+                setOrdreTroncon(res.data.ordre_troncon);
+            } catch (err) {
+                console.error("Erreur récupération ordre tronçon:", err);
+            }
         };
 
-        fetchElements();
         fetchOrdreTroncon();
-    }, [id_troncon])
+    }, [id_troncon]);
 
     const handleTypeChange = (e) => {
         setSelectedType(e.target.value);
@@ -84,9 +83,15 @@ const ElementsReseau = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedType) return;
-        
-        const payload = { type: selectedType, parameters: formData };
-        
+
+        // Convertir les valeurs numériques
+        const payload = {
+            type: selectedType,
+            parameters: Object.fromEntries(
+                Object.entries(formData).map(([k, v]) => [k, isNaN(v) ? v : Number(v)])
+            )
+        };
+
         try {
             if (editingId) {
                 await axios.put(`http://localhost:5000/api/elements/${editingId}`, payload);
@@ -142,12 +147,12 @@ const ElementsReseau = () => {
             setFormData({});
         }
     };
-
+    
 
     const renderFormFields = () => {
         if (!selectedType) return null;
         const config = ELEMENT_CONFIG[selectedType];
-        if (!config || !config.fields || config.fields.length === 0) {
+        if (!config?.fields?.length) {
             return <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#666' }}>Aucun paramètre spécifique requis.</p>;
         }
         return config.fields.map(field => (
@@ -164,13 +169,18 @@ const ElementsReseau = () => {
         ));
     };
 
-     return (
+    return (
         <div className="container-box">
             <div className="page-header">
                 <h2 className="page-title">
                     {ordreTroncon ? `Éléments du tronçon n°${ordreTroncon}` : `Éléments du tronçon #${id_troncon}`}
                 </h2>
-                <button className="btn-primary" onClick={() => { setShowForm(!showForm); setEditingId(null); setSelectedType(''); setMessage(''); }}>
+                <button className="btn-primary" onClick={() => {
+                    setShowForm(!showForm);
+                    setEditingId(null);
+                    setSelectedType('');
+                    setMessage('');
+                }}>
                     {showForm ? "Annuler" : "Ajouter un élément"}
                 </button>
             </div>
@@ -181,18 +191,22 @@ const ElementsReseau = () => {
                 <form className='affaires-form' onSubmit={handleSubmit}>
                     <h3>{editingId ? "Modifier l'élément" : "Ajouter un nouvel élément"}</h3>
 
-                    <select className="form-input" value={selectedType} onChange={handleTypeChange} required disabled={!!editingId}>
+                    <select
+                        className="form-input"
+                        value={selectedType}
+                        onChange={handleTypeChange}
+                        required
+                        disabled={!!editingId}
+                    >
                         <option value="" disabled>-- Sélectionnez un type --</option>
                         {Object.keys(ELEMENT_CONFIG).map(key => (
                             <option key={key} value={key}>{ELEMENT_CONFIG[key].label}</option>
                         ))}
                     </select>
 
-                    {selectedType && (
-                        <div className="form-row">
-                            {renderFormFields()}
-                        </div>
-                    )}
+                    <div className="form-row">
+                        {renderFormFields()}
+                    </div>
 
                     <button className="form-button" type="submit" disabled={!selectedType}>
                         {editingId ? "Mettre à jour" : "Ajouter l'élément"}
@@ -205,7 +219,7 @@ const ElementsReseau = () => {
                     <tr>
                         <th>#</th>
                         <th>Type</th>
-
+                        <th>Paramètres</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -214,6 +228,13 @@ const ElementsReseau = () => {
                         <tr key={el.id_element}>
                             <td>{i + 1}</td>
                             <td>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
+                            <td>
+                                {Object.entries(el).filter(([k]) =>
+                                    ['longueur', 'angle', 'orientation', 'materiau', 'distance_r'].includes(k)
+                                ).map(([k, v]) => (
+                                    v !== null ? <div key={k}><strong>{k}</strong>: {v}</div> : null
+                                ))}
+                            </td>
                             <td className="actions-cell">
                                 <div className="action-icons">
                                     <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} />
