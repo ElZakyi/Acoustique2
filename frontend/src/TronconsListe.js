@@ -23,7 +23,6 @@ const TronconsListe = () => {
         largeur: '',
         hauteur: '',
         diametre: '',
-
         debit: ''
     });
 
@@ -134,6 +133,23 @@ const handleDelete = async (id_troncon) => {
         try {
             await axios.delete(`http://localhost:5000/api/troncons/${id_troncon}`);
             setMessage("Tronçon supprimé avec succès !");
+            let vitesse = 0;
+            const debit_m3s = parseFloat(formData.debit)/3600;
+            if(formData.forme === 'rectangulaire'){
+                const surface = (parseFloat(formData.largeur)/1000)*(parseFloat(formData.hauteur)/1000);
+                vitesse = debit_m3s/surface;
+            }else if (formData.forme === 'circulaire'){
+                const diametre_m = parseFloat(formData.diametre) * 0.001; // mm → m
+                const surface = Math.PI * Math.pow(diametre_m, 2) / 4;     // Surface du cercle
+                const debit_m3h = parseFloat(formData.debit);              // Débit en m³/h
+                vitesse = (debit_m3h / surface) / 3600;  
+            }
+            const payload = {
+                ...formData,
+                vitesse: vitesse.toFixed(2)  // On arrondit à 2 chiffres
+            };
+            const res = await axios.post(`http://localhost:5000/api/sources/${id_source}/troncons`, payload);
+            setMessage(res.data.message);
             setIsErreur(false);
 
             fetchTroncons();
@@ -180,7 +196,7 @@ const handleDelete = async (id_troncon) => {
                     {formData.forme === 'circulaire' && (
                         <input type="number" name="diametre" placeholder="Diamètre (mm)" value={formData.diametre} onChange={handleFormChange} className="form-input" required />
                     
-                )}
+                    )}
                     <input type="number" name="debit" placeholder="Débit (m³/h)" value={formData.debit} onChange={handleFormChange} className="form-input" required />
                     <button className="form-button" type="submit">{editingId ? 'Mettre à jour' : 'Ajouter'}</button>
                 </form>
