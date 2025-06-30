@@ -10,6 +10,8 @@ const ElementsReseau = () => {
     const [type, setType] = useState('');
     const [message, setMessage] = useState('');
     const [showForm, setShowForm] = useState(false);
+    const [editing, setEditing] = useState(false); // true si on modifie
+    const [editId, setEditId] = useState(null); 
 
     const fetchElements = useCallback(async () => {
         try {
@@ -39,6 +41,36 @@ const ElementsReseau = () => {
         }
     };
 
+    //gerer la modification de element reseau
+    const handleUpdateElement = async (e) => {
+    e.preventDefault();
+    try {
+        const response = await axios.put(`http://localhost:5000/api/elements/${editId}`, { type });
+        setMessage(response.data.message);
+        setType('');
+        setEditId(null);
+        setEditing(false);
+        setShowForm(false);
+        fetchElements();
+    } catch (err) {
+        console.error("Erreur mise à jour élément :", err);
+        setMessage(err.response?.data?.message || "Erreur serveur");
+    }
+    };
+    //supprimer un element reseau
+    const handleDeleteElement = async (id_element) => {
+        const confirmDelete = window.confirm("etes vous sur de vouloir supprimer cet element ?");
+        if(!confirmDelete) return;
+        try {
+            const response = await axios.delete(`http://localhost:5000/api/elements/${id_element}`);
+            setMessage(response.data.message);
+            fetchElements();
+        }catch(err){
+            console.error("erreur lors de la suppression : ",err);
+            setMessage(err.response?.data?.message);
+        }
+    } 
+
     return (
         <div className="container-box">
             <div className="page-header">
@@ -51,7 +83,7 @@ const ElementsReseau = () => {
             {message && <p className="form-success">{message}</p>}
 
             {showForm && (
-                <form className='affaires-form' onSubmit={handleAddElements}>
+                <form className='affaires-form' onSubmit={editing? handleUpdateElement : handleAddElements}>
                     <input
                         className="form-input"
                         type="text"
@@ -60,7 +92,9 @@ const ElementsReseau = () => {
                         onChange={(e) => setType(e.target.value)}
                         required
                     />
-                    <button className="form-button" type="submit">Ajouter</button>
+                    <button className="form-button" type="submit">{editing? "Modifier l'element " : 'Ajouter'}</button>
+                    <button className="btn-secondary" type="button" onClick={()=>
+                    {setEditing(false);setEditId(null);setType('');setShowForm(false);}}>Annuler</button>
                 </form>
             )}
 
@@ -81,8 +115,9 @@ const ElementsReseau = () => {
                             <td>{el.id_troncon}</td>
                             <td className="actions-cell">        
                                     <div className="action-icons">
-                                        <FaPencilAlt className="icon-action icon-edit"  />
-                                        <FaTrash className="icon-action icon-delete" />
+                                        <FaPencilAlt className="icon-action icon-edit" onClick={()=>
+                                            {setType(el.type);setEditId(el.id_element);setEditing(true);setShowForm(true);}} />
+                                        <FaTrash className="icon-action icon-delete" onClick={()=>{handleDeleteElement(el.id_element)}}/>
                                     </div>
                             </td>
                         </tr>

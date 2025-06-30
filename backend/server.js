@@ -533,7 +533,37 @@ app.post('/api/troncons/:id_troncon/elements',(req,res)=>{
         return res.status(200).json({message:"insertion d'element reseau avec succés !!"});
     })
 })
-
+//PUT : modifier un element reseau 
+app.put('/api/elements/:id_element',(req,res)=>{
+    const {id_element} = req.params;
+    const {type} = req.body;
+    const sql = "UPDATE elementreseau SET type = ? WHERE id_element = ?";
+    db.query(sql,[type,id_element],(err,result)=>{
+        if(err){
+            console.error("erreur lors de la modification : ",err);
+            return res.status(500).json({message:"erreur serveur"});
+        }
+        if(result.affectedRows===0){
+            return res.status(404).json({message:"element reseau non trouvé "});
+        }
+        return res.status(200).json({message : "element modifié avec succés !"});
+    })
+})
+//DELETE : supprimer un element reseau
+app.delete('/api/elements/:id_element',(req,res)=>{
+    const {id_element} = req.params;
+    const sql = "DELETE FROM elementreseau WHERE id_element = ?";
+    db.query(sql,[id_element],(err,result)=>{
+        if(err){
+            console.error("erreur lors de la suppression de l'element : ",err);
+            return res.status(500).json({message:"erreur serveur"});
+        }
+        if(result.affectedRows===0){
+            return res.status(404).json({message:"element reseau non trouvé"});
+        }
+        return res.status(200).json({message : 'element reseau supprimé avec succés !!'});
+    })
+})
 
 // ======================
 // DÉMARRAGE DU SERVEUR
