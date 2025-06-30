@@ -390,9 +390,9 @@ app.post('/api/sources/:id_source/lwsource', (req, res) => {
 
 
 
-// =================================================================
-// GESTION DU troncon
-// =================================================================
+// ====================
+// GESTION DES TRONCONS
+// ====================
 //recuperer les troncons
 app.get('/api/sources/:id_source/troncons',(req,res) =>{
     const {id_source} = req.params
@@ -503,67 +503,176 @@ app.delete('/api/troncons/:id_troncon', (req, res) => {
         res.status(200).json({ message: "Tronçon supprimé avec succès !" });
     });
 });
-// ======================
-// GESTION D'ELEMENT RESEAU
-// ======================
 
-//GET Element reseau d'un troncon 
-app.get('/api/troncons/:id_troncon/elements',(req,res)=>{
-    const {id_troncon} = req.params;
+// Récupérer l'ordre d'un tronçon spécifique
+app.get('/api/troncons/:id_troncon/ordre', async (req, res) => {
+    const { id_troncon } = req.params;
+
+    const sql = `
+        SELECT 
+            (SELECT COUNT(*) + 1 FROM troncon t2 WHERE t2.id_source = t.id_source AND t2.id_troncon < t.id_troncon) AS ordre_troncon
+        FROM 
+            troncon t
+        WHERE 
+            t.id_troncon = ?
+    `;
+
+    try {
+        const [results] = await db.promise().query(sql, [id_troncon]);
+        if (results.length === 0) {
+            return res.status(404).json({ message: "Tronçon non trouvé." });
+        }
+        res.status(200).json(results[0]);
+    } catch (err) {
+        console.error("Erreur récupération ordre tronçon:", err);
+        res.status(500).json({ message: "Erreur serveur." });
+    }
+});
+
+// ==========================
+// GESTION D'ELEMENT RESEAU 
+// ==========================
+
+
+app.get('/api/troncons/:id_troncon/elements', (req, res) => {
+    const { id_troncon } = req.params;
     const sql = "SELECT * FROM elementreseau WHERE id_troncon = ?";
-    db.query(sql,[id_troncon],(err,result)=>{
-        if(err){
-            console.error("Erreur lors du recuperation des element reseau : ",err);
-            return res.status(500).json({message:"Erreur serveur"});
-
+    db.query(sql, [id_troncon], (err, result) => {
+        if (err) {
+            console.error("Erreur lors de la récupération des éléments réseau : ", err);
+            return res.status(500).json({ message: "Erreur serveur" });
         }
         return res.status(200).json(result);
-    })
+    });
 });
-//POST : ajouter une element reseau 
-app.post('/api/troncons/:id_troncon/elements',(req,res)=>{
-    const {id_troncon} = req.params;
-    const {type} = req.body;
-    const sql = "INSERT INTO elementreseau (id_troncon,type) VALUES (?,?)";
-    db.query(sql,[id_troncon,type],(err,result)=>{
-        if(err){
-            console.error("Erreur lors de l'insertion d'element reseau : ",err);
-            return res.status(500).json({message:"erreur serveur"});
+
+// détails d'un seul élément pour permettre la modification
+app.get('/api/elements/:id_element', async (req, res) => {
+    const { id_element } = req.params;
+    const sql = `
+        SELECT 
+            er.*,
+            c.longueur, 
+            co.angle, co.orientation,
+            gs.distance_r,
+            COALESCE(c.materiau, co.materiau) as materiau
+        FROM 
+            elementreseau er
+        LEFT JOIN conduit c ON er.id_element = c.id_element
+        LEFT JOIN coude co ON er.id_element = co.id_element
+        LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
+        WHERE er.id_element = ?`;
+
+    try {
+        const [elements] = await db.promise().query(sql, [id_element]);
+
+        if (elements.length === 0) {
+            return res.status(404).json({ message: "Élément non trouvé." });
         }
-        return res.status(200).json({message:"insertion d'element reseau avec succés !!"});
-    })
-})
-//PUT : modifier un element reseau 
-app.put('/api/elements/:id_element',(req,res)=>{
-    const {id_element} = req.params;
-    const {type} = req.body;
-    const sql = "UPDATE elementreseau SET type = ? WHERE id_element = ?";
-    db.query(sql,[type,id_element],(err,result)=>{
-        if(err){
-            console.error("erreur lors de la modification : ",err);
-            return res.status(500).json({message:"erreur serveur"});
+        res.status(200).json(elements[0]);
+
+    } catch (err) {
+        console.error("Erreur lors de la récupération des détails de l'élément : ", err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+// Ajouter un élément 
+app.post('/api/troncons/:id_troncon/elements', (req, res) => {
+    const { id_troncon } = req.params;
+    const { type, parameters } = req.body;
+
+    if (!type) {
+        return res.status(400).json({ message: "Le type est requis." });
+    }
+
+    db.beginTransaction(async (err) => {
+        if (err) {
+            console.error("Erreur au démarrage de la transaction :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
         }
-        if(result.affectedRows===0){
-            return res.status(404).json({message:"element reseau non trouvé "});
+
+        try {
+
+            const [elementResult] = await db.promise().query(
+                'INSERT INTO elementreseau (type, id_troncon) VALUES (?, ?)',
+                [type, id_troncon]
+            );
+            const newElementId = elementResult.insertId;
+
+
+            if (parameters && Object.keys(parameters).length > 0) {
+                 switch (type) {
+                    case 'conduit':
+                        await db.promise().query(
+                            'INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)',
+                            [newElementId, parameters.longueur, parameters.materiau]
+                        );
+                        break;
+                    case 'coude':
+                        await db.promise().query(
+                            'INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)',
+                            [newElementId, parameters.angle, parameters.orientation, parameters.materiau]
+                        );
+                        break;
+                    case 'grillesoufflage':
+                         await db.promise().query(
+                            'INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)',
+                            [newElementId, parameters.distance_r]
+                        );
+                        break;
+
+                }
+            }
+            
+
+            await db.promise().commit();
+            res.status(201).json({ message: "Élément ajouté avec succès !" });
+
+        } catch (error) {
+
+            await db.promise().rollback();
+            console.error("Erreur transactionnelle lors de l'ajout de l'élément :", error);
+            res.status(500).json({ message: "Erreur serveur" });
         }
-        return res.status(200).json({message : "element modifié avec succés !"});
-    })
-})
-//DELETE : supprimer un element reseau
-app.delete('/api/elements/:id_element',(req,res)=>{
-    const {id_element} = req.params;
-    const sql = "DELETE FROM elementreseau WHERE id_element = ?";
-    db.query(sql,[id_element],(err,result)=>{
-        if(err){
-            console.error("erreur lors de la suppression de l'element : ",err);
-            return res.status(500).json({message:"erreur serveur"});
+    });
+});
+
+//Supprimer un élément et ses données 
+app.delete('/api/elements/:id_element', (req, res) => {
+    const { id_element } = req.params;
+
+    db.beginTransaction(async (err) => {
+        if (err) {
+            console.error("Erreur au démarrage de la transaction :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
         }
-        if(result.affectedRows===0){
-            return res.status(404).json({message:"element reseau non trouvé"});
+
+        try {
+            await db.promise().query('DELETE FROM conduit WHERE id_element = ?', [id_element]);
+            await db.promise().query('DELETE FROM coude WHERE id_element = ?', [id_element]);
+            await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
+            await db.promise().query('DELETE FROM plenum WHERE id_element = ?', [id_element]);
+            await db.promise().query('DELETE FROM silencieux WHERE id_element = ?', [id_element]);
+
+            const [result] = await db.promise().query('DELETE FROM elementreseau WHERE id_element = ?', [id_element]);
+
+            if (result.affectedRows === 0) {
+                await db.promise().rollback();
+                return res.status(404).json({ message: "Élément réseau non trouvé." });
+            }
+            await db.promise().commit();
+            res.status(200).json({ message: 'Élément réseau supprimé avec succès !' });
+
+        } catch (error) {
+            await db.promise().rollback();
+            console.error("Erreur transactionnelle lors de la suppression :", error);
+            res.status(500).json({ message: "Erreur serveur, l'opération a été annulée." });
         }
-        return res.status(200).json({message : 'element reseau supprimé avec succés !!'});
-    })
-})
+    });
+});
+
+
 
 // ======================
 // DÉMARRAGE DU SERVEUR
