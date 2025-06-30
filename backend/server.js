@@ -195,7 +195,6 @@ app.get('/api/salles/:id', (req, res) => {
 app.post('/api/affaires/:id_affaire/salles', (req, res) => {
     const { id_affaire } = req.params;
     const { nom, longueur, largeur, hauteur, surface, volume, tr, a_moyenne, r, surface_totale } = req.body;
-    
     if (!longueur || !largeur || !hauteur || !tr) {
         return res.status(400).json({ message: "Les champs longueur, largeur, hauteur et tr sont obligatoires." });
     }
@@ -209,8 +208,6 @@ app.post('/api/affaires/:id_affaire/salles', (req, res) => {
             console.error("Erreur lors de l'insertion de la salle :", err);
             return res.status(500).json({ message: "Erreur serveur lors de l'insertion de la salle." });
         }
-
-
         if (!result || typeof result.insertId === 'undefined') {
             console.error("Resultat inattendu lors de l'insertion :", result);
             return res.status(500).json({ message: "Salle insérée mais ID introuvable." });
@@ -448,6 +445,62 @@ app.post('/api/sources/:id_source/troncons', (req, res) => {
             return res.status(500).json({ message: "Erreur serveur" });
         }
         return res.status(201).json({ message: "Tronçon ajouté avec succès !", id_troncon: result.insertId });
+    });
+});
+
+// Modifier un tronçon
+app.put('/api/troncons/:id_troncon', (req, res) => {
+    const { id_troncon } = req.params;
+    const { forme, largeur, hauteur, diametre, vitesse, debit } = req.body;
+
+    if (!forme || !vitesse || !debit) {
+        return res.status(400).json({ message: "La forme, la vitesse et le débit sont requis." });
+    }
+
+    let sql;
+    let values;
+
+    if (forme === 'rectangulaire') {
+        if (!largeur || !hauteur) {
+            return res.status(400).json({ message: "La largeur et la hauteur sont requises." });
+        }
+        sql = "UPDATE troncon SET forme = ?, largeur = ?, hauteur = ?, diametre = NULL, vitesse = ?, debit = ? WHERE id_troncon = ?";
+        values = [forme, largeur, hauteur, vitesse, debit, id_troncon];
+    } else if (forme === 'circulaire') {
+        if (!diametre) {
+            return res.status(400).json({ message: "Le diamètre est requis." });
+        }
+        sql = "UPDATE troncon SET forme = ?, largeur = NULL, hauteur = NULL, diametre = ?, vitesse = ?, debit = ? WHERE id_troncon = ?";
+        values = [forme, diametre, vitesse, debit, id_troncon];
+    } else {
+        return res.status(400).json({ message: "La forme est invalide." });
+    }
+
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error("Erreur mise à jour tronçon:", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Tronçon non trouvé." });
+        }
+        res.status(200).json({ message: "Tronçon mis à jour avec succès !" });
+    });
+});
+
+// Supprimer un tronçon
+app.delete('/api/troncons/:id_troncon', (req, res) => {
+    const { id_troncon } = req.params;
+    const sql = "DELETE FROM troncon WHERE id_troncon = ?";
+    db.query(sql, [id_troncon], (err, result) => {
+        if (err) {
+            console.error("Erreur suppression tronçon:", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Tronçon non trouvé." });
+        }
+        res.status(200).json({ message: "Tronçon supprimé avec succès !" });
     });
 });
 // ======================

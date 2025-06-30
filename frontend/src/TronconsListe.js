@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState ,useCallback} from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
@@ -14,19 +14,20 @@ const TronconsListe = () => {
     const [message, setMessage] = useState('');
     const [isErreur, setIsErreur] = useState(false);
     const [sourceInfo, setSourceInfo] = useState({ nom: '', ordre: null });
+    const [editingId, setEditingId] = useState(null);
 
 
 
     const [formData, setFormData] = useState({
-        forme: 'rectangulaire', // Valeur par défaut
+        forme: 'rectangulaire', // par défaut
         largeur: '',
         hauteur: '',
-        diametre: '', 
-        vitesse: '',
+        diametre: '',
+
         debit: ''
     });
 
-    const fetchTroncons = async () => {
+    const fetchTroncons = useCallback(async () => {
         try {
             const res = await axios.get(`http://localhost:5000/api/sources/${id_source}/troncons`);
             setTroncons(res.data);
@@ -36,9 +37,9 @@ const TronconsListe = () => {
         } finally {
             setLoading(false);
         }
-    };
+    },[id_source]);
 
-    const fetchSourceInfo = async () => {
+    const fetchSourceInfo = useCallback(async () => {
     try {
         const res = await axios.get(`http://localhost:5000/api/sources/${id_source}`);
         setSourceInfo({
@@ -48,19 +49,22 @@ const TronconsListe = () => {
     } catch (err) {
         console.error("Erreur lors de la récupération des infos source :", err);
     }
-};
+},[id_source]);
 
     useEffect(() => {
-    fetchTroncons();
-    fetchSourceInfo();
-}, [id_source]);
+    const loadData = async () => {
+        await fetchTroncons();
+        await fetchSourceInfo();
+    };
+    loadData();
+}, [fetchTroncons, fetchSourceInfo]);
 
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => {
             const newState = { ...prev, [name]: value };
-            // Si on change la forme on réinitialise les dimensions 
+            // Si la forme change on réinitialise les dimensions 
             if (name === 'forme') {
                 newState.largeur = '';
                 newState.hauteur = '';
@@ -70,22 +74,75 @@ const TronconsListe = () => {
         });
     };
 
-    const handleAddTroncon = async (e) => {
-        e.preventDefault();
+
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+        let vitesse = 0;
+        const debit_m3s = parseFloat(formData.debit) / 3600;
+
+        if (formData.forme === 'rectangulaire') {
+            const surface = (parseFloat(formData.largeur) / 1000) * (parseFloat(formData.hauteur) / 1000);
+            vitesse = debit_m3s / surface;
+        } else if (formData.forme === 'circulaire') {
+            const diametre_m = parseFloat(formData.diametre) * 0.001;
+            const surface = Math.PI * Math.pow(diametre_m, 2) / 4;
+            const debit_m3h = parseFloat(formData.debit);
+            vitesse = (debit_m3h / surface) / 3600;
+        }
+
+        const payload = { ...formData, vitesse: vitesse.toFixed(2) };
+
+        // on différencie entre l'ajout et la modification
+        if (editingId) {
+            await axios.put(`http://localhost:5000/api/troncons/${editingId}`, payload);
+            setMessage("Tronçon mis à jour avec succès !");
+            setEditingId(null);
+        } else {
+            await axios.post(`http://localhost:5000/api/sources/${id_source}/troncons`, payload);
+            setMessage("Tronçon ajouté avec succès !");
+        }
+
+        setIsErreur(false);
+        setFormData({ forme: 'rectangulaire', largeur: '', hauteur: '', diametre: '', debit: '' });
+        setShowForm(false);
+        fetchTroncons();
+
+    } catch (error) {
+        setMessage(error.response?.data?.message || "Une erreur est survenue.");
+        setIsErreur(true);
+    }
+};
+
+// fct modifier un tronçon
+const handleEdit = (troncon) => {
+    setEditingId(troncon.id_troncon);
+    setFormData({
+        forme: troncon.forme,
+        largeur: troncon.largeur || '',
+        hauteur: troncon.hauteur || '',
+        diametre: troncon.diametre || '',
+        debit: troncon.debit
+    });
+    setShowForm(true);
+    setMessage('');
+};
+
+// fct supprimer un tronçon
+const handleDelete = async (id_troncon) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce tronçon ?")) {
         try {
-            const res = await axios.post(`http://localhost:5000/api/sources/${id_source}/troncons`, formData);
-            setMessage(res.data.message);
+            await axios.delete(`http://localhost:5000/api/troncons/${id_troncon}`);
+            setMessage("Tronçon supprimé avec succès !");
             setIsErreur(false);
-            // Réinitialisation 
-            setFormData({ forme: 'rectangulaire', largeur: '', hauteur: '', diametre: '', vitesse: '', debit: '' });
-            setShowForm(false);
+
             fetchTroncons();
         } catch (error) {
-            setMessage(error.response?.data?.message || "Une erreur est survenue.");
+            setMessage(error.response?.data?.message || "Erreur lors de la suppression.");
             setIsErreur(true);
-            console.error("Erreur lors de l'ajout du tronçon :", error);
         }
-    };
+    }
+};
 
     if (loading) return <div>Chargement des troncons en cours ...</div>;
     if (error) return <div>{error}</div>;
@@ -106,8 +163,8 @@ const TronconsListe = () => {
 
 
             {showForm && (
-                <form onSubmit={handleAddTroncon} className="affaires-form">
-                    <h3>Ajouter un tronçon</h3>
+                <form onSubmit={handleSubmit} className="affaires-form">
+                    <h3>{editingId ? 'Modifier le tronçon' : 'Ajouter un tronçon'}</h3>
                     <select name="forme" value={formData.forme} onChange={handleFormChange} className="form-input" required>
                         <option value="rectangulaire">Rectangulaire</option>
                         <option value="circulaire">Circulaire</option>
@@ -122,11 +179,10 @@ const TronconsListe = () => {
                     )}
                     {formData.forme === 'circulaire' && (
                         <input type="number" name="diametre" placeholder="Diamètre (mm)" value={formData.diametre} onChange={handleFormChange} className="form-input" required />
-                    )}
-
-                    <input type="number" name="vitesse" placeholder="Vitesse (m/s)" value={formData.vitesse} onChange={handleFormChange} className="form-input" required />
+                    
+                )}
                     <input type="number" name="debit" placeholder="Débit (m³/h)" value={formData.debit} onChange={handleFormChange} className="form-input" required />
-                    <button className="form-button" type="submit">Ajouter</button>
+                    <button className="form-button" type="submit">{editingId ? 'Mettre à jour' : 'Ajouter'}</button>
                 </form>
             )}
 
@@ -162,8 +218,8 @@ const TronconsListe = () => {
                                     Gérer éléments
                                 </Link>
                                 <div className="action-icons">
-                                    <FaPencilAlt className="icon-action icon-edit" />
-                                    <FaTrash className="icon-action icon-delete" />
+                                    <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEdit(troncon)} />
+                                    <FaTrash className="icon-action icon-delete" onClick={() => handleDelete(troncon.id_troncon)} />
                                 </div>
                             </td>
                         </tr>

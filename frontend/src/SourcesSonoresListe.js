@@ -272,17 +272,18 @@ const SourcesSonoresListe = () => {
                 </table>
 
                 <h2 style={{ marginTop: '40px' }}>Tableau des spectres</h2>
-                <table className="affaires-table">
+                 <table className="affaires-table">
                     <thead>
                         <tr>
-                            <th>ID Source</th>
+                            <th># Source</th>
+                            <th>Nom Source</th>
                             {BANDES_FREQUENCE.map(freq => (
                                 <th key={freq}>{freq} Hz</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
-                        {sources.map(source => {
+                        {sources.map((source, index) => {
                             const valeurs = lwData.filter(item => item.id_source === source.id_source);
                             const spectreMap = {};
                             valeurs.forEach(item => {
@@ -292,10 +293,11 @@ const SourcesSonoresListe = () => {
                             if (valeurs.length === 0) return null;
 
                             return (
-                                <tr key={source.id_source}>
-                                    <td>{source.id_source}</td>
+                                <tr key={`spectre-${source.id_source}`}>
+                                    <td>{index + 1}</td>
+                                    <td>{source.nom}</td>
                                     {BANDES_FREQUENCE.map(freq => (
-                                        <td key={freq}>{spectreMap[freq] || 0}</td>
+                                        <td key={freq}>{spectreMap[freq] ?? '-'}</td>
                                     ))}
                                 </tr>
                             );

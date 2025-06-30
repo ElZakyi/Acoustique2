@@ -1,0 +1,250 @@
+[33mcommit c38cd081a873b093305f94b3e346b4ebed02e912[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Sun Jun 29 22:35:45 2025 +0100
+
+     Bouttons modifier et supprimer troncons , et correction id de la table des spectres
+
+[33mcommit 19b867491bfaacf554a906703f0dba0ad003e0c2[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Thu Jun 26 15:44:34 2025 +0100
+
+    saving before commit
+
+[33mcommit 99880d33c3622137c40c90746f06956b111ed84d[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Thu Jun 26 14:48:43 2025 +0100
+
+    type des sources sonores
+
+[33mcommit 265292365e2aeb1ad78d82abd86674e8a6a5f171[m
+Merge: b32f747 9bf6ddc
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Thu Jun 26 11:45:31 2025 +0100
+
+    Merge branch 'main' of https://github.com/ElZakyi/Acoustique2
+
+[33mcommit b32f747dee0b955884c578e25c2fcec17b9cf7fd[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Thu Jun 26 11:45:24 2025 +0100
+
+    Sauvegarde avant pull
+
+[33mcommit 9bf6ddcf605d4f25ceaadfde0abe7492f7b41f31[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Thu Jun 26 11:34:31 2025 +0100
+
+    ajoute de la page troncon avec insertion et recuperation des troncon
+
+[33mcommit 66e88731787a24cdf57efa33018cc36b16303f56[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Thu Jun 26 11:32:38 2025 +0100
+
+    Resolution du conflit sur server.js
+
+[33mcommit 842c7fb24e43aac6141d746e7eb31eda79622aa8[m
+Merge: e46112a 83c79ee
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Thu Jun 26 11:22:30 2025 +0100
+
+    Résolution des conflits et nettoyage du serveur -avec organisation index et titres
+
+[33mcommit e46112aa3034cd621745195e86d5d91d52a0c940[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Thu Jun 26 11:09:11 2025 +0100
+
+    idex par ordre et titres des pages
+
+[33mcommit 83c79eea75849c90b27c7bb090c5e205205fe270[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Thu Jun 26 09:29:42 2025 +0100
+
+    gerer l'apparition du formulaire en haut de la page
+
+[33mcommit d157de02c9f13cc3b2210a840bb7e38c2767edf7[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Thu Jun 26 09:19:12 2025 +0100
+
+    garder les formulaire en bas de tableau
+
+[33mcommit 63b7e66f8f79eabc3118a0d826c3e7dd89903112[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Thu Jun 26 09:03:22 2025 +0100
+
+    affichage du spectre lw source pour chaque source sonore
+
+[33mcommit 6b42cdaa186a69c495f374d1a388a5d0c57e242c[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Wed Jun 25 16:01:11 2025 +0100
+
+    ajout la modification de source sonore + gerer les erreurs et bien les affiché
+
+[33mcommit 01f5555d9577cfb2e5ab8bcd0b87bab602e81f6a[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Wed Jun 25 14:37:14 2025 +0100
+
+    Résolution du conflit sur AffairesListe.js
+
+[33mcommit 8d9a3081c912a7970511b67600a4621b27ee4708[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 14:26:17 2025 +0100
+
+    supprimer retour de page affairesliste
+
+[33mcommit 09dfd9c669b8a6f68e8fdfc17a41cc4c089d0128[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 14:16:04 2025 +0100
+
+    page sources sonores et boutton retour
+
+[33mcommit e0033218aabc4a3dfc838ac18ed7b6f1416d10e2[m
+Merge: ba7d433 b6e6a26
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 11:53:04 2025 +0100
+
+    resoulution preobleme listeaffaire et ajout de page sources sonores et boutton de retour
+
+[33mcommit ba7d4339e35e182f053a0b70824de3ab50920cb7[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 11:48:51 2025 +0100
+
+    page des sources sonores , boutton de retour
+
+[33mcommit b6e6a269470e9413c299997c800e30caf84f102f[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Wed Jun 25 11:24:33 2025 +0100
+
+    ajout de suppresion et modification dune salle
+
+[33mcommit 21a4f4333904de79161fb487bdfd439b1e39df43[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Wed Jun 25 10:21:43 2025 +0100
+
+    style css pour les reponse de backend dans la page salle
+
+[33mcommit d05e42f2a9f56621d702912fb7a828716bafd9fa[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 10:16:27 2025 +0100
+
+    gestion des affaires selon role du user
+
+[33mcommit 18be4462f1d6a16a7385e0026bf303fc733751a2[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Wed Jun 25 09:48:08 2025 +0100
+
+    affichage des bonnes erreurs dans la page d'authentification
+
+[33mcommit dc4f5cc63277ecb99df122609ef10c49d1088f05[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 09:08:53 2025 +0100
+
+    roile du user
+
+[33mcommit 9d684504e69e59340d66dddd2c3ff6ec2e6774af[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 08:52:24 2025 +0100
+
+    role user admin tech
+
+[33mcommit f968106456e0bde53e647b0d6fb6d1aed5fd6750[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Wed Jun 25 08:43:40 2025 +0100
+
+    role user
+
+[33mcommit f33417f09929c1e72eb3654a43dbed8409e6ac55[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Tue Jun 24 16:20:30 2025 +0100
+
+    Fusion des fonctionnalités (rôle utilisateur et liaison affaire-user)
+
+[33mcommit ce0c35f5fc84af836ff7e9869c035a6b43004571[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Tue Jun 24 16:19:07 2025 +0100
+
+    bouton de deconexion de l'utilisateur
+
+[33mcommit 23bf03ad19fe6ceaa793a15000d0323c9a7b276c[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Tue Jun 24 15:59:39 2025 +0100
+
+    utilisateur creer une affaire et reponsable de cette affaire
+
+[33mcommit 03571a22cea432e438ca47711207d5e0861f6765[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Tue Jun 24 15:02:58 2025 +0100
+
+    modification nom par email d'utilisateur pour inscription et connexion
+
+[33mcommit 3491fc13e197c704a83b84d9e6b28da144b34e91[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Tue Jun 24 12:04:53 2025 +0100
+
+    page afficher les salle et ajouter une salle + calcul des parametres
+
+[33mcommit 5c604ec071c76b84e93ff35e8af181e5acc36dd7[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Tue Jun 24 10:13:33 2025 +0100
+
+    evert "feat(frontend): Ajout de la page Salles et navigation depuis la liste des affaires"
+    
+    This reverts commit faa1cdda2976cce61c0b0429a7f1ef72381f3c33.
+    
+    annulation du dernier commit
+    :qw
+
+[33mcommit 5db0a988554df59a29065ff0261ccb5e0b35ac99[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Tue Jun 24 10:03:20 2025 +0100
+
+    fix(frontend): Finalisation du style et des actions sur la liste des affaires
+
+[33mcommit faa1cdda2976cce61c0b0429a7f1ef72381f3c33[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Tue Jun 24 09:28:03 2025 +0100
+
+    feat(frontend): Ajout de la page Salles et navigation depuis la liste des affaires
+
+[33mcommit f80f5f74b1fb9666f26c52b06f7569854a6b251e[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Mon Jun 23 15:38:07 2025 +0100
+
+    ajout le traitement de modification
+
+[33mcommit 0f88d500896cfd1ed1ceee046c5becf6e12e5871[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Mon Jun 23 15:12:55 2025 +0100
+
+    boutton supression affaire
+
+[33mcommit 48fcc1f94386621186e1b7d35d99542e76a4817a[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Mon Jun 23 14:08:27 2025 +0100
+
+    coloriation des boutton CRUD
+
+[33mcommit f31e89cd1b3fd7d7b1d18e86ab970a8130178806[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Mon Jun 23 14:03:54 2025 +0100
+
+    application local du css + gestion de couleur de succes et error
+
+[33mcommit 8e578f36039598bd9fd72af18c54bbcd27f3144f[m
+Merge: 0b190e1 1f6f513
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Mon Jun 23 12:26:09 2025 +0100
+
+    Merge branch 'main' of https://github.com/ElZakyi/acoustique2
+    wq
+    wq
+
+[33mcommit 0b190e17e6e9b0dd28852dfa85ac8e57cdb2a2b2[m
+Author: ElFoual <zakariaelfoual0@gmail.com>
+Date:   Mon Jun 23 12:24:57 2025 +0100
+
+    Creation du Formulaire Affaire
+
+[33mcommit 1f6f513f093303319bc4fef36f27a86dce026caa[m
+Author: S-Butterfly <siham.saada.2004@gmail.com>
+Date:   Mon Jun 23 12:09:21 2025 +0100
+
+    feat(backend): Ajout de la ro
