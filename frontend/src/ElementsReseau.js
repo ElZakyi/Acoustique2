@@ -48,6 +48,12 @@ const ElementsReseau = () => {
     const [selectedType, setSelectedType] = useState('');
     const [formData, setFormData] = useState({});
     const [ordreTroncon, setOrdreTroncon] = useState(null);
+    const [showAttenuationForm, setShowAttenuationForm] = useState(false);
+    const [selectedElement, setSelectedElement] = useState(null);
+    const [attenuationValues, setAttenuationValues] = useState({
+        '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': ''
+    });
+    const [attenuations, setAttenuations] = useState([]);
 
     const fetchElements = async () => {
         try {
@@ -61,6 +67,7 @@ const ElementsReseau = () => {
 
     useEffect(() => {
         fetchElements();
+        fetchAttenuations();
         const fetchOrdreTroncon = async () => {
             try {
 
@@ -191,6 +198,59 @@ const ElementsReseau = () => {
             );
         });
     };
+    //ouvrire le formulaire de l'attenuation
+    const openAttenuationForm = (element) => {
+        setSelectedElement(element);
+        // Charger les valeurs d'atténuation existantes pour cet élément
+        const existingValues = attenuations[element.id_element] || {};
+
+        const initialValues = {
+            '63': existingValues['63'] != null ? existingValues['63'] : '',
+            '125': existingValues['125'] != null ? existingValues['125'] : '',
+            '250': existingValues['250'] != null ? existingValues['250'] : '',
+            '500': existingValues['500'] != null ? existingValues['500'] : '',
+            '1000': existingValues['1000'] != null ? existingValues['1000'] : '',
+            '2000': existingValues['2000'] != null ? existingValues['2000'] : '',
+            '4000': existingValues['4000'] != null ? existingValues['4000'] : ''
+        };
+        setAttenuationValues(initialValues);
+        setShowAttenuationForm(true);
+    };
+    const saveAttenuation = async () => {
+    if (!selectedElement) return;
+
+    try {
+        const payload = {
+            id_element: selectedElement.id_element
+        };
+
+        // Ajouter chaque bande de fréquence dans le payload
+        Object.entries(attenuationValues).forEach(([bande, valeur]) => {
+            payload[bande] = parseFloat(valeur) || 0;
+        });
+
+        await axios.post('http://localhost:5000/api/attenuations', payload);
+        setMessage("Atténuation enregistrée avec succès !");
+        fetchAttenuations();
+        setShowAttenuationForm(false);
+        setAttenuationValues({ '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': '' });
+    } catch (error) {
+        console.error("Erreur sauvegarde atténuation :", error);
+        setMessage("Erreur lors de la sauvegarde de l'atténuation.");
+    }
+};
+    //recupere les attenuations
+    const fetchAttenuations = async () => {
+    try {
+        const res = await axios.get(`http://localhost:5000/api/attenuations`);
+        setAttenuations(res.data);
+    } catch (error) {
+        console.error("Erreur récupération atténuations :", error);
+    }
+};
+
+
+
 
     return (
         <div className="container-box">
@@ -271,6 +331,7 @@ const ElementsReseau = () => {
                                     <div className="action-icons">
                                         <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} />
                                         <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} />
+                                        <button className="btn-small" onClick={() => openAttenuationForm(el)}>Atténuation</button>
                                     </div>
                                 </div>
                             </td>
@@ -278,6 +339,72 @@ const ElementsReseau = () => {
                     ))}
                 </tbody>
             </table>
+            {showAttenuationForm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h3>Saisir les attenuation pour l'element #{selectedElement?.id_element}</h3>
+                        {Object.keys(attenuationValues).map(freq=>(
+                            <div key = {freq}>
+                                <label>{freq}Hz</label>
+                                <input
+                                    type="number"
+                                    value = {attenuationValues[freq]}
+                                    onChange={(e)=>setAttenuationValues({...attenuationValues,[freq]:e.target.value})}
+                                />
+                            </div>
+                        ))}
+                        <button onClick={()=>saveAttenuation()}>Enregistrer</button>
+                        <button onClick={()=>setShowAttenuationForm(false)}>Fermer</button>
+
+                    </div>
+
+                </div>
+                
+            )}
+            <h3 style={{ marginTop: '30px' }}>Tableau des atténuations</h3>
+            <table className="affaires-table">
+                <thead>
+                    <tr>
+                        <th>ID Élément</th>
+                        <th>63Hz</th>
+                        <th>125Hz</th>
+                        <th>250Hz</th>
+                        <th>500Hz</th>
+                        <th>1000Hz</th>
+                        <th>2000Hz</th>
+                        <th>4000Hz</th>
+                    </tr>
+                </thead>
+                <tbody>
+            {elements.map((el) => {
+                const attenVals = attenuations[el.id_element] || {};
+                const freqValues = {
+                '63': attenVals['63'] != null ? attenVals['63'] : '',
+                '125': attenVals['125'] != null ? attenVals['125'] : '',
+                '250': attenVals['250'] != null ? attenVals['250'] : '',
+                '500': attenVals['500'] != null ? attenVals['500'] : '',
+                '1000': attenVals['1000'] != null ? attenVals['1000'] : '',
+                '2000': attenVals['2000'] != null ? attenVals['2000'] : '',
+                '4000': attenVals['4000'] != null ? attenVals['4000'] : '',
+                };
+
+                return (
+                <tr key={`att-${el.id_element}`}>
+                    <td>{el.id_element}</td>
+                    <td>{freqValues['63']}</td>
+                    <td>{freqValues['125']}</td>
+                    <td>{freqValues['250']}</td>
+                    <td>{freqValues['500']}</td>
+                    <td>{freqValues['1000']}</td>
+                    <td>{freqValues['2000']}</td>
+                    <td>{freqValues['4000']}</td>
+                </tr>
+                );
+            })}
+            </tbody>
+
+            </table>
+
 
             <div className="footer-actions">
                 <button className="btn-secondary" onClick={() => navigate(-1)}>Retour</button>

@@ -793,6 +793,61 @@ app.delete('/api/elements/:id_element', (req, res) => {
         }
     });
 });
+// Enregistrer ou mettre à jour l'atténuation d'un élément
+app.post('/api/attenuations', async (req, res) => {
+    const { id_element, '63': b63, '125': b125, '250': b250, '500': b500, '1000': b1000, '2000': b2000, '4000': b4000 } = req.body;
+
+    if (!id_element) {
+        return res.status(400).json({ message: "id_element est requis." });
+    }
+
+    const dbOps = [
+        ['63', b63], ['125', b125], ['250', b250], ['500', b500],
+        ['1000', b1000], ['2000', b2000], ['4000', b4000]
+    ];
+
+    try {
+        await db.promise().beginTransaction();
+
+        for (const [bande, valeur] of dbOps) {
+            await db.promise().query(`
+                REPLACE INTO attenuation (id_element, bande, valeur) VALUES (?, ?, ?)
+            `, [id_element, bande, valeur ?? 0]);
+        }
+
+        await db.promise().commit();
+        res.status(200).json({ message: "Atténuations enregistrées avec succès." });
+    } catch (error) {
+        await db.promise().rollback();
+        console.error("Erreur insertion atténuation :", error);
+        res.status(500).json({ message: "Erreur serveur lors de l'enregistrement." });
+    }
+});
+// Récupérer toutes les atténuations groupées par élément
+app.get('/api/attenuations', async (req, res) => {
+    try {
+        const [rows] = await db.promise().query(`
+            SELECT id_element, bande, valeur FROM attenuation
+        `);
+
+        // Regrouper les atténuations par id_element
+        const groupByElement = {};
+        for (const row of rows) {
+            const { id_element, bande, valeur } = row;
+            if (!groupByElement[id_element]) {
+                groupByElement[id_element] = {};
+            }
+            groupByElement[id_element][bande] = valeur;
+        }
+
+        res.json(groupByElement);
+    } catch (error) {
+        console.error("Erreur récupération atténuations :", error);
+        res.status(500).json({ message: "Erreur serveur lors de la récupération des atténuations." });
+    }
+});
+
+
 
 
 
