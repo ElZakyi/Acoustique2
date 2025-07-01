@@ -166,19 +166,18 @@
 
 .actions-cell {
   display: flex;
-  align-items: center;
-  gap: 15px; 
+  justify-content: center;
 }
 
 .action-icons {
   display: flex;
   align-items: center;
-  gap: 15px; 
+  gap: 12px;
 }
 
 .icon-action {
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   transition: transform 0.2s;
 }
 
@@ -186,9 +185,14 @@
   transform: scale(1.25);
 }
 
-.icon-view { color: #0d6efd; }
-.icon-edit { color: #ffc107; }
-.icon-delete { color: #dc3545; }
+.icon-edit {
+  color: #ffc107;
+}
+
+.icon-delete {
+  color: #dc3545;
+}
+
 
 .actions-cell .btn-primary {
   padding: 5px 10px;

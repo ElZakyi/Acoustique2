@@ -646,6 +646,28 @@ app.post('/api/troncons/:id_troncon/elements', (req, res) => {
                         [newElementId, parameters.distance_r]
                     );
                     break;
+                case 'plenum' :
+                    await db.promise().query(
+                        'INSERT INTO plenum (id_element) VALUES (?)', [newElementId]
+                    )
+                    break;
+                case 'silencieux' :
+                    await db.promise().query(
+                        'INSERT INTO silencieux (id_element) VALUES (?)' , [newElementId]
+                    )
+                    break;
+                case 'piecetransformation' :
+                    await db.promise().query(
+                        'INSERT INTO piecetransformation (id_element) VALUES (?)' ,[newElementId]
+                    )
+                    break;
+                
+                case 'vc' : 
+                    await db.promise().query(
+                        'INSERT INTO vc (id_element, type) VALUES (?, ?)',
+                        [newElementId, parameters.type_vc]
+                    );
+                    break;
                 // Ajoute ici les autres types si besoin (silencieux, plenum, etc.)
             }
 

@@ -29,8 +29,12 @@ const ELEMENT_CONFIG = {
     },
     plenum: { label: 'Plénum', fields: [] },
 
-    'vc_crsl_ecm_2_soufflage': { label: 'VC CRSL-ECM 2 / Soufflage', fields: [] },
-    'vc_crsl_ecm_2_reprise': { label: 'VC CRSL-ECM 2 / Reprise', fields: [] }
+    vc : {
+        label : 'VC CRSL-ECM 2',
+        fields : [
+            {name : 'type_vc' , label : 'Type VC ',type : 'select', options : ['Soufflage','Reprise']}
+        ]
+    }
 };
 
 const ElementsReseau = () => {
@@ -155,7 +159,25 @@ const ElementsReseau = () => {
         if (!config?.fields?.length) {
             return <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#666' }}>Aucun paramètre spécifique requis.</p>;
         }
-        return config.fields.map(field => (
+        
+        return config.fields.map(field => {
+            if(field.type === 'select') {
+                return (
+                    <select
+                        key = {field.name}
+                        name = {field.name}
+                        value = {formData[field.name] || ''}
+                        onChange={handleFormInputChange}
+                        className="form-input"
+                        required
+                    >
+                        <option value = "" disabled>--{field.label}--</option>
+                        {field.options.map(opt=>(<option key = {opt} value = {opt}>{opt}</option>))}
+                    </select>
+                );
+            }
+        
+            return (
             <input
                 key={field.name}
                 type={field.type}
@@ -166,7 +188,8 @@ const ElementsReseau = () => {
                 className="form-input"
                 required
             />
-        ));
+            );
+        });
     };
 
     return (
@@ -229,16 +252,26 @@ const ElementsReseau = () => {
                             <td>{i + 1}</td>
                             <td>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
                             <td>
-                                {Object.entries(el).filter(([k]) =>
-                                    ['longueur', 'angle', 'orientation', 'materiau', 'distance_r'].includes(k)
-                                ).map(([k, v]) => (
-                                    v !== null ? <div key={k}><strong>{k}</strong>: {v}</div> : null
-                                ))}
+                                {
+                                    (() => {
+                                        const params = Object.entries(el).filter(([k]) =>
+                                            ['longueur', 'angle', 'orientation', 'materiau', 'distance_r', 'type_vc'].includes(k) && el[k] !== null
+                                        );
+                                        if (params.length === 0) {
+                                            return <em style={{ color: '#999' }}>Aucun paramètre</em>;
+                                        }
+                                        return params.map(([k, v]) => (
+                                            <div key={k}><strong>{k}</strong>: {v}</div>
+                                        ));
+                                    })()
+                                }
                             </td>
-                            <td className="actions-cell">
-                                <div className="action-icons">
-                                    <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} />
-                                    <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} />
+                            <td >
+                                <div className="actions-cell">
+                                    <div className="action-icons">
+                                        <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} />
+                                        <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} />
+                                    </div>
                                 </div>
                             </td>
                         </tr>
