@@ -562,14 +562,22 @@ app.get('/api/troncons/:id_troncon/ordre', async (req, res) => {
 app.get('/api/troncons/:id_troncon/elements', (req, res) => {
     const { id_troncon } = req.params;
     const sql = `
-        SELECT er.*, c.longueur, co.angle, co.orientation, gs.distance_r,
-               COALESCE(c.materiau, co.materiau) AS materiau
+        SELECT er.*, 
+            c.longueur, 
+            co.angle, 
+            co.orientation, 
+            gs.distance_r,
+            vc.type_vc,
+            COALESCE(c.materiau, co.materiau) AS materiau
         FROM elementreseau er
         LEFT JOIN conduit c ON er.id_element = c.id_element
         LEFT JOIN coude co ON er.id_element = co.id_element
         LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
+        LEFT JOIN vc ON er.id_element = vc.id_element
         WHERE er.id_troncon = ?
     `;
+
+
 
     db.query(sql, [id_troncon], (err, result) => {
         if (err) {
@@ -584,14 +592,22 @@ app.get('/api/troncons/:id_troncon/elements', (req, res) => {
 app.get('/api/elements/:id_element', async (req, res) => {
     const { id_element } = req.params;
     const sql = `
-        SELECT er.*, c.longueur, co.angle, co.orientation, gs.distance_r,
-               COALESCE(c.materiau, co.materiau) AS materiau
+        SELECT er.*, 
+            c.longueur, 
+            co.angle, 
+            co.orientation, 
+            gs.distance_r,
+            vc.type_vc,
+            COALESCE(c.materiau, co.materiau) AS materiau
         FROM elementreseau er
         LEFT JOIN conduit c ON er.id_element = c.id_element
         LEFT JOIN coude co ON er.id_element = co.id_element
         LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
+        LEFT JOIN vc ON er.id_element = vc.id_element
         WHERE er.id_element = ?
     `;
+
+
 
     try {
         const [elements] = await db.promise().query(sql, [id_element]);
@@ -664,7 +680,7 @@ app.post('/api/troncons/:id_troncon/elements', (req, res) => {
                 
                 case 'vc' : 
                     await db.promise().query(
-                        'INSERT INTO vc (id_element, type) VALUES (?, ?)',
+                        'INSERT INTO vc (id_element, type_vc) VALUES (?, ?)',
                         [newElementId, parameters.type_vc]
                     );
                     break;
@@ -705,6 +721,7 @@ app.put('/api/elements/:id_element', async (req, res) => {
             await db.promise().query('DELETE FROM conduit WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM coude WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
+            await db.promise().query('DELETE FROM vc WHERE id_element = ? ',[id_element]);
 
             switch (type) {
                 case 'conduit':
@@ -725,6 +742,10 @@ app.put('/api/elements/:id_element', async (req, res) => {
                         [id_element, parameters.distance_r]
                     );
                     break;
+                case 'vc' : 
+                await db.promise().query(
+                    'INSERT INTO vc (id_element , type_vc) VALUE (?,?) ' , [id_element,parameters.type_vc]
+                )
             }
 
             await db.promise().commit();
@@ -754,6 +775,7 @@ app.delete('/api/elements/:id_element', (req, res) => {
             await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM plenum WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM silencieux WHERE id_element = ?', [id_element]);
+            await db.promise().query('DELETE FROM vc WHERE id_element = ?', [id_element]);
 
             const [result] = await db.promise().query('DELETE FROM elementreseau WHERE id_element = ?', [id_element]);
 
