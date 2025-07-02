@@ -773,12 +773,16 @@ app.delete('/api/elements/:id_element', (req, res) => {
         }
 
         try {
+            //supprimer les attenuation d'abord 
+            await db.promise().query('DELETE FROM attenuation WHERE id_element = ? ',[id_element]);
+            // Puis les sous-tables spécifiques
             await db.promise().query('DELETE FROM conduit WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM coude WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM plenum WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM silencieux WHERE id_element = ?', [id_element]);
             await db.promise().query('DELETE FROM vc WHERE id_element = ?', [id_element]);
+            await db.promise().query('DELETE FROM piecetransformation WHERE id_element = ?',[id_element]);
 
             const [result] = await db.promise().query('DELETE FROM elementreseau WHERE id_element = ?', [id_element]);
 

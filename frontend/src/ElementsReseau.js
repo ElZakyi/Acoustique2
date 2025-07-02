@@ -354,7 +354,6 @@ const ElementsReseau = () => {
                                     <div className="action-icons">
                                         <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} />
                                         <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} />
-                                        <button className="btn-small" onClick={() => openAttenuationForm(el)}>Atténuation</button>
                                     </div>
                                      <button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button>
                                 </div>
