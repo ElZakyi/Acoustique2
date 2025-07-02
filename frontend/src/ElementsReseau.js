@@ -50,7 +50,9 @@ const ElementsReseau = () => {
     const [ordreTroncon, setOrdreTroncon] = useState(null);
     const [showAttenuationForm, setShowAttenuationForm] = useState(false);
     const [selectedElement, setSelectedElement] = useState(null);
+
     const [selectedElementOrder, setSelectedElementOrder] = useState(null);
+    
     const [attenuationValues, setAttenuationValues] = useState({
         '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': ''
     });
@@ -69,11 +71,13 @@ const ElementsReseau = () => {
     useEffect(() => {
         fetchElements();
 
+
         const utilisateur = localStorage.getItem("utilisateur");
         if (!utilisateur) {
             navigate('/connexion');
             return; 
         }
+
         fetchAttenuations();
         const fetchOrdreTroncon = async () => {
             try {
@@ -210,6 +214,7 @@ const ElementsReseau = () => {
         });
     };
     //ouvrire le formulaire de l'attenuation
+
     const openAttenuationForm = (element, index) => {
     setSelectedElement(element);
              // stocker l'ordre index + 1
@@ -349,7 +354,6 @@ const ElementsReseau = () => {
                                     <div className="action-icons">
                                         <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} />
                                         <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} />
-                                            
                                     </div>
                                      <button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button>
                                 </div>
@@ -413,6 +417,7 @@ const ElementsReseau = () => {
                 <tr key={`att-${el.id_element}`}>
                     {/* i + 1 au lieu de el.id_element */}
                     <td>{i + 1}</td>
+
                     <td>{freqValues['63']}</td>
                     <td>{freqValues['125']}</td>
                     <td>{freqValues['250']}</td>
@@ -421,6 +426,7 @@ const ElementsReseau = () => {
                     <td>{freqValues['2000']}</td>
                     <td>{freqValues['4000']}</td>
                 </tr>
+
             );
         })}
     </tbody>
