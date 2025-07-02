@@ -853,7 +853,55 @@ app.get('/api/attenuations', async (req, res) => {
         res.status(500).json({ message: "Erreur serveur lors de la récupération des atténuations." });
     }
 });
+//=====================
+//CORRECTIONS SPECTRALE 
+//=====================
+app.get('/api/correctionspectral', async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(`
+      SELECT id_salle, bande, valeur FROM correctionspectral
+    `);
 
+    const grouped = {};
+    for (const { id_salle, bande, valeur } of rows) {
+      if (!grouped[id_salle]) {
+        grouped[id_salle] = {};
+      }
+      grouped[id_salle][bande] = valeur;
+    }
+
+    res.json(grouped);
+  } catch (error) {
+    console.error("Erreur récupération corrections spectrales :", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+//inserer les les valeur de correction spectral dans la table 
+app.post('/api/salles/:id_salle/correctionspectral', async (req, res) => {
+    const { id_salle } = req.params;
+    const corrections = req.body.corrections; // ex: [{ bande: 63, valeur: 10 }, ...]
+
+    if (!Array.isArray(corrections)) {
+        return res.status(400).json({ message: "Le champ 'corrections' doit être un tableau." });
+    }
+
+    try {
+        await db.promise().beginTransaction();
+
+        for (const { bande, valeur } of corrections) {
+            await db.promise().query(`
+                REPLACE INTO correctionspectral (id_salle, bande, valeur) VALUES (?, ?, ?)
+            `, [id_salle, bande, valeur ?? 0]);
+        }
+
+        await db.promise().commit();
+        res.status(200).json({ message: "Corrections spectrales enregistrées." });
+    } catch (error) {
+        await db.promise().rollback();
+        console.error("Erreur correction spectrale :", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
 
 
 
