@@ -50,12 +50,9 @@ const ElementsReseau = () => {
     const [ordreTroncon, setOrdreTroncon] = useState(null);
     const [showAttenuationForm, setShowAttenuationForm] = useState(false);
     const [selectedElement, setSelectedElement] = useState(null);
-<<<<<<< HEAD
-=======
 
     const [selectedElementOrder, setSelectedElementOrder] = useState(null);
-    
->>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
+
     const [attenuationValues, setAttenuationValues] = useState({
         '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': ''
     });
@@ -73,8 +70,6 @@ const ElementsReseau = () => {
 
     useEffect(() => {
         fetchElements();
-<<<<<<< HEAD
-=======
 
 
         const utilisateur = localStorage.getItem("utilisateur");
@@ -82,8 +77,6 @@ const ElementsReseau = () => {
             navigate('/connexion');
             return; 
         }
-
->>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
         fetchAttenuations();
         const fetchOrdreTroncon = async () => {
             try {
@@ -220,17 +213,13 @@ const ElementsReseau = () => {
         });
     };
     //ouvrire le formulaire de l'attenuation
-<<<<<<< HEAD
-    const openAttenuationForm = (element) => {
-        setSelectedElement(element);
-=======
+
 
     const openAttenuationForm = (element, index) => {
     setSelectedElement(element);
              // stocker l'ordre index + 1
              setSelectedElementOrder(index + 1); 
 
->>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
         // Charger les valeurs d'atténuation existantes pour cet élément
         const existingValues = attenuations[element.id_element] || {};
 
@@ -400,11 +389,8 @@ const ElementsReseau = () => {
             <table className="affaires-table">
                 <thead>
                     <tr>
-<<<<<<< HEAD
-                        <th>ID Élément</th>
-=======
+
                         <th># Élément</th>
->>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
                         <th>63Hz</th>
                         <th>125Hz</th>
                         <th>250Hz</th>
@@ -414,24 +400,6 @@ const ElementsReseau = () => {
                         <th>4000Hz</th>
                     </tr>
                 </thead>
-<<<<<<< HEAD
-                <tbody>
-            {elements.map((el) => {
-                const attenVals = attenuations[el.id_element] || {};
-                const freqValues = {
-                '63': attenVals['63'] != null ? attenVals['63'] : '',
-                '125': attenVals['125'] != null ? attenVals['125'] : '',
-                '250': attenVals['250'] != null ? attenVals['250'] : '',
-                '500': attenVals['500'] != null ? attenVals['500'] : '',
-                '1000': attenVals['1000'] != null ? attenVals['1000'] : '',
-                '2000': attenVals['2000'] != null ? attenVals['2000'] : '',
-                '4000': attenVals['4000'] != null ? attenVals['4000'] : '',
-                };
-
-                return (
-                <tr key={`att-${el.id_element}`}>
-                    <td>{el.id_element}</td>
-=======
                  <tbody>
         {/* On récupère l'index 'i' de la boucle .map() */}
         {elements.map((el, i) => { 
@@ -451,8 +419,6 @@ const ElementsReseau = () => {
                 <tr key={`att-${el.id_element}`}>
                     {/* i + 1 au lieu de el.id_element */}
                     <td>{i + 1}</td>
-
->>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
                     <td>{freqValues['63']}</td>
                     <td>{freqValues['125']}</td>
                     <td>{freqValues['250']}</td>
@@ -461,16 +427,10 @@ const ElementsReseau = () => {
                     <td>{freqValues['2000']}</td>
                     <td>{freqValues['4000']}</td>
                 </tr>
-<<<<<<< HEAD
-                );
-            })}
-            </tbody>
-=======
 
             );
         })}
     </tbody>
->>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
 
             </table>
 
