@@ -298,7 +298,7 @@ const SallesListe = () => {
                       className="btn-primary"
                       onClick={() => {
                         setSelectedSalle(salle);
-                        const existing = correctionsSpectrales[salle.id_salle];
+                        const existing = correctionsSpectrales[salle.id_salle] || {};
                         setCorrectionForm({
                             63 : existing["63"]  ?? "",
                             125 : existing["125"] ?? "",
