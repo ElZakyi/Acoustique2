@@ -27,7 +27,7 @@ const ELEMENT_CONFIG = {
         label: 'Grille de soufflage',
         fields: [{ name: 'distance_r', label: 'Distance R', type: 'number' }]
     },
-    plenum: { label: 'Plénum', fields: [] },
+    plenum: { label: 'Plenum', fields: [] },
 
     vc : {
         label : 'VC CRSL-ECM 2',
@@ -48,6 +48,13 @@ const ElementsReseau = () => {
     const [selectedType, setSelectedType] = useState('');
     const [formData, setFormData] = useState({});
     const [ordreTroncon, setOrdreTroncon] = useState(null);
+    const [showAttenuationForm, setShowAttenuationForm] = useState(false);
+    const [selectedElement, setSelectedElement] = useState(null);
+    const [selectedElementOrder, setSelectedElementOrder] = useState(null);
+    const [attenuationValues, setAttenuationValues] = useState({
+        '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': ''
+    });
+    const [attenuations, setAttenuations] = useState([]);
 
     const fetchElements = async () => {
         try {
@@ -61,6 +68,13 @@ const ElementsReseau = () => {
 
     useEffect(() => {
         fetchElements();
+
+        const utilisateur = localStorage.getItem("utilisateur");
+        if (!utilisateur) {
+            navigate('/connexion');
+            return; 
+        }
+        fetchAttenuations();
         const fetchOrdreTroncon = async () => {
             try {
 
@@ -82,6 +96,10 @@ const ElementsReseau = () => {
     const handleFormInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+    const handleLogout = () => {
+        localStorage.removeItem("utilisateur");
+        navigate('/connexion');
     };
 
     const handleSubmit = async (e) => {
@@ -191,8 +209,68 @@ const ElementsReseau = () => {
             );
         });
     };
+    //ouvrire le formulaire de l'attenuation
+    const openAttenuationForm = (element, index) => {
+    setSelectedElement(element);
+             // stocker l'ordre index + 1
+             setSelectedElementOrder(index + 1); 
+
+        // Charger les valeurs d'atténuation existantes pour cet élément
+        const existingValues = attenuations[element.id_element] || {};
+
+        const initialValues = {
+            '63': existingValues['63'] != null ? existingValues['63'] : '',
+            '125': existingValues['125'] != null ? existingValues['125'] : '',
+            '250': existingValues['250'] != null ? existingValues['250'] : '',
+            '500': existingValues['500'] != null ? existingValues['500'] : '',
+            '1000': existingValues['1000'] != null ? existingValues['1000'] : '',
+            '2000': existingValues['2000'] != null ? existingValues['2000'] : '',
+            '4000': existingValues['4000'] != null ? existingValues['4000'] : ''
+        };
+        setAttenuationValues(initialValues);
+        setShowAttenuationForm(true);
+    };
+    const saveAttenuation = async () => {
+    if (!selectedElement) return;
+
+    try {
+        const payload = {
+            id_element: selectedElement.id_element
+        };
+
+        // Ajouter chaque bande de fréquence dans le payload
+        Object.entries(attenuationValues).forEach(([bande, valeur]) => {
+            payload[bande] = parseFloat(valeur) || 0;
+        });
+
+        await axios.post('http://localhost:5000/api/attenuations', payload);
+        setMessage("Atténuation enregistrée avec succès !");
+        fetchAttenuations();
+        setShowAttenuationForm(false);
+        setAttenuationValues({ '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': '' });
+    } catch (error) {
+        console.error("Erreur sauvegarde atténuation :", error);
+        setMessage("Erreur lors de la sauvegarde de l'atténuation.");
+    }
+};
+    //recupere les attenuations
+    const fetchAttenuations = async () => {
+    try {
+        const res = await axios.get(`http://localhost:5000/api/attenuations`);
+        setAttenuations(res.data);
+    } catch (error) {
+        console.error("Erreur récupération atténuations :", error);
+    }
+};
+
+
+
 
     return (
+         <>
+            <div className="logout-global">
+                <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
+            </div>
         <div className="container-box">
             <div className="page-header">
                 <h2 className="page-title">
@@ -271,18 +349,90 @@ const ElementsReseau = () => {
                                     <div className="action-icons">
                                         <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} />
                                         <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} />
+                                            
                                     </div>
+                                     <button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button>
                                 </div>
                             </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
+            {showAttenuationForm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h3>Saisir les atténuations pour l'élément n°{selectedElementOrder}</h3>
+                        {Object.keys(attenuationValues).map(freq=>(
+                            <div key = {freq}>
+                                <label>{freq}Hz</label>
+                                <input
+                                    type="number"
+                                    value = {attenuationValues[freq]}
+                                    onChange={(e)=>setAttenuationValues({...attenuationValues,[freq]:e.target.value})}
+                                />
+                            </div>
+                        ))}
+                        <button onClick={()=>saveAttenuation()}>Enregistrer</button>
+                        <button onClick={()=>setShowAttenuationForm(false)}>Fermer</button>
+
+                    </div>
+
+                </div>
+                
+            )}
+            <h3 style={{ marginTop: '30px' }}>Tableau des atténuations</h3>
+            <table className="affaires-table">
+                <thead>
+                    <tr>
+                        <th># Élément</th>
+                        <th>63Hz</th>
+                        <th>125Hz</th>
+                        <th>250Hz</th>
+                        <th>500Hz</th>
+                        <th>1000Hz</th>
+                        <th>2000Hz</th>
+                        <th>4000Hz</th>
+                    </tr>
+                </thead>
+                 <tbody>
+        {/* On récupère l'index 'i' de la boucle .map() */}
+        {elements.map((el, i) => { 
+            const attenVals = attenuations[el.id_element];
+
+            // Si un élément n'a pas de données d'atténuation, on n'affiche pas de ligne pour lui
+            if (!attenVals || Object.keys(attenVals).length === 0) {
+                return null;
+            }
+
+            const freqValues = {};
+            ['63', '125', '250', '500', '1000', '2000', '4000'].forEach(freq => {
+                freqValues[freq] = attenVals[freq] != null ? attenVals[freq] : '-';
+            });
+
+            return (
+                <tr key={`att-${el.id_element}`}>
+                    {/* i + 1 au lieu de el.id_element */}
+                    <td>{i + 1}</td>
+                    <td>{freqValues['63']}</td>
+                    <td>{freqValues['125']}</td>
+                    <td>{freqValues['250']}</td>
+                    <td>{freqValues['500']}</td>
+                    <td>{freqValues['1000']}</td>
+                    <td>{freqValues['2000']}</td>
+                    <td>{freqValues['4000']}</td>
+                </tr>
+            );
+        })}
+    </tbody>
+
+            </table>
+
 
             <div className="footer-actions">
                 <button className="btn-secondary" onClick={() => navigate(-1)}>Retour</button>
             </div>
         </div>
+        </>
     );
 };
 

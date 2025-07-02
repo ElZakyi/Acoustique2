@@ -51,12 +51,22 @@ const TronconsListe = () => {
 },[id_source]);
 
     useEffect(() => {
+        const utilisateur = localStorage.getItem("utilisateur");
+        if (!utilisateur) {
+            navigate('/connexion');
+            return; 
+        }
     const loadData = async () => {
         await fetchTroncons();
         await fetchSourceInfo();
     };
     loadData();
 }, [fetchTroncons, fetchSourceInfo]);
+
+const handleLogout = () => {
+        localStorage.removeItem("utilisateur");
+        navigate('/connexion');
+    };
 
 
     const handleFormChange = (e) => {
@@ -128,7 +138,7 @@ const handleEdit = (troncon) => {
 };
 
 // fct supprimer un tronçon
-// fct supprimer un tronçon (version corrigée)
+
 const handleDelete = async (id_troncon) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce tronçon ?")) {
         try {
@@ -148,6 +158,11 @@ const handleDelete = async (id_troncon) => {
     if (error) return <div>{error}</div>;
 
     return (
+          <>
+            <div className="logout-global">
+                <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
+            </div>
+        
         <div className='container-box'>
 
             <div className="page-header">
@@ -232,6 +247,7 @@ const handleDelete = async (id_troncon) => {
                 <button onClick={() => navigate(-1)} className="btn-secondary">Retour</button>
             </div>
         </div>
+        </>
     )
 };
 export default TronconsListe;
