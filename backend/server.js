@@ -418,6 +418,7 @@ app.post('/api/sources/:id_source/lwsource', (req, res) => {
 // ====================
 // GESTION DES TRONCONS
 // ====================
+
 //recuperer les troncons
 app.get('/api/sources/:id_source/troncons',(req,res) =>{
     const {id_source} = req.params
@@ -430,6 +431,7 @@ app.get('/api/sources/:id_source/troncons',(req,res) =>{
         return res.status(200).json(result);
     })
 })
+
 //inserer un troncon 
 
 app.post('/api/sources/:id_source/troncons', (req, res) => {
@@ -743,9 +745,10 @@ app.put('/api/elements/:id_element', async (req, res) => {
                     );
                     break;
                 case 'vc' : 
-                await db.promise().query(
+                     await db.promise().query(
                     'INSERT INTO vc (id_element , type_vc) VALUE (?,?) ' , [id_element,parameters.type_vc]
-                )
+                    );
+                    break;
             }
 
             await db.promise().commit();

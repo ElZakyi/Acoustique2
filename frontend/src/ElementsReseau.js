@@ -27,7 +27,7 @@ const ELEMENT_CONFIG = {
         label: 'Grille de soufflage',
         fields: [{ name: 'distance_r', label: 'Distance R', type: 'number' }]
     },
-    plenum: { label: 'Plénum', fields: [] },
+    plenum: { label: 'Plenum', fields: [] },
 
     vc : {
         label : 'VC CRSL-ECM 2',
@@ -50,6 +50,12 @@ const ElementsReseau = () => {
     const [ordreTroncon, setOrdreTroncon] = useState(null);
     const [showAttenuationForm, setShowAttenuationForm] = useState(false);
     const [selectedElement, setSelectedElement] = useState(null);
+<<<<<<< HEAD
+=======
+
+    const [selectedElementOrder, setSelectedElementOrder] = useState(null);
+    
+>>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
     const [attenuationValues, setAttenuationValues] = useState({
         '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': ''
     });
@@ -67,6 +73,17 @@ const ElementsReseau = () => {
 
     useEffect(() => {
         fetchElements();
+<<<<<<< HEAD
+=======
+
+
+        const utilisateur = localStorage.getItem("utilisateur");
+        if (!utilisateur) {
+            navigate('/connexion');
+            return; 
+        }
+
+>>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
         fetchAttenuations();
         const fetchOrdreTroncon = async () => {
             try {
@@ -89,6 +106,10 @@ const ElementsReseau = () => {
     const handleFormInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+    const handleLogout = () => {
+        localStorage.removeItem("utilisateur");
+        navigate('/connexion');
     };
 
     const handleSubmit = async (e) => {
@@ -199,8 +220,17 @@ const ElementsReseau = () => {
         });
     };
     //ouvrire le formulaire de l'attenuation
+<<<<<<< HEAD
     const openAttenuationForm = (element) => {
         setSelectedElement(element);
+=======
+
+    const openAttenuationForm = (element, index) => {
+    setSelectedElement(element);
+             // stocker l'ordre index + 1
+             setSelectedElementOrder(index + 1); 
+
+>>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
         // Charger les valeurs d'atténuation existantes pour cet élément
         const existingValues = attenuations[element.id_element] || {};
 
@@ -253,6 +283,10 @@ const ElementsReseau = () => {
 
 
     return (
+         <>
+            <div className="logout-global">
+                <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
+            </div>
         <div className="container-box">
             <div className="page-header">
                 <h2 className="page-title">
@@ -333,6 +367,7 @@ const ElementsReseau = () => {
                                         <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} />
                                         <button className="btn-small" onClick={() => openAttenuationForm(el)}>Atténuation</button>
                                     </div>
+                                     <button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button>
                                 </div>
                             </td>
                         </tr>
@@ -342,7 +377,7 @@ const ElementsReseau = () => {
             {showAttenuationForm && (
                 <div className="modal-overlay">
                     <div className="modal">
-                        <h3>Saisir les attenuation pour l'element #{selectedElement?.id_element}</h3>
+                        <h3>Saisir les atténuations pour l'élément n°{selectedElementOrder}</h3>
                         {Object.keys(attenuationValues).map(freq=>(
                             <div key = {freq}>
                                 <label>{freq}Hz</label>
@@ -365,7 +400,11 @@ const ElementsReseau = () => {
             <table className="affaires-table">
                 <thead>
                     <tr>
+<<<<<<< HEAD
                         <th>ID Élément</th>
+=======
+                        <th># Élément</th>
+>>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
                         <th>63Hz</th>
                         <th>125Hz</th>
                         <th>250Hz</th>
@@ -375,6 +414,7 @@ const ElementsReseau = () => {
                         <th>4000Hz</th>
                     </tr>
                 </thead>
+<<<<<<< HEAD
                 <tbody>
             {elements.map((el) => {
                 const attenVals = attenuations[el.id_element] || {};
@@ -391,6 +431,28 @@ const ElementsReseau = () => {
                 return (
                 <tr key={`att-${el.id_element}`}>
                     <td>{el.id_element}</td>
+=======
+                 <tbody>
+        {/* On récupère l'index 'i' de la boucle .map() */}
+        {elements.map((el, i) => { 
+            const attenVals = attenuations[el.id_element];
+
+            // Si un élément n'a pas de données d'atténuation, on n'affiche pas de ligne pour lui
+            if (!attenVals || Object.keys(attenVals).length === 0) {
+                return null;
+            }
+
+            const freqValues = {};
+            ['63', '125', '250', '500', '1000', '2000', '4000'].forEach(freq => {
+                freqValues[freq] = attenVals[freq] != null ? attenVals[freq] : '-';
+            });
+
+            return (
+                <tr key={`att-${el.id_element}`}>
+                    {/* i + 1 au lieu de el.id_element */}
+                    <td>{i + 1}</td>
+
+>>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
                     <td>{freqValues['63']}</td>
                     <td>{freqValues['125']}</td>
                     <td>{freqValues['250']}</td>
@@ -399,9 +461,16 @@ const ElementsReseau = () => {
                     <td>{freqValues['2000']}</td>
                     <td>{freqValues['4000']}</td>
                 </tr>
+<<<<<<< HEAD
                 );
             })}
             </tbody>
+=======
+
+            );
+        })}
+    </tbody>
+>>>>>>> 493a96548fc04c0aedcaa7f4b404fe84d9ef7fcf
 
             </table>
 
@@ -410,6 +479,7 @@ const ElementsReseau = () => {
                 <button className="btn-secondary" onClick={() => navigate(-1)}>Retour</button>
             </div>
         </div>
+        </>
     );
 };
 
