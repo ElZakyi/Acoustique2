@@ -462,4 +462,16 @@
 .btn-small:hover {
     background-color: #0056b3;
 }
+.correction-field {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.correction-field label {
+  width: 80px;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
 

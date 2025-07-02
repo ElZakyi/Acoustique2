@@ -203,7 +203,50 @@ const SallesListe = () => {
             <button type="submit" className="btn-primary">{formData.id_salle ? "Mettre à jour" : "Enregistrer"}</button>
           </form>
         )}
+        {showCorrectionForm && selectedSalle && (
+          <div className='modal-overlay'>
+          <div className='modal'>
+            <h3> Correction spectrale – {selectedSalle.nom}</h3>
+            {Object.keys(correctionForm).map((bande) => (
+              <div key={bande} className="correction-field">
+                <label htmlFor={`bande-${bande}`}>{bande} Hz</label>
+                <input
+                  id={`bande-${bande}`}
+                  type="number"
+                  value={correctionForm[bande]}
+                  onChange={(e) => {
+                    setCorrectionForm({ ...correctionForm, [bande]: e.target.value });
+                  }}
+                />
+              </div>
+            ))}
 
+            <button 
+              className='btn-primary'
+              onClick={async() => {
+                const corrections = Object.entries(correctionForm).map(([bande,valeur])=>({
+                  bande : parseInt(bande),
+                  valeur : parseFloat(valeur)
+                }));
+                try {
+                  await axios.post(`http://localhost:5000/api/salles/${selectedSalle.id_salle}/correctionspectral`,{corrections});
+                
+                  const reload = await axios.get("http://localhost:5000/api/correctionspectral");
+
+                  setCorrectionsSpectrales(reload.data);
+                  setShowCorrectionForm(false);
+                  setCorrectionForm({ 63: '', 125: '', 250: '', 500: '', 1000: '', 2000: '', 4000: '' })
+                }catch (err) {
+                  console.error('Erreur Api : ',err);
+                }
+              }}
+            >
+              Enregistrer
+            </button>
+            <button className="btn-secondary" onClick={() => setShowCorrectionForm(false)}>Fermer</button>
+          </div>
+          </div>
+        )}
         <table className="affaires-table">
           <thead>
             <tr>
@@ -277,46 +320,6 @@ const SallesListe = () => {
             )}
           </tbody>
         </table>
-        {showCorrectionForm && selectedSalle && (
-          <div className='modal'>
-            <h3> Correction spectrale – {selectedSalle.nom}</h3>
-            {Object.keys(correctionForm).map((bande) => (
-              <input
-                key={bande}
-                type="number"
-                placeholder={`${bande}Hz`}
-                value={correctionForm[bande]}
-                onChange={(e) => {
-                  setCorrectionForm({ ...correctionForm, [bande]: e.target.value });
-                }}
-              />
-            ))}
-
-            <button 
-              className='btn-primary'
-              onClick={async() => {
-                const corrections = Object.entries(correctionForm).map(([bande,valeur])=>({
-                  bande : parseInt(bande),
-                  valeur : parseFloat(valeur)
-                }));
-                try {
-                  await axios.post(`http://localhost:5000/api/salles/${selectedSalle.id_salle}/correctionspectral`,{corrections});
-                
-                  const reload = await axios.get("http://localhost:5000/api/correctionspectral");
-
-                  setCorrectionsSpectrales(reload.data);
-                  setShowCorrectionForm(false);
-                  setCorrectionForm({ 63: '', 125: '', 250: '', 500: '', 1000: '', 2000: '', 4000: '' })
-                }catch (err) {
-                  console.error('Erreur Api : ',err);
-                }
-              }}
-            >
-              Enregistrer
-            </button>
-            <button className="btn-secondary" onClick={() => setShowCorrectionForm(false)}>Fermer</button>
-          </div>
-        )}
         <>
         <h2>Tableau des corrections spectrales</h2>
         <table className='affaires-table'>
