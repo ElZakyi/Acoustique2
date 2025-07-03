@@ -29,6 +29,14 @@ const SallesListe = () => {
     r: 0,
   });
   const [message, setMessage] = useState('');
+
+  const [correctionsSpectrales, setCorrectionsSpectrales] = useState([]);
+  const [correctionForm, setCorrectionForm] = useState({
+    63: '', 125: '', 250: '', 500: '', 1000: '', 2000: '', 4000: ''
+  });
+  const [selectedSalle, setSelectedSalle] = useState(null);
+  const [showCorrectionForm, setShowCorrectionForm] = useState(false);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -144,6 +152,18 @@ const SallesListe = () => {
     }
   }, [id_affaire]);
 
+   useEffect(() => {
+      const fetchCorrection = async () => {
+        try {
+          const { data } = await axios.get("http://localhost:5000/api/correctionspectral");
+          setCorrectionsSpectrales(data);
+        } catch (err) {
+          console.error('Erreur de recuperation correction : ', err);
+        }
+      };
+      fetchCorrection();
+    }, []);
+
   if (loading) return <div className="container-box"><h1 className="page-title">Chargement...</h1></div>;
   if (error) return <div className="container-box"><h1 className="page-title" style={{ color: 'red' }}>{error}</h1></div>;
 
@@ -183,7 +203,50 @@ const SallesListe = () => {
             <button type="submit" className="btn-primary">{formData.id_salle ? "Mettre à jour" : "Enregistrer"}</button>
           </form>
         )}
+        {showCorrectionForm && selectedSalle && (
+          <div className='modal-overlay'>
+          <div className='modal'>
+            <h3> Correction spectrale – {selectedSalle.nom}</h3>
+            {Object.keys(correctionForm).map((bande) => (
+              <div key={bande} className="correction-field">
+                <label htmlFor={`bande-${bande}`}>{bande} Hz</label>
+                <input
+                  id={`bande-${bande}`}
+                  type="number"
+                  value={correctionForm[bande]}
+                  onChange={(e) => {
+                    setCorrectionForm({ ...correctionForm, [bande]: e.target.value });
+                  }}
+                />
+              </div>
+            ))}
 
+            <button 
+              className='btn-primary'
+              onClick={async() => {
+                const corrections = Object.entries(correctionForm).map(([bande,valeur])=>({
+                  bande : parseInt(bande),
+                  valeur : parseFloat(valeur)
+                }));
+                try {
+                  await axios.post(`http://localhost:5000/api/salles/${selectedSalle.id_salle}/correctionspectral`,{corrections});
+                
+                  const reload = await axios.get("http://localhost:5000/api/correctionspectral");
+
+                  setCorrectionsSpectrales(reload.data);
+                  setShowCorrectionForm(false);
+                  setCorrectionForm({ 63: '', 125: '', 250: '', 500: '', 1000: '', 2000: '', 4000: '' })
+                }catch (err) {
+                  console.error('Erreur Api : ',err);
+                }
+              }}
+            >
+              Enregistrer
+            </button>
+            <button className="btn-secondary" onClick={() => setShowCorrectionForm(false)}>Fermer</button>
+          </div>
+          </div>
+        )}
         <table className="affaires-table">
           <thead>
             <tr>
@@ -231,12 +294,68 @@ const SallesListe = () => {
                       <FaPencilAlt className="icon-action icon-edit" title="Modifier" onClick={() => handleEdit(salle)} />
                       <FaTrash className="icon-action icon-delete" title="Supprimer" onClick={() => handleDelete(salle.id_salle)} />
                     </div>
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        setSelectedSalle(salle);
+                        const existing = correctionsSpectrales[salle.id_salle] || {};
+                        setCorrectionForm({
+                            63 : existing["63"]  ?? "",
+                            125 : existing["125"] ?? "",
+                            250 : existing["250"] ?? "",
+                            500 : existing["500"] ?? "",
+                            1000 : existing["1000"] ?? "",
+                            2000 : existing["2000"] ?? "",
+                            4000 : existing["4000"] ?? "",
+                        });
+                        setShowCorrectionForm(true);
+                      }}
+                    >
+                      Correction Spectrale
+                  </button>
+
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+        <>
+        <h2>Tableau des corrections spectrales</h2>
+        <table className='affaires-table'>
+          <thead>
+            <tr>
+              <th># Salle</th>
+              <th>63Hz</th>
+              <th>125Hz</th>
+              <th>250Hz</th>
+              <th>500Hz</th>
+              <th>1000Hz</th>
+              <th>2000Hz</th>
+              <th>4000Hz</th>
+            </tr>
+          </thead>
+          <tbody>
+            {salles.map((salle)=>{
+              const c = correctionsSpectrales[salle.id_salle] || {}
+              return (
+                <tr key = {salle.id_salle}>
+                  <td>{salle.nom}</td>
+                  <td>{c[63] ?? "-"}</td>
+                  <td>{c[125] ?? "-"}</td>
+                  <td>{c[250] ?? "-"}</td>
+                  <td>{c[500] ?? "-"}</td>
+                  <td>{c[1000] ?? "-"}</td>
+                  <td>{c[2000] ?? "-"}</td>
+                  <td>{c[4000] ?? "-"}</td>
+
+                </tr>
+              )
+            })}
+          </tbody>
+
+        </table>
+        </>
 
         <div className="footer-actions">
           <button className="btn-secondary" onClick={() => navigate(-1)}>

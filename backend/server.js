@@ -557,214 +557,175 @@ app.get('/api/troncons/:id_troncon/ordre', async (req, res) => {
 });
 
 // ==========================
-// GESTION D'ELEMENT RESEAU 
+// GESTION D'ELEMENT RESEAU
 // ==========================
 
 // Obtenir tous les éléments d’un tronçon
 app.get('/api/troncons/:id_troncon/elements', (req, res) => {
-    const { id_troncon } = req.params;
-    const sql = `
-        SELECT er.*, 
-            c.longueur, 
-            co.angle, 
-            co.orientation, 
-            gs.distance_r,
-            vc.type_vc,
-            COALESCE(c.materiau, co.materiau) AS materiau
-        FROM elementreseau er
-        LEFT JOIN conduit c ON er.id_element = c.id_element
-        LEFT JOIN coude co ON er.id_element = co.id_element
-        LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
-        LEFT JOIN vc ON er.id_element = vc.id_element
-        WHERE er.id_troncon = ?
-    `;
+  const { id_troncon } = req.params;
+  const sql = `
+    SELECT er.*, c.longueur, co.angle, co.orientation, gs.distance_r, vc.type_vc,
+           COALESCE(c.materiau, co.materiau) AS materiau
+    FROM elementreseau er
+    LEFT JOIN conduit c ON er.id_element = c.id_element
+    LEFT JOIN coude co ON er.id_element = co.id_element
+    LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
+    LEFT JOIN vc ON er.id_element = vc.id_element
+    WHERE er.id_troncon = ?`;
 
-
-
-    db.query(sql, [id_troncon], (err, result) => {
-        if (err) {
-            console.error("Erreur lors de la récupération des éléments réseau : ", err);
-            return res.status(500).json({ message: "Erreur serveur" });
-        }
-        return res.status(200).json(result);
-    });
+  db.query(sql, [id_troncon], (err, result) => {
+    if (err) {
+      console.error("Erreur lors de la récupération des éléments réseau : ", err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+    return res.status(200).json(result);
+  });
 });
 
 // Obtenir les détails d’un seul élément
 app.get('/api/elements/:id_element', async (req, res) => {
-    const { id_element } = req.params;
-    const sql = `
-        SELECT er.*, 
-            c.longueur, 
-            co.angle, 
-            co.orientation, 
-            gs.distance_r,
-            vc.type_vc,
-            COALESCE(c.materiau, co.materiau) AS materiau
-        FROM elementreseau er
-        LEFT JOIN conduit c ON er.id_element = c.id_element
-        LEFT JOIN coude co ON er.id_element = co.id_element
-        LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
-        LEFT JOIN vc ON er.id_element = vc.id_element
-        WHERE er.id_element = ?
-    `;
+  const { id_element } = req.params;
+  const sql = `
+    SELECT er.*, c.longueur, co.angle, co.orientation, gs.distance_r, vc.type_vc,
+           COALESCE(c.materiau, co.materiau) AS materiau
+    FROM elementreseau er
+    LEFT JOIN conduit c ON er.id_element = c.id_element
+    LEFT JOIN coude co ON er.id_element = co.id_element
+    LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
+    LEFT JOIN vc ON er.id_element = vc.id_element
+    WHERE er.id_element = ?`;
 
-
-
-    try {
-        const [elements] = await db.promise().query(sql, [id_element]);
-        if (elements.length === 0) {
-            return res.status(404).json({ message: "Élément non trouvé." });
-        }
-        res.status(200).json(elements[0]);
-    } catch (err) {
-        console.error("Erreur récupération élément :", err);
-        res.status(500).json({ message: "Erreur serveur" });
+  try {
+    const [elements] = await db.promise().query(sql, [id_element]);
+    if (elements.length === 0) {
+      return res.status(404).json({ message: "Élément non trouvé." });
     }
+    res.status(200).json(elements[0]);
+  } catch (err) {
+    console.error("Erreur récupération élément :", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
 });
 
 // Ajouter un élément
 app.post('/api/troncons/:id_troncon/elements', (req, res) => {
-    const { id_troncon } = req.params;
-    const { type, parameters } = req.body;
+  const { id_troncon } = req.params;
+  const { type, parameters } = req.body;
 
-    if (!type) {
-        return res.status(400).json({ message: "Le type est requis." });
+  if (!type) {
+    return res.status(400).json({ message: "Le type est requis." });
+  }
+
+  db.beginTransaction(async (err) => {
+    if (err) {
+      console.error("Erreur transaction :", err);
+      return res.status(500).json({ message: "Erreur serveur" });
     }
 
-    db.beginTransaction(async (err) => {
-        if (err) {
-            console.error("Erreur transaction :", err);
-            return res.status(500).json({ message: "Erreur serveur" });
-        }
+    try {
+      const [result] = await db.promise().query(
+        'INSERT INTO elementreseau (type, id_troncon) VALUES (?, ?)',
+        [type, id_troncon]
+      );
+      const newElementId = result.insertId;
 
-        try {
-            const [result] = await db.promise().query(
-                'INSERT INTO elementreseau (type, id_troncon) VALUES (?, ?)',
-                [type, id_troncon]
-            );
-            const newElementId = result.insertId;
+      switch (type) {
+        case 'conduit':
+          await db.promise().query(
+            'INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)',
+            [newElementId, parameters.longueur, parameters.materiau]
+          );
+          break;
+        case 'coude':
+          await db.promise().query(
+            'INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)',
+            [newElementId, parameters.angle, parameters.orientation, parameters.materiau]
+          );
+          break;
+        case 'grillesoufflage':
+          await db.promise().query(
+            'INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)',
+            [newElementId, parameters.distance_r]
+          );
+          break;
+        case 'plenum':
+          await db.promise().query('INSERT INTO plenum (id_element) VALUES (?)', [newElementId]);
+          break;
+        case 'silencieux':
+          await db.promise().query('INSERT INTO silencieux (id_element) VALUES (?)', [newElementId]);
+          break;
+        case 'piecetransformation':
+          await db.promise().query('INSERT INTO piecetransformation (id_element) VALUES (?)', [newElementId]);
+          break;
+        case 'vc':
+          await db.promise().query(
+            'INSERT INTO vc (id_element, type_vc) VALUES (?, ?)',
+            [newElementId, parameters.type_vc]
+          );
+          break;
+      }
 
-            switch (type) {
-                case 'conduit':
-                    await db.promise().query(
-                        'INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)',
-                        [newElementId, parameters.longueur, parameters.materiau]
-                    );
-                    break;
-                case 'coude':
-                    await db.promise().query(
-                        'INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)',
-                        [newElementId, parameters.angle, parameters.orientation, parameters.materiau]
-                    );
-                    break;
-                case 'grillesoufflage':
-                    await db.promise().query(
-                        'INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)',
-                        [newElementId, parameters.distance_r]
-                    );
-                    break;
-                case 'plenum' :
-                    await db.promise().query(
-                        'INSERT INTO plenum (id_element) VALUES (?)', [newElementId]
-                    )
-                    break;
-                case 'silencieux' :
-                    await db.promise().query(
-                        'INSERT INTO silencieux (id_element) VALUES (?)' , [newElementId]
-                    )
-                    break;
-                case 'piecetransformation' :
-                    await db.promise().query(
-                        'INSERT INTO piecetransformation (id_element) VALUES (?)' ,[newElementId]
-                    )
-                    break;
-                
-                case 'vc' : 
-                    await db.promise().query(
-                        'INSERT INTO vc (id_element, type_vc) VALUES (?, ?)',
-                        [newElementId, parameters.type_vc]
-                    );
-                    break;
-                // Ajoute ici les autres types si besoin (silencieux, plenum, etc.)
-            }
-
-            await db.promise().commit();
-            res.status(201).json({ message: "Élément ajouté avec succès !" });
-        } catch (error) {
-            await db.promise().rollback();
-            console.error("Erreur ajout élément :", error);
-            res.status(500).json({ message: "Erreur serveur" });
-        }
-    });
+      await db.promise().commit();
+      res.status(201).json({ message: "Élément ajouté avec succès !" });
+    } catch (error) {
+      await db.promise().rollback();
+      console.error("Erreur ajout élément :", error);
+      res.status(500).json({ message: "Erreur serveur" });
+    }
+  });
 });
 
 // Modifier un élément
 app.put('/api/elements/:id_element', async (req, res) => {
-    const { id_element } = req.params;
-    const { type, parameters } = req.body;
+  const { id_element } = req.params;
+  const { type, parameters } = req.body;
 
-    if (!type || !parameters) {
-        return res.status(400).json({ message: "Type et paramètres requis." });
+  if (!type || !parameters) {
+    return res.status(400).json({ message: "Type et paramètres requis." });
+  }
+
+  db.beginTransaction(async (err) => {
+    if (err) {
+      console.error("Erreur début transaction :", err);
+      return res.status(500).json({ message: "Erreur serveur" });
     }
 
-    db.beginTransaction(async (err) => {
-        if (err) {
-            console.error("Erreur début transaction :", err);
-            return res.status(500).json({ message: "Erreur serveur" });
-        }
+    try {
+      await db.promise().query('UPDATE elementreseau SET type = ? WHERE id_element = ?', [type, id_element]);
 
-        try {
-            await db.promise().query(
-                'UPDATE elementreseau SET type = ? WHERE id_element = ?',
-                [type, id_element]
-            );
+      await db.promise().query('DELETE FROM conduit WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM coude WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM vc WHERE id_element = ?', [id_element]);
 
-            await db.promise().query('DELETE FROM conduit WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM coude WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM vc WHERE id_element = ? ',[id_element]);
+      switch (type) {
+        case 'conduit':
+          await db.promise().query('INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)', [id_element, parameters.longueur, parameters.materiau]);
+          break;
+        case 'coude':
+          await db.promise().query('INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)', [id_element, parameters.angle, parameters.orientation, parameters.materiau]);
+          break;
+        case 'grillesoufflage':
+          await db.promise().query('INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)', [id_element, parameters.distance_r]);
+          break;
+        case 'vc':
+          await db.promise().query('INSERT INTO vc (id_element, type_vc) VALUES (?, ?)', [id_element, parameters.type_vc]);
+          break;
+      }
 
-            switch (type) {
-                case 'conduit':
-                    await db.promise().query(
-                        'INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)',
-                        [id_element, parameters.longueur, parameters.materiau]
-                    );
-                    break;
-                case 'coude':
-                    await db.promise().query(
-                        'INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)',
-                        [id_element, parameters.angle, parameters.orientation, parameters.materiau]
-                    );
-                    break;
-                case 'grillesoufflage':
-                    await db.promise().query(
-                        'INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)',
-                        [id_element, parameters.distance_r]
-                    );
-                    break;
-                case 'vc' : 
-                     await db.promise().query(
-                    'INSERT INTO vc (id_element , type_vc) VALUE (?,?) ' , [id_element,parameters.type_vc]
-                    );
-                    break;
-            }
-
-            await db.promise().commit();
-            res.status(200).json({ message: "Élément modifié avec succès !" });
-        } catch (error) {
-            
-            await db.promise().rollback();
-            console.error("Erreur modification élément :", error);
-            res.status(500).json({ message: "Erreur serveur" });
-        }
-    });
+      await db.promise().commit();
+      res.status(200).json({ message: "Élément modifié avec succès !" });
+    } catch (error) {
+      await db.promise().rollback();
+      console.error("Erreur modification élément :", error);
+      res.status(500).json({ message: "Erreur serveur" });
+    }
+  });
 });
 
 // Supprimer un élément
 app.delete('/api/elements/:id_element', (req, res) => {
-    const { id_element } = req.params;
+  const { id_element } = req.params;
 
     db.beginTransaction(async (err) => {
         if (err) {
@@ -773,17 +734,6 @@ app.delete('/api/elements/:id_element', (req, res) => {
         }
 
         try {
-            //supprimer les attenuation d'abord 
-            await db.promise().query('DELETE FROM attenuation WHERE id_element = ? ',[id_element]);
-            // Puis les sous-tables spécifiques
-            await db.promise().query('DELETE FROM conduit WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM coude WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM plenum WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM silencieux WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM vc WHERE id_element = ?', [id_element]);
-            await db.promise().query('DELETE FROM piecetransformation WHERE id_element = ?',[id_element]);
-
             const [result] = await db.promise().query('DELETE FROM elementreseau WHERE id_element = ?', [id_element]);
 
             if (result.affectedRows === 0) {
@@ -806,30 +756,134 @@ app.post('/api/attenuations', async (req, res) => {
 
     if (!id_element) {
         return res.status(400).json({ message: "id_element est requis." });
+
     }
 
-    const dbOps = [
-        ['63', b63], ['125', b125], ['250', b250], ['500', b500],
-        ['1000', b1000], ['2000', b2000], ['4000', b4000]
-    ];
+    try {
+      await db.promise().query('DELETE FROM conduit WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM coude WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM grillesoufflage WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM plenum WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM silencieux WHERE id_element = ?', [id_element]);
+      await db.promise().query('DELETE FROM vc WHERE id_element = ?', [id_element]);
+
+      const [result] = await db.promise().query('DELETE FROM elementreseau WHERE id_element = ?', [id_element]);
+
+      if (result.affectedRows === 0) {
+        await db.promise().rollback();
+        return res.status(404).json({ message: "Élément réseau non trouvé." });
+      }
+
+      await db.promise().commit();
+      res.status(200).json({ message: "Élément supprimé avec succès !" });
+    } catch (error) {
+      await db.promise().rollback();
+      console.error("Erreur suppression élément :", error);
+      res.status(500).json({ message: "Erreur serveur" });
+    }
+  });
+
+// ==========================================================
+// GESTION DES (Atténuation, Régénération, etc...)
+// ==========================================================
+
+// Fonction utilitaire pour récupérer un spectre
+const getGroupedSpectrum = async (tableName, res) => {
+    try {
+        await db.promise().query(`SELECT 1 FROM ${tableName} LIMIT 1`);
+    } catch (error) {
+        if (error.code === 'ER_NO_SUCH_TABLE') return res.status(200).json({});
+        return res.status(500).json({ message: "Erreur serveur" });
+    }
+    const sql = `SELECT * FROM ${tableName} ORDER BY id_element, bande`;
+    try {
+        const [rows] = await db.promise().query(sql);
+        const groupedData = rows.reduce((acc, row) => {
+            if (!acc[row.id_element]) acc[row.id_element] = {};
+            acc[row.id_element][row.bande] = row.valeur;
+            return acc;
+        }, {});
+        res.status(200).json(groupedData);
+    } catch (error) {
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+
+// Routes pour chaque type de spectre
+app.get('/api/attenuations', (req, res) => getGroupedSpectrum('attenuation', res));
+app.get('/api/regenerations', (req, res) => getGroupedSpectrum('regeneration', res));
+app.get('/api/lwresultants', (req, res) => getGroupedSpectrum('lwresultant', res));
+app.get('/api/lwentrants', (req, res) => getGroupedSpectrum('lwentrant', res));
+app.get('/api/attenuationstroncon', (req, res) => getGroupedSpectrum('attenuationtroncon', res));
+app.get('/api/lwsorties', (req, res) => getGroupedSpectrum('lwsortie', res));
+app.get('/api/lwsortiesairneuf', (req, res) => getGroupedSpectrum('lwsortieairneuf', res));
+app.get('/api/lwtotals', (req, res) => getGroupedSpectrum('lwtotal', res));
+app.get('/api/lps', (req, res) => getGroupedSpectrum('lp', res));
+
+// Route pour sauvegarder l'atténuation
+app.post('/api/attenuations', async (req, res) => {
+    const { id_element, ...spectre } = req.body;
+    if (!id_element || !spectre) return res.status(400).json({ message: "ID de l'élément et spectre requis." });
+    const values = Object.entries(spectre).map(([bande, valeur]) => [id_element, parseInt(bande), parseFloat(valeur) || 0]);
+    const sql = "REPLACE INTO attenuation (id_element, bande, valeur) VALUES ?";
+    try {
+        await db.promise().query(sql, [values]);
+        res.status(200).json({ message: "Atténuation sauvegardée." });
+    } catch (error) {
+        console.error("Erreur sauvegarde atténuation:", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+//=====================
+//CORRECTIONS SPECTRALE 
+//=====================
+app.get('/api/correctionspectral', async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(`
+      SELECT id_salle, bande, valeur FROM correctionspectral
+    `);
+
+    const grouped = {};
+    for (const { id_salle, bande, valeur } of rows) {
+      if (!grouped[id_salle]) {
+        grouped[id_salle] = {};
+      }
+      grouped[id_salle][bande] = valeur;
+    }
+
+    res.json(grouped);
+  } catch (error) {
+    console.error("Erreur récupération corrections spectrales :", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+//inserer les les valeur de correction spectral dans la table 
+app.post('/api/salles/:id_salle/correctionspectral', async (req, res) => {
+    const { id_salle } = req.params;
+    const corrections = req.body.corrections; // ex: [{ bande: 63, valeur: 10 }, ...]
+
+    if (!Array.isArray(corrections)) {
+        return res.status(400).json({ message: "Le champ 'corrections' doit être un tableau." });
+    }
 
     try {
         await db.promise().beginTransaction();
 
-        for (const [bande, valeur] of dbOps) {
+        for (const { bande, valeur } of corrections) {
             await db.promise().query(`
-                REPLACE INTO attenuation (id_element, bande, valeur) VALUES (?, ?, ?)
-            `, [id_element, bande, valeur ?? 0]);
+                REPLACE INTO correctionspectral (id_salle, bande, valeur) VALUES (?, ?, ?)
+            `, [id_salle, bande, valeur ?? 0]);
         }
 
         await db.promise().commit();
-        res.status(200).json({ message: "Atténuations enregistrées avec succès." });
+        res.status(200).json({ message: "Corrections spectrales enregistrées." });
     } catch (error) {
         await db.promise().rollback();
-        console.error("Erreur insertion atténuation :", error);
-        res.status(500).json({ message: "Erreur serveur lors de l'enregistrement." });
+        console.error("Erreur correction spectrale :", error);
+        res.status(500).json({ message: "Erreur serveur" });
     }
 });
+
 // Récupérer toutes les atténuations groupées par élément
 app.get('/api/attenuations', async (req, res) => {
     try {
@@ -853,7 +907,55 @@ app.get('/api/attenuations', async (req, res) => {
         res.status(500).json({ message: "Erreur serveur lors de la récupération des atténuations." });
     }
 });
+//=====================
+//CORRECTIONS SPECTRALE 
+//=====================
+app.get('/api/correctionspectral', async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(`
+      SELECT id_salle, bande, valeur FROM correctionspectral
+    `);
 
+    const grouped = {};
+    for (const { id_salle, bande, valeur } of rows) {
+      if (!grouped[id_salle]) {
+        grouped[id_salle] = {};
+      }
+      grouped[id_salle][bande] = valeur;
+    }
+
+    res.json(grouped);
+  } catch (error) {
+    console.error("Erreur récupération corrections spectrales :", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+//inserer les les valeur de correction spectral dans la table 
+app.post('/api/salles/:id_salle/correctionspectral', async (req, res) => {
+    const { id_salle } = req.params;
+    const corrections = req.body.corrections; // ex: [{ bande: 63, valeur: 10 }, ...]
+
+    if (!Array.isArray(corrections)) {
+        return res.status(400).json({ message: "Le champ 'corrections' doit être un tableau." });
+    }
+
+    try {
+        await db.promise().beginTransaction();
+
+        for (const { bande, valeur } of corrections) {
+            await db.promise().query(`
+                REPLACE INTO correctionspectral (id_salle, bande, valeur) VALUES (?, ?, ?)
+            `, [id_salle, bande, valeur ?? 0]);
+        }
+
+        await db.promise().commit();
+        res.status(200).json({ message: "Corrections spectrales enregistrées." });
+    } catch (error) {
+        await db.promise().rollback();
+        console.error("Erreur correction spectrale :", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
 
 
 

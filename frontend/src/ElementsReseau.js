@@ -37,6 +37,27 @@ const ELEMENT_CONFIG = {
     }
 };
 
+
+const SPECTRA_CONFIG = {
+    silencieux: ['attenuation', 'regeneration', 'lw_resultant'],
+    conduit: ['attenuation', 'regeneration', 'lw_resultant'],
+    coude: ['attenuation', 'regeneration', 'lw_resultant'],
+    piecetransformation: ['lw_entrant', 'attenuation_troncon'],
+    grillesoufflage: ['attenuation', 'regeneration', 'lw_resultant'],
+    plenum: ['attenuation', 'lw_resultant'],
+    vc: ['attenuation', 'regeneration', 'lw_sortie', 'lw_sortie_air_neuf', 'lw_total', 'lp']
+};
+
+const SPECTRA_LABELS = {
+    attenuation: 'Atténuation',
+    regeneration: 'Régénération',
+    lw_resultant: 'Niveau LW résultant',
+    lw_entrant: 'Lw entrant (dB Lin)',
+    // on peut ajouter selon le besoin
+};
+
+const BANDES_FREQUENCE = ['63', '125', '250', '500', '1000', '2000', '4000'];
+
 const ElementsReseau = () => {
     const { id_troncon } = useParams();
     const navigate = useNavigate();
@@ -57,6 +78,9 @@ const ElementsReseau = () => {
         '63': '', '125': '', '250': '', '500': '', '1000': '', '2000': '', '4000': ''
     });
     const [attenuations, setAttenuations] = useState([]);
+    const [regenerations, setRegenerations] = useState({});
+    const [lwResultants, setLwResultants] = useState({});
+    
 
     const fetchElements = async () => {
         try {
@@ -69,27 +93,41 @@ const ElementsReseau = () => {
     };
 
     useEffect(() => {
-        fetchElements();
-
+        const fetchAllData = async () => {
+            try {
+                // On lance toutes les requêtes en parallèle
+                const [
+                    elementsRes, 
+                    attenuationsRes, 
+                    regenerationsRes, 
+                    lwResultantsRes, 
+                    ordreTronconRes
+                ] = await Promise.all([
+                    axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
+                    axios.get('http://localhost:5000/api/attenuations'),
+                    axios.get('http://localhost:5000/api/regenerations'),
+                    axios.get('http://localhost:5000/api/lwresultants'),
+                    axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`)
+                ]);
+                
+                // On met à jour tous les états avec les réponses
+                setElements(elementsRes.data);
+                setAttenuations(attenuationsRes.data);
+                setRegenerations(regenerationsRes.data);
+                setLwResultants(lwResultantsRes.data);
+                setOrdreTroncon(ordreTronconRes.data.ordre_troncon);
+            } catch (err) {
+                console.error("Erreur lors de la récupération des données de la page :", err);
+            }
+        };
 
         const utilisateur = localStorage.getItem("utilisateur");
         if (!utilisateur) {
             navigate('/connexion');
-            return; 
+        } else {
+            fetchAllData();
         }
-        fetchAttenuations();
-        const fetchOrdreTroncon = async () => {
-            try {
-
-                const res = await axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`);
-                setOrdreTroncon(res.data.ordre_troncon);
-            } catch (err) {
-                console.error("Erreur récupération ordre tronçon:", err);
-            }
-        };
-
-        fetchOrdreTroncon();
-    }, [id_troncon]);
+    }, [id_troncon, navigate]); 
 
     const handleTypeChange = (e) => {
         setSelectedType(e.target.value);
@@ -384,53 +422,61 @@ const ElementsReseau = () => {
                 </div>
                 
             )}
-            <h3 style={{ marginTop: '30px' }}>Tableau des atténuations</h3>
-            <table className="affaires-table">
+             <h3 style={{ marginTop: '30px' }}>Tableau de synthèse acoustique</h3>
+            <table className="affaires-table synthese-table">
                 <thead>
                     <tr>
-
-                        <th># Élément</th>
-                        <th>63Hz</th>
-                        <th>125Hz</th>
-                        <th>250Hz</th>
-                        <th>500Hz</th>
-                        <th>1000Hz</th>
-                        <th>2000Hz</th>
-                        <th>4000Hz</th>
+                        <th style={{ width: '5%' }}>#</th>
+                        <th style={{ width: '15%' }}>Type</th>
+                        <th style={{ width: '20%' }}>Valeurs</th>
+                        {BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}
                     </tr>
                 </thead>
-                 <tbody>
-        {/* On récupère l'index 'i' de la boucle .map() */}
-        {elements.map((el, i) => { 
-            const attenVals = attenuations[el.id_element];
+                <tbody>
+                    {elements.map((el, i) => {
+                        const spectraToShow = SPECTRA_CONFIG[el.type] || [];
+                        const rowSpan = spectraToShow.length > 0 ? spectraToShow.length : 1;
+                        
+                        const elementSpectra = {
+                            attenuation: attenuations[el.id_element] || {},
+                            regeneration: regenerations[el.id_element] || {},
+                            lw_resultant: lwResultants[el.id_element] || {}
+                        };
 
-            // Si un élément n'a pas de données d'atténuation, on n'affiche pas de ligne pour lui
-            if (!attenVals || Object.keys(attenVals).length === 0) {
-                return null;
-            }
-
-            const freqValues = {};
-            ['63', '125', '250', '500', '1000', '2000', '4000'].forEach(freq => {
-                freqValues[freq] = attenVals[freq] != null ? attenVals[freq] : '-';
-            });
-
-            return (
-                <tr key={`att-${el.id_element}`}>
-                    {/* i + 1 au lieu de el.id_element */}
-                    <td>{i + 1}</td>
-                    <td>{freqValues['63']}</td>
-                    <td>{freqValues['125']}</td>
-                    <td>{freqValues['250']}</td>
-                    <td>{freqValues['500']}</td>
-                    <td>{freqValues['1000']}</td>
-                    <td>{freqValues['2000']}</td>
-                    <td>{freqValues['4000']}</td>
-                </tr>
-
-            );
-        })}
-    </tbody>
-
+                        return (
+                            <React.Fragment key={el.id_element}>
+                                <tr>
+                                    <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{i + 1}</td>
+                                    <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
+                                    
+                                    {spectraToShow.length > 0 ? (
+                                        <>
+                                            <td>{SPECTRA_LABELS[spectraToShow[0]]}</td>
+                                            {BANDES_FREQUENCE.map(freq => (
+                                                <td key={freq}>
+                                                    {elementSpectra[spectraToShow[0]]?.[freq] ?? '-'}
+                                                </td>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>
+                                            Aucun spectre applicable
+                                        </td>
+                                    )}
+                                </tr>
+                                {spectraToShow.slice(1).map(spectrumKey => (
+                                    <tr key={`${el.id_element}-${spectrumKey}`}>
+                                        <td>{SPECTRA_LABELS[spectrumKey]}</td>
+                                        {BANDES_FREQUENCE.map(freq => {
+                                            const value = elementSpectra[spectrumKey]?.[freq] ?? '-';
+                                            return <td key={`${spectrumKey}-${freq}`}>{value}</td>;
+                                        })}
+                                    </tr>
+                                ))}
+                            </React.Fragment>
+                        );
+                    })}
+                </tbody>
             </table>
 
 
