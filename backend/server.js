@@ -787,6 +787,7 @@ app.get('/api/lwresultants', (req, res) => getGroupedSpectrum('lwresultant', res
 
 //CALCULs
 //Calculer et recuperer les regenerations
+// Calculer et récupérer les régénérations
 app.get('/api/regenerations', async (req, res) => {
     try {
         const [troncons] = await db.promise().query(`
@@ -819,12 +820,24 @@ app.get('/api/regenerations', async (req, res) => {
                 }
             }
         }
+
+        // Enregistrer les régénérations dans la base de données
+        for (const [id_element, bandes] of Object.entries(regenerations)) {
+            for (const [bande, valeur] of Object.entries(bandes)) {
+                await db.promise().query(
+                    'INSERT INTO regeneration (id_element, bande, valeur) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
+                    [id_element, bande, valeur]
+                );
+            }
+        }
+
         res.status(200).json(regenerations);
     } catch (error) {
         console.error("Erreur calcul régénération:", error);
         res.status(500).json({ message: "Erreur serveur" });
     }
 });
+
 
 
 // SAISIE 
