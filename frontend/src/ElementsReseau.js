@@ -4,7 +4,7 @@ import axios from "axios";
 import './AffairesListe.css';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 
-// --- CONFIGURATIONS ---
+// CONFIGURATIONS
 const ELEMENT_CONFIG = {
     silencieux: { label: 'Silencieux', fields: [] },
     conduit: {label: 'Conduit',fields: [{ name: 'longueur', label: 'Longueur (m)', type: 'number' },{ name: 'materiau', label: 'Matériau', type: 'text' },]},
@@ -22,7 +22,7 @@ const SPECTRA_CONFIG = {
     coude: ['attenuation', 'regeneration', 'lw_resultant'],
     piecetransformation: ['lw_entrant', 'attenuation_troncon'],
     grillesoufflage: ['attenuation', 'regeneration', 'lw_sortie', 'lp'],
-    plenum: ['attenuation', 'lw_resultant'],
+    plenum: ['attenuation', 'regeneration', 'lw_resultant'],
     vc: ['attenuation', 'regeneration', 'lw_sortie', 'lw_sortie_air_neuf', 'lw_total', 'lp']
 };
 
@@ -39,7 +39,7 @@ const ElementsReseau = () => {
     const { id_troncon } = useParams();
     const navigate = useNavigate();
 
-    // États
+    // states
     const [elements, setElements] = useState([]);
     const [ordreTroncon, setOrdreTroncon] = useState(null);
     const [allSpectra, setAllSpectra] = useState({
@@ -147,8 +147,8 @@ const ElementsReseau = () => {
         } catch (error) { console.error("Erreur sauvegarde atténuation:", error); setMessage("Erreur de sauvegarde."); }
     };
 
-    // --- AFFICHAGE (JSX) ---
-    // ▼▼▼ TOUTE LA PARTIE AFFICHAGE MANQUANTE EST AJOUTÉE ICI ▼▼▼
+    // AFFICHAGE
+ 
     return (
         <>
             <div className="logout-global"><button className="btn-logout" onClick={handleLogout}>Déconnexion</button></div>
