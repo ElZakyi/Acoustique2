@@ -917,6 +917,9 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
       const regMap = {};
       regens.forEach(row => { regMap[row.bande] = row.valeur; });
 
+      // Nouvelle variable lwEntrant
+      const lwEntrant = { ...lwPrec };
+
       const lwResultant = {};
       BANDES.forEach(bande => {
         const Lw_prec = lwPrec[bande] ?? 0;
@@ -930,6 +933,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         id_element,
         type: element.type,
         ordre: element.ordre,
+        lwEntrant : lwEntrant,
         lw_resultant: lwResultant
       });
       // 🆕 Insertion en base
