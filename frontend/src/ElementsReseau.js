@@ -62,22 +62,63 @@ const ElementsReseau = () => {
     // Logique
     const fetchAllData = useCallback(async () => {
         try {
-            const [elementsRes, attenuationsRes, regenerationsRes, lwResultantsRes, ordreTronconRes] = await Promise.all([
+            const [elementsRes, attenuationsRes, regenerationsRes, ordreTronconRes] = await Promise.all([
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
                 axios.get('http://localhost:5000/api/attenuations'),
                 axios.get('http://localhost:5000/api/regenerations'),
-                axios.get('http://localhost:5000/api/lwresultants'),
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`)
             ]);
+
             setElements(elementsRes.data);
             setOrdreTroncon(ordreTronconRes.data.ordre_troncon);
-            setAllSpectra(prev => ({ ...prev, attenuation: attenuationsRes.data, regeneration: regenerationsRes.data, lw_resultant: lwResultantsRes.data }));
-        } catch (err) { console.error("Erreur de chargement des données:", err); }
+            setAllSpectra(prev => ({
+                ...prev,
+                attenuation: attenuationsRes.data,
+                regeneration: regenerationsRes.data
+                // ⛔️ ne pas inclure lw_resultant ici
+            }));
+        } catch (err) {
+            console.error("Erreur de chargement des données:", err);
+        }
     }, [id_troncon]);
+
     
     useEffect(() => {
         if (!localStorage.getItem("utilisateur")) navigate('/connexion'); else fetchAllData();
     }, [navigate, fetchAllData]);
+    useEffect(() => {
+        const fetchLwResultants = async () => {
+            console.log("Début fetchLwResultant");
+            try {
+                const url = `http://localhost:5000/api/lwresultants/troncon/${id_troncon}`;
+                console.log("URL pour axios :", url);
+
+                const res = await axios.get(url);
+                const data = res.data;
+
+                // Reformater les données
+                const formatted = {};
+                data.forEach(item => {
+                    formatted[item.id_element] = {};
+                    Object.entries(item.lw_resultant).forEach(([freq, val]) => {
+                        formatted[item.id_element][String(freq)] = val;
+                    });
+                });
+
+                setAllSpectra(prev => ({ ...prev, lw_resultant: formatted }));
+                console.log("LW RESULTANT FINAL =", formatted);
+            } catch (error) {
+                console.error("Erreur chargement Lw_resultants :", error);
+            }
+        };
+
+        if (elements.length > 0) {
+            console.log("elements dans useEffect", elements);
+            fetchLwResultants();
+        }
+    }, [elements, id_troncon]);
+
+
 
     const handleLogout = () => { localStorage.removeItem("utilisateur"); navigate('/connexion'); };
     const handleTypeChange = (e) => { setSelectedType(e.target.value); setFormData({}); };
@@ -209,14 +250,23 @@ const ElementsReseau = () => {
                                         {spectraToShow.length > 0 ? (
                                             <>
                                                 <td>{SPECTRA_LABELS[spectraToShow[0]]}</td>
-                                                {BANDES_FREQUENCE.map(freq => (<td key={freq}>{allSpectra[spectraToShow[0]]?.[el.id_element]?.[freq] ?? '-'}</td>))}
+                                                {BANDES_FREQUENCE.map(freq => (
+                                                <td key={freq}>
+                                                    {allSpectra[spectraToShow[0]]?.[el.id_element]?.[(freq)] ?? '-'}
+                                                </td>
+                                                ))}
                                             </>
                                         ) : (<td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>Aucun spectre applicable</td>)}
                                     </tr>
                                     {spectraToShow.slice(1).map(spectrumKey => (
                                         <tr key={`${el.id_element}-${spectrumKey}`}>
                                             <td>{SPECTRA_LABELS[spectrumKey]}</td>
-                                            {BANDES_FREQUENCE.map(freq => (<td key={`${spectrumKey}-${freq}`}>{allSpectra[spectrumKey]?.[el.id_element]?.[freq] ?? '-'}</td>))}
+                                            {BANDES_FREQUENCE.map(freq => (
+                                            <td key={`${spectrumKey}-${freq}`}>
+                                                {allSpectra[spectrumKey]?.[el.id_element]?.[(freq)] ?? '-'}
+                                            </td>
+                                            ))}
+
                                         </tr>
                                     ))}
                                 </React.Fragment>

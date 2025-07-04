@@ -856,6 +856,88 @@ app.post('/api/attenuations', async (req, res) => {
     }
 });
 
+//implementation de la logique de calcul lw_resultant d'élement reseau 
+app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
+  const { id_troncon } = req.params;
+
+  try {
+    // Étape 1 : Trouver l'id_source du tronçon
+    const [[troncon]] = await db.promise().query(
+      'SELECT id_source FROM troncon WHERE id_troncon = ?', [id_troncon]
+    );
+
+    if (!troncon) return res.status(404).json({ message: "Tronçon introuvable." });
+    const id_source = troncon.id_source;
+
+    // Étape 2 : Charger les éléments du réseau liés à ce tronçon
+    const [elements] = await db.promise().query(
+      'SELECT * FROM elementreseau WHERE id_troncon = ? ORDER BY id_element ASC', [id_troncon]
+    );
+
+    // Étape 3 : Charger le spectre Lw de la source sonore
+    const [lwSource] = await db.promise().query(
+      'SELECT bande, valeur_lw FROM lwsource WHERE id_source = ?', [id_source]
+    );
+
+    const lwInit = {};
+    lwSource.forEach(row => {
+      lwInit[row.bande] = row.valeur_lw;
+    });
+
+    const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
+    const resultats = [];
+    let lwPrec = { ...lwInit };
+
+    for (const element of elements) {
+      const id_element = element.id_element;
+
+      const [attenuations] = await db.promise().query(
+        'SELECT bande, valeur FROM attenuation WHERE id_element = ?', [id_element]
+      );
+      const attMap = {};
+      attenuations.forEach(row => { attMap[row.bande] = row.valeur; });
+
+      const [regens] = await db.promise().query(
+        'SELECT bande, valeur FROM regeneration WHERE id_element = ?', [id_element]
+      );
+      const regMap = {};
+      regens.forEach(row => { regMap[row.bande] = row.valeur; });
+
+      const lwResultant = {};
+      BANDES.forEach(bande => {
+        const Lw_prec = lwPrec[bande] ?? 0;
+        const regen = regMap[bande] ?? 0;
+        const atten = attMap[bande] ?? 0;
+        const lw = 10 * Math.log10(Math.pow(10, Lw_prec / 10) + Math.pow(10, regen / 10)) - atten;
+        lwResultant[bande] = Number(lw.toFixed(3));
+      });
+
+      resultats.push({
+        id_element,
+        type: element.type,
+        ordre: element.ordre,
+        lw_resultant: lwResultant
+      });
+      // 🆕 Insertion en base
+    for (const [bande, valeur] of Object.entries(lwResultant)) {
+        await db.promise().query(
+            `INSERT INTO lwresultant (id_element, bande, valeur) 
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
+            [id_element, parseInt(bande), valeur]
+        );
+        }
+
+      lwPrec = lwResultant;
+    }
+
+    res.json(resultats);
+  } catch (error) {
+    console.error("Erreur calcul Lw_resultant :", error);
+    console.error(error.stack);
+    res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
+  }
+});
 
 
 
