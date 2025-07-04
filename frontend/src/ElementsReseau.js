@@ -60,12 +60,16 @@ const ElementsReseau = () => {
     const [attenuationValues, setAttenuationValues] = useState(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, ''])));
 
 
-
     // Logique
     const fetchAllData = useCallback(async () => {
         try {
-            const [elementsRes, attenuationsRes, regenerationsRes,attTronconRes, ordreTronconRes] = await Promise.all([
-                // CORRECTION: Ajout des backticks (`) pour les URLs
+            const [
+                elementsRes, 
+                attenuationsRes, 
+                regenerationsRes, 
+                attTronconRes,
+                ordreTronconRes
+            ] = await Promise.all([
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
                 axios.get('http://localhost:5000/api/attenuations'),
                 axios.get('http://localhost:5000/api/regenerations'),
@@ -199,24 +203,7 @@ const ElementsReseau = () => {
             setShowAttenuationForm(false);
         } catch (error) { console.error("Erreur sauvegarde atténuation:", error); setMessage("Erreur de sauvegarde."); }
     };
-    //calcul de GLOBAL dba 
-    const calculerGlobalDBA = (spectre) => {
-        const bandes = ['63', '125', '250', '500', '1000', '2000', '4000'];
-        const pondA = {
-            63: -26.2, 125: -16.1, 250: -8.6, 500: -3.2,
-            1000: 0, 2000: 1.2, 4000: 1
-        };
 
-        let somme = 0;
-        for (const bande of bandes) {
-            const val = spectre?.[bande];
-            if (val !== undefined && val !== null && !isNaN(val)) {
-                somme += Math.pow(10, (val + pondA[bande]) / 10);
-            }
-        }
-
-        return somme > 0 ? (10 * Math.log10(somme)).toFixed(2) : "-";
-    };
 
     // AFFICHAGE
 
@@ -225,7 +212,7 @@ const ElementsReseau = () => {
             <div className="logout-global"><button className="btn-logout" onClick={handleLogout}>Déconnexion</button></div>
             <div className="container-box">
                 <div className="page-header">
-                    {/* CORRECTION: Syntaxe du template literal */}
+
                     <h2 className="page-title">{`Éléments du tronçon ${ordreTroncon ? `n°${ordreTroncon}` : ''}`}</h2>
                     <button className="btn-primary" onClick={() => { setShowForm(!showForm); setEditingId(null); setSelectedType(''); setMessage(''); }}>{showForm ? "Annuler" : "Ajouter un élément"}</button>
                 </div>
@@ -268,7 +255,7 @@ const ElementsReseau = () => {
 
                 <h3 style={{ marginTop: '30px' }}>Tableau de synthèse acoustique</h3>
                 <table className="affaires-table synthese-table">
-                    <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '15%' }}>Type</th><th style={{ width: '20%' }}>Valeurs</th>{BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}<th>GLOBAL dBA</th></tr></thead>
+                    <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '15%' }}>Type</th><th style={{ width: '20%' }}>Valeurs</th>{BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}</tr></thead>
                     <tbody>
                         {elements.map((el, i) => {
                             const spectraToShow = SPECTRA_CONFIG[el.type] || [];
@@ -286,25 +273,16 @@ const ElementsReseau = () => {
                                                         {allSpectra[spectraToShow[0]]?.[el.id_element]?.[freq] ?? '-'}
                                                     </td>
                                                 ))}
-                                                <td rowSpan={rowSpan}>
-                                                {
-                                                    (() => {
-                                                        // 👇 On choisit le bon spectre selon le type
-                                                        const key = el.type === 'piecetransformation' ? 'lw_entrant' : 'lw_resultant';
-                                                        const spectre = allSpectra[key]?.[el.id_element];
-                                                        return spectre ? calculerGlobalDBA(spectre) : "-";
-                                                    })()
-                                                }
-                                                </td>
+
                                             </>
                                         ) : (<td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>Aucun spectre applicable</td>)}
                                     </tr>
                                     {spectraToShow.slice(1).map(spectrumKey => (
-                                        // CORRECTION: Syntaxe du `key` avec des backticks
+
                                         <tr key={`${el.id_element}-${spectrumKey}`}>
                                             <td>{SPECTRA_LABELS[spectrumKey]}</td>
                                             {BANDES_FREQUENCE.map(freq => (
-                                                // CORRECTION: Syntaxe du `key` avec des backticks
+                                                
                                                 <td key={`${spectrumKey}-${freq}`}>
                                                     {allSpectra[spectrumKey]?.[el.id_element]?.[freq] ?? '-'}
                                                 </td>
