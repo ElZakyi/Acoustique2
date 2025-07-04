@@ -853,6 +853,7 @@ app.get('/api/regenerations', async (req, res) => {
 
 
 
+
 // SAISIE 
 //sauvegarder l'atténuation
 app.post('/api/attenuations', async (req, res) => {
