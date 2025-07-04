@@ -128,6 +128,16 @@ const ElementsReseau = () => {
             fetchLwResultants();
         }
     }, [elements, id_troncon]);
+    useEffect(() => {
+        console.log('appel a lapi attenuation troncon ');
+    fetch("http://localhost:5000/api/attenuationtroncons", {
+        method: 'POST', // ou 'PUT'
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}), // si nécessaire
+        })
+    }, []);
 
 
 

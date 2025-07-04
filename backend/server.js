@@ -913,7 +913,7 @@ app.get('/api/attenuationtroncons', async (req, res) => {
 });
 
 // Calculer, enregistrer, et récupérer les atténuations de tronçon
-app.get('/api/attenuationtroncons', async (req, res) => {
+app.post('/api/attenuationtroncons', async (req, res) => {
     try {
         //Récupérer les tronçons
         const [allTroncons] = await db.promise().query(
