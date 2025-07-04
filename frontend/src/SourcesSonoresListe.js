@@ -105,6 +105,28 @@ const SourcesSonoresListe = () => {
     const [isErreur, setIsErreur] = useState(false);
     const [selectedSource, setSelectedSource] = useState(null);
 
+    const calculerGlobalDBA = (spectre) => {
+        const ponderationsA = {
+            63: -26.2,
+            125: -16.1,
+            250: -8.6,
+            500: -3.2,
+            1000: 0,
+            2000: 1.2,
+            4000: 1.0
+        };
+        let somme = 0 ;
+        for (const freq of BANDES_FREQUENCE) {
+            const lw = parseFloat(spectre[freq]);
+            const correction = ponderationsA[freq];
+            if(!isNaN(lw)){
+                somme += Math.pow(10,(lw + correction)/10);
+            }
+        }
+        if(somme === 0 ) return '-';
+        return (10*Math.log10(somme)).toFixed(2);
+    }
+
     const fetchSources = useCallback(async () => {
         try {
             const response = await axios.get(`http://localhost:5000/api/salles/${id_salle}/sources`);
@@ -280,6 +302,7 @@ const SourcesSonoresListe = () => {
                             {BANDES_FREQUENCE.map(freq => (
                                 <th key={freq}>{freq} Hz</th>
                             ))}
+                            <th>GLOBAL dBA</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -299,6 +322,7 @@ const SourcesSonoresListe = () => {
                                     {BANDES_FREQUENCE.map(freq => (
                                         <td key={freq}>{spectreMap[freq] ?? '-'}</td>
                                     ))}
+                                    <td>{calculerGlobalDBA(spectreMap)}</td>{/* affichage Global dBA */}
                                 </tr>
                             );
                         })}
