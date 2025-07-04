@@ -99,15 +99,23 @@ const ElementsReseau = () => {
 
 
                 const formatted = {};
+                const formattedLwEntrant = {};
                 data.forEach(item => {
+                    // ➕ Stockage du lw_resultant
                     formatted[item.id_element] = {};
                     Object.entries(item.lw_resultant).forEach(([freq, val]) => {
                         formatted[item.id_element][String(freq)] = val;
                     });
+                    // Stockage du lw_entrant
+                    formattedLwEntrant[item.id_element] = {}
+                    Object.entries(item.lwEntrant || {}).forEach(([freq,value])=>{
+                        formattedLwEntrant[item.id_element][String(freq)] = value;
+                    })
                 });
 
-                setAllSpectra(prev => ({ ...prev, lw_resultant: formatted }));
+                setAllSpectra(prev => ({ ...prev, lw_resultant: formatted ,lw_entrant : formattedLwEntrant}));
                 console.log("LW RESULTANT FINAL =", formatted);
+                console.log("LW Entrant FINAL =", formattedLwEntrant);
             } catch (error) {
                 console.error("Erreur chargement Lw_resultants :", error);
             }
