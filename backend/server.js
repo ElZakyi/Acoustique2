@@ -786,17 +786,16 @@ app.get('/api/lwresultants', (req, res) => getGroupedSpectrum('lwresultant', res
 // on peut ajouter selon base de donnees
 
 //CALCULs
-//Calculer et recuperer les regenerations
-
+// Calculer et récupérer les régénérations
 app.get('/api/regenerations', async (req, res) => {
     try {
         const [troncons] = await db.promise().query(`
             SELECT t.id_troncon, t.debit, t.forme, t.largeur, t.hauteur, t.diametre, 
                    cs.bande as cs_bande, cs.valeur as cs_valeur
             FROM troncon t
-            JOIN sourcesonore ss ON t.id_source = ss.id_source
-            JOIN salle s ON ss.id_salle = s.id_salle
-            JOIN correctionspectral cs ON s.id_salle = cs.id_salle
+            LEFT JOIN sourcesonore ss ON t.id_source = ss.id_source
+            LEFT JOIN salle s ON ss.id_salle = s.id_salle
+            LEFT JOIN correctionspectral cs ON s.id_salle = cs.id_salle 
         `);
         
         const [elements] = await db.promise().query('SELECT id_element, type, id_troncon FROM elementreseau');
@@ -810,23 +809,32 @@ app.get('/api/regenerations', async (req, res) => {
             const correctionsPourCeTroncon = troncons.filter(t => t.id_troncon === element.id_troncon);
 
             for (const row of correctionsPourCeTroncon) {
-                let regenerationValue = 0; //la regénération est 0 par default
-                //calcule la regénération que si l'élément n'est pas un silencieux ou un plennum.
+                let regenerationValue = 0; // Valeur par défaut
+
                 if (element.type !== 'silencieux' && element.type !== 'plenum') {
-                    const debit = parseFloat(troncon.debit);
-                    let surface = 0;
-                    if (troncon.forme === 'rectangulaire') surface = (troncon.largeur / 1000) * (troncon.hauteur / 1000);
-                    else if (troncon.forme === 'circulaire') surface = Math.PI * Math.pow(troncon.diametre / 1000, 2) / 4;
+                    const debit_m3h = parseFloat(troncon.debit);
                     
-                    if (debit > 0 && surface > 0) {
-                        regenerationValue = 10 + 50 * Math.log10(debit) + 10 * Math.log10(surface) + row.cs_valeur;
+                    let surface_m2 = 0;
+                    if (troncon.forme === 'rectangulaire' && troncon.largeur && troncon.hauteur) {
+                        surface_m2 = (troncon.largeur / 1000) * (troncon.hauteur / 1000);
+                    } else if (troncon.forme === 'circulaire' && troncon.diametre) {
+                        surface_m2 = Math.PI * Math.pow(troncon.diametre / 2000, 2);
+                    }
+                    if (debit_m3h > 0 && surface_m2 > 0 && row.cs_valeur != null) {
+                        const debit_m3s = debit_m3h / 3600;
+                        const vitesse_ms = debit_m3s / surface_m2;
+                        if (vitesse_ms > 0) {
+                            regenerationValue = 10 + 50 * Math.log10(vitesse_ms) + 10 * Math.log10(surface_m2) + row.cs_valeur;
+                        }
                     }
                 }
-                regenerations[element.id_element][row.cs_bande] = regenerationValue.toFixed(0);
+                if (row.cs_bande != null) {
+                    regenerations[element.id_element][row.cs_bande] = regenerationValue.toFixed(0);
+                }
             }
         }
 
-        // Enregistrer les régénérations dans la base de données
+        //enregistrer en Base de données
         for (const [id_element, bandes] of Object.entries(regenerations)) {
             for (const [bande, valeur] of Object.entries(bandes)) {
                 await db.promise().query(
