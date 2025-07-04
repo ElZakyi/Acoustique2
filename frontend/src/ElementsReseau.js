@@ -62,11 +62,12 @@ const ElementsReseau = () => {
     // Logique
     const fetchAllData = useCallback(async () => {
         try {
-            const [elementsRes, attenuationsRes, regenerationsRes, ordreTronconRes] = await Promise.all([
+            const [elementsRes, attenuationsRes, regenerationsRes,attTronconRes, ordreTronconRes] = await Promise.all([
                 // CORRECTION: Ajout des backticks (`) pour les URLs
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
                 axios.get('http://localhost:5000/api/attenuations'),
                 axios.get('http://localhost:5000/api/regenerations'),
+                axios.get('http://localhost:5000/api/attenuationtroncons'),
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`)
             ]);
 
@@ -75,8 +76,8 @@ const ElementsReseau = () => {
             setAllSpectra(prev => ({
                 ...prev,
                 attenuation: attenuationsRes.data,
-                regeneration: regenerationsRes.data
-
+                regeneration: regenerationsRes.data,
+                attenuation_troncon: attTronconRes.data
             }));
         } catch (err) {
             console.error("Erreur de chargement des données:", err);

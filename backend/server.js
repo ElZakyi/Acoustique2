@@ -852,6 +852,68 @@ app.get('/api/regenerations', async (req, res) => {
 });
 
 
+//Calculer et récupérer les atténuations de tronçon
+app.get('/api/attenuationtroncons', async (req, res) => {
+    try {
+
+        const [allTroncons] = await db.promise().query(
+
+            'SELECT id_troncon, id_source, debit FROM troncon ORDER BY id_source, id_troncon ASC'
+        );
+
+
+        const [piecesDeTransfo] = await db.promise().query(
+            "SELECT id_element, id_troncon FROM elementreseau WHERE type = 'piecetransformation'"
+        );
+
+    
+        const allAttenuationsTroncon = {};
+        const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
+        for (const piece of piecesDeTransfo) {
+        
+            const currentIndex = allTroncons.findIndex(t => t.id_troncon === piece.id_troncon);
+
+
+            if (currentIndex === -1) continue;
+
+            const tronconActuel = allTroncons[currentIndex];
+            const debitActuel = parseFloat(tronconActuel.debit);
+            
+            let attenuationValue = 0;
+            if (currentIndex + 1 < allTroncons.length && allTroncons[currentIndex + 1].id_source === tronconActuel.id_source) {
+                
+                const tronconSuivant = allTroncons[currentIndex + 1];
+                const debitSuivant = parseFloat(tronconSuivant.debit);
+
+
+                if (debitActuel > 0 && debitSuivant >= 0) { 
+                    attenuationValue = 10 * Math.log10(debitSuivant / debitActuel);
+
+                    if (!isFinite(attenuationValue)) {
+                        attenuationValue = -99; 
+                    }
+                }
+            }
+            
+
+            const spectrePourCetElement = {};
+            BANDES.forEach(bande => {
+                spectrePourCetElement[bande] = parseFloat(attenuationValue.toFixed(2));
+            });
+            allAttenuationsTroncon[piece.id_element] = spectrePourCetElement;
+        }
+
+
+        res.status(200).json(allAttenuationsTroncon);
+
+    } catch (error) {
+        console.error("Erreur calcul attenuationtroncon:", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+
+
 
 
 // SAISIE 
