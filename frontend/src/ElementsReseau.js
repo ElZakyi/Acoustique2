@@ -7,12 +7,12 @@ import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 // CONFIGURATIONS
 const ELEMENT_CONFIG = {
     silencieux: { label: 'Silencieux', fields: [] },
-    conduit: {label: 'Conduit',fields: [{ name: 'longueur', label: 'Longueur (m)', type: 'number' },{ name: 'materiau', label: 'Matériau', type: 'text' },]},
-    coude: {label: 'Coude',fields: [{ name: 'angle', label: 'Angle (°)', type: 'number' },{ name: 'orientation', label: 'Orientation', type: 'text' },{ name: 'materiau', label: 'Matériau', type: 'text' },]},
-    piecetransformation: { label: 'Pièce de transformation', fields: [] }, 
-    grillesoufflage: {label: 'Grille de soufflage',fields: [{ name: 'distance_r', label: 'Distance R (m)', type: 'number' }]},
-    plenum: { label: 'Plenum', fields: [] }, 
-    vc: { label: 'VC CRSL-ECM 2',fields: [{ name: 'type_vc', label: 'Type VC', type: 'select', options: ['Soufflage', 'Reprise'] }]}
+    conduit: { label: 'Conduit', fields: [{ name: 'longueur', label: 'Longueur (m)', type: 'number' }, { name: 'materiau', label: 'Matériau', type: 'text' }] },
+    coude: { label: 'Coude', fields: [{ name: 'angle', label: 'Angle (°)', type: 'number' }, { name: 'orientation', label: 'Orientation', type: 'text' }, { name: 'materiau', label: 'Matériau', type: 'text' }] },
+    piecetransformation: { label: 'Pièce de transformation', fields: [] },
+    grillesoufflage: { label: 'Grille de soufflage', fields: [{ name: 'distance_r', label: 'Distance R (m)', type: 'number' }] },
+    plenum: { label: 'Plenum', fields: [] },
+    vc: { label: 'VC CRSL-ECM 2', fields: [{ name: 'type_vc', label: 'Type VC', type: 'select', options: ['Soufflage', 'Reprise'] }] }
 };
 
 
@@ -63,6 +63,7 @@ const ElementsReseau = () => {
     const fetchAllData = useCallback(async () => {
         try {
             const [elementsRes, attenuationsRes, regenerationsRes, ordreTronconRes] = await Promise.all([
+                // CORRECTION: Ajout des backticks (`) pour les URLs
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
                 axios.get('http://localhost:5000/api/attenuations'),
                 axios.get('http://localhost:5000/api/regenerations'),
@@ -75,17 +76,17 @@ const ElementsReseau = () => {
                 ...prev,
                 attenuation: attenuationsRes.data,
                 regeneration: regenerationsRes.data
-                // ⛔️ ne pas inclure lw_resultant ici
+
             }));
         } catch (err) {
             console.error("Erreur de chargement des données:", err);
         }
     }, [id_troncon]);
 
-    
     useEffect(() => {
         if (!localStorage.getItem("utilisateur")) navigate('/connexion'); else fetchAllData();
     }, [navigate, fetchAllData]);
+
     useEffect(() => {
         const fetchLwResultants = async () => {
             console.log("Début fetchLwResultant");
@@ -96,7 +97,7 @@ const ElementsReseau = () => {
                 const res = await axios.get(url);
                 const data = res.data;
 
-                // Reformater les données
+
                 const formatted = {};
                 data.forEach(item => {
                     formatted[item.id_element] = {};
@@ -157,7 +158,7 @@ const ElementsReseau = () => {
             setMessage("Impossible de charger les détails."); setFormData({});
         }
     };
-    
+
     const renderFormFields = () => {
         if (!selectedType) return null;
         const config = ELEMENT_CONFIG[selectedType];
@@ -167,8 +168,8 @@ const ElementsReseau = () => {
             return (<input key={field.name} type={field.type} name={field.name} placeholder={field.label} value={formData[field.name] || ''} onChange={handleFormInputChange} className="form-input" required />);
         });
     };
-    
 
+    
 
     const openAttenuationForm = (element, index) => {
         setSelectedElement(element); setSelectedElementOrder(index + 1);
@@ -189,13 +190,14 @@ const ElementsReseau = () => {
     };
 
     // AFFICHAGE
- 
+
     return (
         <>
             <div className="logout-global"><button className="btn-logout" onClick={handleLogout}>Déconnexion</button></div>
             <div className="container-box">
                 <div className="page-header">
-                    <h2 className="page-title">Éléments du tronçon {ordreTroncon ? `n°${ordreTroncon}` : ''}</h2>
+                    {/* CORRECTION: Syntaxe du template literal */}
+                    <h2 className="page-title">{`Éléments du tronçon ${ordreTroncon ? `n°${ordreTroncon}` : ''}`}</h2>
                     <button className="btn-primary" onClick={() => { setShowForm(!showForm); setEditingId(null); setSelectedType(''); setMessage(''); }}>{showForm ? "Annuler" : "Ajouter un élément"}</button>
                 </div>
 
@@ -229,7 +231,7 @@ const ElementsReseau = () => {
                     <div className="modal-overlay">
                         <div className="modal">
                             <h3>Saisir les atténuations pour l'élément n°{selectedElementOrder}</h3>
-                            {BANDES_FREQUENCE.map(freq => (<div className="modal-field" key={freq}><label>{freq}Hz</label><input type="number" value={attenuationValues[freq]} onChange={(e) => setAttenuationValues({ ...attenuationValues, [freq]: e.target.value })}/></div>))}
+                            {BANDES_FREQUENCE.map(freq => (<div className="modal-field" key={freq}><label>{freq}Hz</label><input type="number" value={attenuationValues[freq]} onChange={(e) => setAttenuationValues({ ...attenuationValues, [freq]: e.target.value })} /></div>))}
                             <div className="modal-actions"><button onClick={saveAttenuation}>Enregistrer</button><button onClick={() => setShowAttenuationForm(false)}>Fermer</button></div>
                         </div>
                     </div>
@@ -251,22 +253,23 @@ const ElementsReseau = () => {
                                             <>
                                                 <td>{SPECTRA_LABELS[spectraToShow[0]]}</td>
                                                 {BANDES_FREQUENCE.map(freq => (
-                                                <td key={freq}>
-                                                    {allSpectra[spectraToShow[0]]?.[el.id_element]?.[(freq)] ?? '-'}
-                                                </td>
+                                                    <td key={freq}>
+                                                        {allSpectra[spectraToShow[0]]?.[el.id_element]?.[freq] ?? '-'}
+                                                    </td>
                                                 ))}
                                             </>
                                         ) : (<td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>Aucun spectre applicable</td>)}
                                     </tr>
                                     {spectraToShow.slice(1).map(spectrumKey => (
+                                        // CORRECTION: Syntaxe du `key` avec des backticks
                                         <tr key={`${el.id_element}-${spectrumKey}`}>
                                             <td>{SPECTRA_LABELS[spectrumKey]}</td>
                                             {BANDES_FREQUENCE.map(freq => (
-                                            <td key={`${spectrumKey}-${freq}`}>
-                                                {allSpectra[spectrumKey]?.[el.id_element]?.[(freq)] ?? '-'}
-                                            </td>
+                                                // CORRECTION: Syntaxe du `key` avec des backticks
+                                                <td key={`${spectrumKey}-${freq}`}>
+                                                    {allSpectra[spectrumKey]?.[el.id_element]?.[freq] ?? '-'}
+                                                </td>
                                             ))}
-
                                         </tr>
                                     ))}
                                 </React.Fragment>

@@ -787,7 +787,7 @@ app.get('/api/lwresultants', (req, res) => getGroupedSpectrum('lwresultant', res
 
 //CALCULs
 //Calculer et recuperer les regenerations
-// Calculer et récupérer les régénérations
+
 app.get('/api/regenerations', async (req, res) => {
     try {
         const [troncons] = await db.promise().query(`
@@ -806,18 +806,23 @@ app.get('/api/regenerations', async (req, res) => {
             const troncon = troncons.find(t => t.id_troncon === element.id_troncon);
             if (!troncon) continue;
             
-            const debit = parseFloat(troncon.debit);
-            let surface = 0;
-            if (troncon.forme === 'rectangulaire') surface = (troncon.largeur / 1000) * (troncon.hauteur / 1000);
-            else if (troncon.forme === 'circulaire') surface = Math.PI * Math.pow(troncon.diametre / 1000, 2) / 4;
+            regenerations[element.id_element] = {};
+            const correctionsPourCeTroncon = troncons.filter(t => t.id_troncon === element.id_troncon);
 
-            if (debit > 0 && surface > 0) {
-                const correctionsPourCeTroncon = troncons.filter(t => t.id_troncon === element.id_troncon);
-                regenerations[element.id_element] = {};
-                for (const row of correctionsPourCeTroncon) {
-                    const regenerationValue = 10 + 50 * Math.log10(debit) + 10 * Math.log10(surface) + row.cs_valeur;
-                    regenerations[element.id_element][row.cs_bande] = regenerationValue.toFixed(0);
+            for (const row of correctionsPourCeTroncon) {
+                let regenerationValue = 0; //la regénération est 0 par default
+                //calcule la regénération que si l'élément n'est pas un silencieux ou un plennum.
+                if (element.type !== 'silencieux' && element.type !== 'plenum') {
+                    const debit = parseFloat(troncon.debit);
+                    let surface = 0;
+                    if (troncon.forme === 'rectangulaire') surface = (troncon.largeur / 1000) * (troncon.hauteur / 1000);
+                    else if (troncon.forme === 'circulaire') surface = Math.PI * Math.pow(troncon.diametre / 1000, 2) / 4;
+                    
+                    if (debit > 0 && surface > 0) {
+                        regenerationValue = 10 + 50 * Math.log10(debit) + 10 * Math.log10(surface) + row.cs_valeur;
+                    }
                 }
+                regenerations[element.id_element][row.cs_bande] = regenerationValue.toFixed(0);
             }
         }
 
