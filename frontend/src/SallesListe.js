@@ -226,7 +226,7 @@ const SallesListe = () => {
               onClick={async() => {
                 const corrections = Object.entries(correctionForm).map(([bande,valeur])=>({
                   bande : parseInt(bande),
-                  valeur : parseFloat(valeur)
+                  valeur : parseFloat(valeur) || 0 
                 }));
                 try {
                   await axios.post(`http://localhost:5000/api/salles/${selectedSalle.id_salle}/correctionspectral`,{corrections});

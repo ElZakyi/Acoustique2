@@ -128,16 +128,6 @@ const ElementsReseau = () => {
             fetchLwResultants();
         }
     }, [elements, id_troncon]);
-    useEffect(() => {
-        console.log('appel a lapi attenuation troncon ');
-    fetch("http://localhost:5000/api/attenuationtroncons", {
-        method: 'POST', // ou 'PUT'
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}), // si nécessaire
-        })
-    }, []);
 
 
 
@@ -159,12 +149,16 @@ const ElementsReseau = () => {
     };
 
     const handleDeleteElement = async (id_element) => {
-        if (!window.confirm("Êtes-vous sûr ?")) return;
+        if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet élément ?")) return;
         try {
             await axios.delete(`http://localhost:5000/api/elements/${id_element}`);
-            setMessage("Élément supprimé.");
+
+            setMessage("Élément supprimé avec succès.");
             await fetchAllData();
-        } catch (err) { setMessage(err.response?.data?.message || "Erreur lors de la suppression."); }
+        } catch (err) { 
+            console.error("Erreur de suppression:", err);
+            setMessage(err.response?.data?.message || "Erreur lors de la suppression."); 
+        }
     };
 
     const handleEditClick = async (element) => {
@@ -309,11 +303,11 @@ const ElementsReseau = () => {
                                         ) : (<td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>Aucun spectre applicable</td>)}
                                     </tr>
                                     {spectraToShow.slice(1).map(spectrumKey => (
-                                        // CORRECTION: Syntaxe du `key` avec des backticks
+
                                         <tr key={`${el.id_element}-${spectrumKey}`}>
                                             <td>{SPECTRA_LABELS[spectrumKey]}</td>
                                             {BANDES_FREQUENCE.map(freq => (
-                                                // CORRECTION: Syntaxe du `key` avec des backticks
+
                                                 <td key={`${spectrumKey}-${freq}`}>
                                                     {allSpectra[spectrumKey]?.[el.id_element]?.[freq] ?? '-'}
                                                 </td>
