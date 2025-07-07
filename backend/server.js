@@ -1,6 +1,3 @@
-// ========================================================
-// Fichier Backend : server.js (Corrigé pour la régénération)
-// ========================================================
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2');
@@ -32,9 +29,6 @@ db.connect((err) => {
     }
 });
 
-// ... Toutes les routes jusqu'à la régénération sont identiques à votre code ...
-// ... (Authentification, Affaires, Salles, Sources, Tronçons, etc.) ...
-// Voici le code complet pour que vous puissiez tout copier
 // ==================
 // AUTHENTIFICATION
 // ==================
@@ -683,7 +677,7 @@ app.post('/api/troncons/:id_troncon/elements', (req, res) => {
                 [id_troncon]
             );
 
-            // ✅ Insérer l’élément avec son ordre
+            // Insérer l’élément avec son ordre
             const [result] = await db.promise().query(
                 'INSERT INTO elementreseau (type, id_troncon, ordre) VALUES (?, ?, ?)',
                 [type, id_troncon, max_ordre]
@@ -844,67 +838,113 @@ app.get('/api/lwresultants', (req, res) => getGroupedSpectrum('lwresultant', res
 
 //CALCULs
 // Calculer et récupérer les régénérations
+
 app.get('/api/regenerations', async (req, res) => {
     try {
-        const [troncons] = await db.promise().query(`
-            SELECT t.id_troncon, t.debit, t.forme, t.largeur, t.hauteur, t.diametre, 
-                   cs.bande as cs_bande, cs.valeur as cs_valeur
-            FROM troncon t
-            LEFT JOIN sourcesonore ss ON t.id_source = ss.id_source
-            LEFT JOIN salle s ON ss.id_salle = s.id_salle
-            LEFT JOIN correctionspectral cs ON s.id_salle = cs.id_salle 
+        const [savedRegensRows] = await db.promise().query('SELECT * FROM regeneration');
+        const finalRegenerations = savedRegensRows.reduce((acc, row) => {
+            if (!acc[row.id_element]) {
+                acc[row.id_element] = {};
+            }
+            acc[row.id_element][row.bande] = row.valeur;
+            return acc;
+        }, {});
+
+        // calcul automatique
+        const [calcDataRows] = await db.promise().query(`
+            SELECT 
+                er.id_element, er.type, er.id_troncon,
+                t.vitesse, t.forme, t.largeur, t.hauteur, t.diametre,
+                cs.bande AS cs_bande, 
+                cs.valeur AS cs_valeur
+            FROM elementreseau er
+            JOIN troncon t ON er.id_troncon = t.id_troncon
+            JOIN sourcesonore ss ON t.id_source = ss.id_source
+            LEFT JOIN correctionspectral cs ON ss.id_salle = cs.id_salle
         `);
-        
-        const [elements] = await db.promise().query('SELECT id_element, type, id_troncon FROM elementreseau');
-        const regenerations = {};
+        const elementsData = calcDataRows.reduce((acc, row) => {
+            if (!acc[row.id_element]) {
+                acc[row.id_element] = {
+                    ...row,
+                    corrections: {}
+                };
+            }
+            if (row.cs_bande !== null) {
+                acc[row.id_element].corrections[row.cs_bande] = row.cs_valeur;
+            }
+            return acc;
+        }, {});
 
-        for (const element of elements) {
-            const troncon = troncons.find(t => t.id_troncon === element.id_troncon);
-            if (!troncon) continue;
+        const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000];
+        for (const id_element in elementsData) {
+            const element = elementsData[id_element];
             
-            regenerations[element.id_element] = {};
-            const correctionsPourCeTroncon = troncons.filter(t => t.id_troncon === element.id_troncon);
+            // On ne fait le calcul que si ce n'est pas une grille de soufflage
+            if (element.type !== 'grillesoufflage') {
+                const calculatedSpectre = {};
+                const correctionsMap = element.corrections;
 
-            for (const row of correctionsPourCeTroncon) {
-                let regenerationValue = 0; // Valeur par défaut
+                for (const bande of BANDES_FREQUENCE) {
+                    let regenerationValue = 0;
+                    const correctionValeur = correctionsMap[bande] ?? 0;
 
-                if (element.type !== 'silencieux' && element.type !== 'plenum') {
-                    const debit_m3h = parseFloat(troncon.debit);
-                    
-                    let surface_m2 = 0;
-                    if (troncon.forme === 'rectangulaire' && troncon.largeur && troncon.hauteur) {
-                        surface_m2 = (troncon.largeur / 1000) * (troncon.hauteur / 1000);
-                    } else if (troncon.forme === 'circulaire' && troncon.diametre) {
-                        surface_m2 = Math.PI * Math.pow(troncon.diametre / 2000, 2);
-                    }
-                    if (debit_m3h > 0 && surface_m2 > 0 && row.cs_valeur != null) {
-                        const debit_m3s = debit_m3h / 3600;
-                        const vitesse_ms = debit_m3s / surface_m2;
-                        if (vitesse_ms > 0) {
-                            regenerationValue = 10 + 50 * Math.log10(vitesse_ms) + 10 * Math.log10(surface_m2) + row.cs_valeur;
+                    if (element.type !== 'silencieux' && element.type !== 'plenum') {
+                        const vitesse_ms = parseFloat(element.vitesse);
+                        let surface_m2 = 0;
+                        if (element.forme === 'rectangulaire') {
+                            surface_m2 = (element.largeur / 1000) * (element.hauteur / 1000);
+                        } else if (element.forme === 'circulaire') {
+                            surface_m2 = Math.PI * Math.pow(element.diametre / 2000, 2);
+                        }
+
+                        if (vitesse_ms > 0 && surface_m2 > 0) {
+                            regenerationValue = 10 + 50 * Math.log10(vitesse_ms) + 10 * Math.log10(surface_m2) + correctionValeur;
                         }
                     }
+                    calculatedSpectre[bande] = regenerationValue.toFixed(0);
                 }
-                if (row.cs_bande != null) {
-                    regenerations[element.id_element][row.cs_bande] = regenerationValue.toFixed(0);
+                finalRegenerations[id_element] = calculatedSpectre;
+
+                //sauvegarde des nouvelles valeurs en bd
+                const valuesToSave = Object.entries(calculatedSpectre).map(([b, v]) => [id_element, b, v]);
+                if (valuesToSave.length > 0) {
+                    await db.promise().query(
+                        'REPLACE INTO regeneration (id_element, bande, valeur) VALUES ?', [valuesToSave]
+                    );
                 }
             }
         }
+        res.status(200).json(finalRegenerations);
 
-        //enregistrer en Base de données
-        for (const [id_element, bandes] of Object.entries(regenerations)) {
-            for (const [bande, valeur] of Object.entries(bandes)) {
-                await db.promise().query(
-                    'INSERT INTO regeneration (id_element, bande, valeur) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
-                    [id_element, bande, valeur]
-                );
-            }
-        }
-
-        res.status(200).json(regenerations);
     } catch (error) {
-        console.error("Erreur calcul régénération:", error);
+        console.error("Erreur calcul et lecture régénération:", error);
         res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+app.post('/api/regenerations', async (req, res) => {
+    const { id_element, ...spectre } = req.body;
+
+    if (!id_element || !spectre) {
+        return res.status(400).json({ message: "ID de l'élément et spectre sont requis." });
+    }
+
+    try {
+        const values = Object.entries(spectre).map(([bande, valeur]) => {
+            return [id_element, parseInt(bande), parseFloat(valeur) || 0];
+        });
+        
+        if (values.length > 0) {
+            await db.promise().query(
+                'REPLACE INTO regeneration (id_element, bande, valeur) VALUES ?',
+                [values]
+            );
+        }
+        
+        res.status(200).json({ message: "Régénération sauvegardée avec succès." });
+    } catch (error) {
+        console.error("Erreur sauvegarde régénération:", error);
+        res.status(500).json({ message: "Erreur serveur lors de la sauvegarde." });
     }
 });
 
@@ -990,21 +1030,20 @@ app.post('/api/attenuations', async (req, res) => {
 
 //implementation de la logique de calcul lw_resultant d'élement reseau 
 // Calcul du Lw_resultant pour un tronçon (chaînage entre tronçons)
-// /api/lwresultants/troncon/:id_troncon
 app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
   const { id_troncon } = req.params;
 
   try {
+    // 1. Récupérer le tronçon courant et son id_source
     const [[troncon]] = await db.promise().query(
-      'SELECT id_troncon, id_source FROM troncon WHERE id_troncon = ?',
-      [id_troncon]
+      'SELECT id_troncon, id_source FROM troncon WHERE id_troncon = ?', [id_troncon]
     );
     if (!troncon) return res.status(404).json({ message: "Tronçon introuvable." });
 
     const { id_source } = troncon;
     let lwInit = {};
 
-    // ===> 2. Chercher le tronçon précédent
+    // 2. Chercher le tronçon précédent (plus petit id_troncon de la même source)
     const [[tronconPrecedent]] = await db.promise().query(
       'SELECT id_troncon FROM troncon WHERE id_source = ? AND id_troncon < ? ORDER BY id_troncon DESC LIMIT 1',
       [id_source, id_troncon]
@@ -1013,7 +1052,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     if (tronconPrecedent) {
       const id_troncon_prec = tronconPrecedent.id_troncon;
 
-      // a. Dernier élément du tronçon précédent
+      // a. Récupérer le dernier élément du tronçon précédent
       const [[dernierElement]] = await db.promise().query(
         'SELECT id_element FROM elementreseau WHERE id_troncon = ? ORDER BY ordre DESC LIMIT 1',
         [id_troncon_prec]
@@ -1022,49 +1061,29 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
       if (dernierElement) {
         const id_element_prec = dernierElement.id_element;
 
-        // b. Vérifier le type de cet élément
-        const [[typeElement]] = await db.promise().query(
-          'SELECT type FROM elementreseau WHERE id_element = ?',
-          [id_element_prec]
+        // b. Récupérer ses Lw_resultant
+        const [lwPrecRows] = await db.promise().query(
+          'SELECT bande, valeur FROM lwresultant WHERE id_element = ?', [id_element_prec]
         );
-
-        let lwPrecRows;
-        if (typeElement.type === 'piecetransformation') {
-          // Si c'est une pièce de transformation, on prend lw_entrant
-          [lwPrecRows] = await db.promise().query(
-            'SELECT bande, valeur FROM lwentrantpiecetransformation WHERE id_element = ?',
-            [id_element_prec]
-          );
-        } else {
-          // Sinon on prend lw_resultant
-          [lwPrecRows] = await db.promise().query(
-            'SELECT bande, valeur FROM lwresultant WHERE id_element = ?',
-            [id_element_prec]
-          );
-        }
-
-        // Charger dans lwInit
         lwPrecRows.forEach(row => lwInit[row.bande] = row.valeur);
 
-        // c. Atténuation du tronçon précédent
+        // ✅ c. Récupérer l’atténuation du tronçon précédent via `elementreseau`
         const [attTronconRows] = await db.promise().query(
           `SELECT at.bande, at.valeur 
            FROM attenuationtroncon at
            JOIN elementreseau er ON at.id_element = er.id_element
-           WHERE er.id_troncon = ?`,
-          [id_troncon_prec]
+           WHERE er.id_troncon = ?`, [id_troncon_prec]
         );
         attTronconRows.forEach(row => {
-          lwInit[row.bande] = lwInit[row.bande] + row.valeur;
+          lwInit[row.bande] = lwInit[row.bande] - row.valeur;
         });
       }
     }
 
-    // 3. Si pas de tronçon précédent → lwsource
+    // 3. Si pas de tronçon précédent, utiliser Lw source
     if (Object.keys(lwInit).length === 0) {
       const [lwSource] = await db.promise().query(
-        'SELECT bande, valeur_lw FROM lwsource WHERE id_source = ?',
-        [id_source]
+        'SELECT bande, valeur_lw FROM lwsource WHERE id_source = ?', [id_source]
       );
       lwSource.forEach(row => {
         lwInit[row.bande] = row.valeur_lw;
@@ -1084,7 +1103,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     for (const element of elements) {
       const id_element = element.id_element;
 
-      // a. Atténuation et régénération
+      // Atténuation et régénération
       const [attenuations] = await db.promise().query(
         'SELECT bande, valeur FROM attenuation WHERE id_element = ?', [id_element]
       );
@@ -1112,7 +1131,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         lwResultant[bande] = Number(lw.toFixed(3));
       });
 
-      // c. Sauvegarde Lw_resultant
+      // Sauvegarde en base
       for (const [bande, valeur] of Object.entries(lwResultant)) {
         await db.promise().query(
           `INSERT INTO lwresultant (id_element, bande, valeur)
@@ -1122,42 +1141,23 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         );
       }
 
-      // ✅ d. Si pièce de transformation → stocker lwEntrant
-      if (element.type === 'piecetransformation') {
-        for (const [bande, valeur] of Object.entries(lwEntrant)) {
-          await db.promise().query(
-            `INSERT INTO lwentrantpiecetransformation (id_element, bande, valeur)
-             VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
-            [id_element, parseInt(bande), valeur]
-          );
-        }
-      }
-
       resultats.push({
         id_element,
         type: element.type,
         ordre: element.ordre,
         lwEntrant,
         lw_resultant: lwResultant
-        });
+      });
 
-        // Mettre à jour lwPrec uniquement si ce n'est PAS une pièce de transformation
-        if (element.type !== 'piecetransformation') {
-        lwPrec = lwResultant;
-        }
-
+      lwPrec = lwResultant;
     }
 
     res.json(resultats);
   } catch (error) {
-    console.error("❌ Erreur calcul Lw_resultant :", error);
+    console.error("Erreur calcul Lw_resultant :", error);
     res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
   }
 });
-
-
-
 
 
 

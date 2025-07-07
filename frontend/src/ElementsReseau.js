@@ -58,7 +58,8 @@ const ElementsReseau = () => {
 
     const [selectedElementOrder, setSelectedElementOrder] = useState(null);
     const [attenuationValues, setAttenuationValues] = useState(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, ''])));
-
+    const [showRegenerationForm, setShowRegenerationForm] = useState(false);
+    const [regenerationValues, setRegenerationValues] = useState(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, ''])));
 
 
     // Logique
@@ -202,6 +203,32 @@ const ElementsReseau = () => {
             setShowAttenuationForm(false);
         } catch (error) { console.error("Erreur sauvegarde atténuation:", error); setMessage("Erreur de sauvegarde."); }
     };
+
+    const openRegenerationForm = (element, index) => {
+        setSelectedElement(element);
+        setSelectedElementOrder(index + 1);
+        const existingValues = allSpectra.regeneration[element.id_element] || {};
+        setRegenerationValues(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, existingValues[f] ?? ''])));
+        setShowRegenerationForm(true);
+    };
+
+    const saveRegeneration = async () => {
+        if (!selectedElement) return;
+        try {
+            const payload = {
+                id_element: selectedElement.id_element,
+                ...Object.fromEntries(Object.entries(regenerationValues).map(([k, v]) => [k, parseFloat(v) || 0]))
+            };
+            await axios.post('http://localhost:5000/api/regenerations', payload);
+            setMessage("Régénération enregistrée !");
+            await fetchAllData(); 
+            setShowRegenerationForm(false);
+        } catch (error) {
+            console.error("Erreur sauvegarde régénération:", error);
+            setMessage("Erreur lors de la sauvegarde de la régénération.");
+        }
+    };
+
     //calcul de GLOBAL dba 
     const calculerGlobalDBA = (spectre) => {
         const bandes = ['63', '125', '250', '500', '1000', '2000', '4000'];
@@ -253,7 +280,14 @@ const ElementsReseau = () => {
                                 <td>{i + 1}</td>
                                 <td>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
                                 <td>{(() => { const params = Object.entries(el).filter(([k]) => ['longueur', 'angle', 'orientation', 'materiau', 'distance_r', 'type_vc', 'modele'].includes(k) && el[k] != null && el[k] !== ''); if (params.length === 0) return <em style={{ color: '#999' }}>Aucun</em>; return params.map(([k, v]) => <div key={k}><strong>{k.charAt(0).toUpperCase() + k.slice(1)}</strong>: {v}</div>); })()}</td>
-                                <td><div className="actions-cell"><div className="action-icons"><FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} /><FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} /></div><button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button></div></td>
+                                <td><div className="actions-cell"><div className="action-icons"><FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} /><FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} /></div><button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button>
+                                 {el.type === 'grillesoufflage' && (
+                            <button className="btn-small" style={{ marginLeft: '5px' }} onClick={() => openRegenerationForm(el, i)}>
+                                Régénération
+                            </button>
+                        )}
+                            </div>
+                        </td>
                             </tr>
                         ))}
                     </tbody>
@@ -268,6 +302,29 @@ const ElementsReseau = () => {
                         </div>
                     </div>
                 )}
+
+                {showRegenerationForm && (
+                <div className="modal-overlay">
+                 <div className="modal">
+                   <h3>Saisir la régénération pour l'élément n°{selectedElementOrder}</h3>
+                    {BANDES_FREQUENCE.map(freq => (
+                        <div className="modal-field" key={freq}>
+                        <label>{freq}Hz</label>
+                        <input 
+                        type="number" 
+                        value={regenerationValues[freq]} 
+                        onChange={(e) => setRegenerationValues({ ...regenerationValues, [freq]: e.target.value })} 
+                    />
+                </div>
+             ))}
+                    <div className="modal-actions">
+                        <button onClick={saveRegeneration}>Enregistrer</button>
+                        <button onClick={() => setShowRegenerationForm(false)}>Fermer</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
 
                 <h3 style={{ marginTop: '30px' }}>Tableau de synthèse acoustique</h3>
                 <table className="affaires-table synthese-table">
