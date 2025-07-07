@@ -1196,10 +1196,14 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         ordre: element.ordre,
         lwEntrant,
         lw_resultant: lwResultant
-      });
+        });
 
-      lwPrec = lwResultant;
-      console.log(lwPrec);
+        // Mettre à jour lwPrec uniquement si ce n'est PAS une pièce de transformation
+        if (element.type !== 'piecetransformation') {
+        lwPrec = lwResultant;
+        console.log(lwPrec);
+        }
+
     }
 
     res.json(resultats);
