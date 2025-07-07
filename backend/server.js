@@ -1088,14 +1088,12 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
             'SELECT bande, valeur FROM lwentrantpiecetransformation WHERE id_element = ?',
             [id_element_prec]
           );
-          console.log(`👉 Lw_entrant récupéré depuis la pièce de transformation ${id_element_prec}`);
         } else {
           // Sinon on prend lw_resultant
           [lwPrecRows] = await db.promise().query(
             'SELECT bande, valeur FROM lwresultant WHERE id_element = ?',
             [id_element_prec]
           );
-          console.log(`👉 Lw_resultant récupéré depuis l’élément ${id_element_prec}`);
         }
 
         // Charger dans lwInit
@@ -1187,7 +1185,6 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
             [id_element, parseInt(bande), valeur]
           );
         }
-        console.log(`✅ Lw_entrant stocké pour pièce de transformation (id=${id_element})`);
       }
 
       resultats.push({
@@ -1201,7 +1198,6 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         // Mettre à jour lwPrec uniquement si ce n'est PAS une pièce de transformation
         if (element.type !== 'piecetransformation') {
         lwPrec = lwResultant;
-        console.log(lwPrec);
         }
 
     }
