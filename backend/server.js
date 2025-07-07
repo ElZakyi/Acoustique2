@@ -475,7 +475,7 @@ app.post('/api/sources/:id_source/lwsource', (req, res) => {
 //recuperer les troncons
 app.get('/api/sources/:id_source/troncons',(req,res) =>{
     const {id_source} = req.params
-    const sql = "SELECT * FROM troncon WHERE id_source = ?";
+    const sql = "SELECT * FROM troncon WHERE id_source = ? ORDER BY ordre ASC";
     db.query(sql,[id_source],(err,result)=>{
         if(err){
             console.error("Erreur lors du recuperation des troncons ");
@@ -487,7 +487,7 @@ app.get('/api/sources/:id_source/troncons',(req,res) =>{
 
 //inserer un troncon 
 
-app.post('/api/sources/:id_source/troncons', (req, res) => {
+app.post('/api/sources/:id_source/troncons', async (req, res) => {
     const { id_source } = req.params;
     const { forme, largeur, hauteur, diametre, vitesse, debit } = req.body;
 
@@ -495,38 +495,44 @@ app.post('/api/sources/:id_source/troncons', (req, res) => {
         return res.status(400).json({ message: "La forme, la vitesse et le débit sont requis." });
     }
 
-    let sql;
-    let values;
+    try {
+        // 🔢 Étape pour calculer le prochain ordre
+        const [rows] = await db.promise().query(
+            'SELECT MAX(ordre) AS max_ordre FROM troncon WHERE id_source = ?', 
+            [id_source]
+        );
+        const ordre = (rows[0].max_ordre ?? 0) + 1;
 
-    if (forme === 'rectangulaire') {
-        if (!largeur || !hauteur) {
-            return res.status(400).json({ message: "La largeur et la hauteur sont requises pour un tronçon rectangulaire." });
-        }
-        
-        sql = "INSERT INTO troncon (forme, largeur, hauteur, diametre, vitesse, debit, id_source) VALUES (?, ?, ?, NULL, ?, ?, ?)";
-        values = [forme, largeur, hauteur, vitesse, debit, id_source];
-    } 
-    else if (forme === 'circulaire') {
-        if (!diametre) {
-            return res.status(400).json({ message: "Le diamètre est requis for un tronçon circulaire." });
+        let sql;
+        let values;
+
+        if (forme === 'rectangulaire') {
+            if (!largeur || !hauteur) {
+                return res.status(400).json({ message: "La largeur et la hauteur sont requises." });
+            }
+            sql = "INSERT INTO troncon (forme, largeur, hauteur, diametre, vitesse, debit, id_source, ordre) VALUES (?, ?, ?, NULL, ?, ?, ?, ?)";
+            values = [forme, largeur, hauteur, vitesse, debit, id_source, ordre];
+        } 
+        else if (forme === 'circulaire') {
+            if (!diametre) {
+                return res.status(400).json({ message: "Le diamètre est requis." });
+            }
+            sql = "INSERT INTO troncon (forme, largeur, hauteur, diametre, vitesse, debit, id_source, ordre) VALUES (?, NULL, NULL, ?, ?, ?, ?, ?)";
+            values = [forme, diametre, vitesse, debit, id_source, ordre];
+        } 
+        else {
+            return res.status(400).json({ message: "La forme doit être 'rectangulaire' ou 'circulaire'." });
         }
 
-        sql = "INSERT INTO troncon (forme, largeur, hauteur, diametre, vitesse, debit, id_source) VALUES (?, NULL, NULL, ?, ?, ?, ?)";
-        values = [forme, diametre, vitesse, debit, id_source];
-    } 
-    else {
-        return res.status(400).json({ message: "La forme doit être 'rectangulaire' ou 'circulaire'." });
-    }
-
- 
-    db.query(sql, values, (err, result) => {
-        if (err) {
-            console.error("Erreur lors de l'ajout du tronçon :", err);
-            return res.status(500).json({ message: "Erreur serveur" });
-        }
+        const [result] = await db.promise().query(sql, values);
         return res.status(201).json({ message: "Tronçon ajouté avec succès !", id_troncon: result.insertId });
-    });
+
+    } catch (error) {
+        console.error("Erreur lors de l'ajout du tronçon :", error);
+        return res.status(500).json({ message: "Erreur serveur" });
+    }
 });
+
 
 // Modifier un tronçon
 app.put('/api/troncons/:id_troncon', (req, res) => {
@@ -613,7 +619,7 @@ app.get('/api/troncons/:id_troncon/ordre', async (req, res) => {
 // GESTION D'ELEMENT RESEAU
 // ==========================================================
 
-//Obtenir tous les elements d’un tronçon
+// Obtenir tous les éléments d’un tronçon, triés par ordre logique
 app.get('/api/troncons/:id_troncon/elements', (req, res) => {
     const { id_troncon } = req.params;
     const sql = `
@@ -624,7 +630,8 @@ app.get('/api/troncons/:id_troncon/elements', (req, res) => {
         LEFT JOIN coude co ON er.id_element = co.id_element
         LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
         LEFT JOIN vc ON er.id_element = vc.id_element
-        WHERE er.id_troncon = ? ORDER BY er.id_element ASC`;
+        WHERE er.id_troncon = ? ORDER BY er.ordre ASC`;
+    
     db.query(sql, [id_troncon], (err, result) => {
         if (err) return res.status(500).json({ message: "Erreur serveur" });
         return res.status(200).json(result);
@@ -653,33 +660,76 @@ app.get('/api/elements/:id_element', async (req, res) => {
 });
 
 //Ajouter un élément
+// Ajouter un élément avec ordre automatique
 app.post('/api/troncons/:id_troncon/elements', (req, res) => {
     const { id_troncon } = req.params;
     const { type, parameters } = req.body;
+
     if (!type) return res.status(400).json({ message: "Le type est requis." });
 
     db.beginTransaction(async (err) => {
         if (err) return res.status(500).json({ message: "Erreur serveur" });
+
         try {
-            const [result] = await db.promise().query('INSERT INTO elementreseau (type, id_troncon) VALUES (?, ?)', [type, id_troncon]);
+            // 🔢 Récupérer le prochain ordre
+            const [[{ max_ordre }]] = await db.promise().query(
+                'SELECT IFNULL(MAX(ordre), -1) + 1 AS max_ordre FROM elementreseau WHERE id_troncon = ?',
+                [id_troncon]
+            );
+
+            // ✅ Insérer l’élément avec son ordre
+            const [result] = await db.promise().query(
+                'INSERT INTO elementreseau (type, id_troncon, ordre) VALUES (?, ?, ?)',
+                [type, id_troncon, max_ordre]
+            );
+
             const newElementId = result.insertId;
+
+            // Gérer l’insertion dans les sous-tables
             if (parameters && Object.keys(parameters).length > 0) {
-                 switch (type) {
-                    case 'conduit': await db.promise().query('INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)', [newElementId, parameters.longueur, parameters.materiau]); break;
-                    case 'coude': await db.promise().query('INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)', [newElementId, parameters.angle, parameters.orientation, parameters.materiau]); break;
-                    case 'grillesoufflage': await db.promise().query('INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)', [newElementId, parameters.distance_r]); break;
-                    case 'vc': await db.promise().query('INSERT INTO vc (id_element, type_vc) VALUES (?, ?)', [newElementId, parameters.type_vc]); break;
+                switch (type) {
+                    case 'conduit':
+                        await db.promise().query(
+                            'INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)',
+                            [newElementId, parameters.longueur, parameters.materiau]
+                        );
+                        break;
+                    case 'coude':
+                        await db.promise().query(
+                            'INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)',
+                            [newElementId, parameters.angle, parameters.orientation, parameters.materiau]
+                        );
+                        break;
+                    case 'grillesoufflage':
+                        await db.promise().query(
+                            'INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)',
+                            [newElementId, parameters.distance_r]
+                        );
+                        break;
+                    case 'vc':
+                        await db.promise().query(
+                            'INSERT INTO vc (id_element, type_vc) VALUES (?, ?)',
+                            [newElementId, parameters.type_vc]
+                        );
+                        break;
                 }
             } else {
-                switch(type) {
-                    case 'silencieux': await db.promise().query('INSERT INTO silencieux (id_element) VALUES (?)', [newElementId]); break;
-                    case 'plenum': await db.promise().query('INSERT INTO plenum (id_element) VALUES (?)', [newElementId]); break;
-                    case 'piecetransformation': await db.promise().query('INSERT INTO piecetransformation (id_element) VALUES (?)', [newElementId]); break;
+                switch (type) {
+                    case 'silencieux':
+                        await db.promise().query('INSERT INTO silencieux (id_element) VALUES (?)', [newElementId]);
+                        break;
+                    case 'plenum':
+                        await db.promise().query('INSERT INTO plenum (id_element) VALUES (?)', [newElementId]);
+                        break;
+                    case 'piecetransformation':
+                        await db.promise().query('INSERT INTO piecetransformation (id_element) VALUES (?)', [newElementId]);
+                        break;
                 }
             }
-            
+
             await db.promise().commit();
             res.status(201).json({ message: "Élément ajouté avec succès !" });
+
         } catch (error) {
             await db.promise().rollback();
             console.error("Erreur ajout élément :", error);
@@ -687,6 +737,7 @@ app.post('/api/troncons/:id_troncon/elements', (req, res) => {
         }
     });
 });
+
 
 // PUT : Modifier un élément
 app.put('/api/elements/:id_element', (req, res) => {
@@ -996,103 +1047,107 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
   const { id_troncon } = req.params;
 
   try {
-    // 1. Récupérer l'id_source du tronçon actuel
+    // 1. Récupérer le tronçon courant et son id_source
     const [[troncon]] = await db.promise().query(
-      'SELECT id_source FROM troncon WHERE id_troncon = ?',
-      [id_troncon]
+      'SELECT id_troncon, id_source FROM troncon WHERE id_troncon = ?', [id_troncon]
     );
     if (!troncon) return res.status(404).json({ message: "Tronçon introuvable." });
-    const id_source = troncon.id_source;
 
-    // 2. Récupérer dynamiquement l'ordre du tronçon (basé sur id_troncon croissant)
-    const [[{ ordre_troncon }]] = await db.promise().query(
-      `SELECT 
-          (SELECT COUNT(*) + 1 
-           FROM troncon t2 
-           WHERE t2.id_source = t.id_source AND t2.id_troncon < t.id_troncon) 
-          AS ordre_troncon
-       FROM troncon t
-       WHERE t.id_troncon = ?`,
-      [id_troncon]
+    const { id_source } = troncon;
+    let lwInit = {};
+
+    // 2. Chercher le tronçon précédent (plus petit id_troncon de la même source)
+    const [[tronconPrecedent]] = await db.promise().query(
+      'SELECT id_troncon FROM troncon WHERE id_source = ? AND id_troncon < ? ORDER BY id_troncon DESC LIMIT 1',
+      [id_source, id_troncon]
     );
 
-    // 3. Initialisation de lwPrec
-    let lwPrec = {};
+    if (tronconPrecedent) {
+      const id_troncon_prec = tronconPrecedent.id_troncon;
 
-    if (ordre_troncon > 1) {
-      // Récupérer le dernier élément du tronçon précédent
-      const [[tronconPrecedent]] = await db.promise().query(
-        `SELECT id_troncon FROM troncon 
-         WHERE id_source = ? AND id_troncon < ? 
-         ORDER BY id_troncon DESC LIMIT 1`,
-        [id_source, id_troncon]
+      // a. Récupérer le dernier élément du tronçon précédent
+      const [[dernierElement]] = await db.promise().query(
+        'SELECT id_element FROM elementreseau WHERE id_troncon = ? ORDER BY ordre DESC LIMIT 1',
+        [id_troncon_prec]
       );
 
-      const [[lastElement]] = await db.promise().query(
-        'SELECT id_element FROM elementreseau WHERE id_troncon = ? ORDER BY id_element DESC LIMIT 1',
-        [tronconPrecedent.id_troncon]
-      );
+      if (dernierElement) {
+        const id_element_prec = dernierElement.id_element;
 
-      const [lwLast] = await db.promise().query(
-        'SELECT bande, valeur FROM lwresultant WHERE id_element = ?',
-        [lastElement.id_element]
-      );
+        // b. Récupérer ses Lw_resultant
+        const [lwPrecRows] = await db.promise().query(
+          'SELECT bande, valeur FROM lwresultant WHERE id_element = ?', [id_element_prec]
+        );
+        lwPrecRows.forEach(row => lwInit[row.bande] = row.valeur);
 
-      lwLast.forEach(row => {
-        lwPrec[row.bande] = row.valeur;
-      });
+        // ✅ c. Récupérer l’atténuation du tronçon précédent via `elementreseau`
+        const [attTronconRows] = await db.promise().query(
+          `SELECT at.bande, at.valeur 
+           FROM attenuationtroncon at
+           JOIN elementreseau er ON at.id_element = er.id_element
+           WHERE er.id_troncon = ?`, [id_troncon_prec]
+        );
+        attTronconRows.forEach(row => {
+          lwInit[row.bande] = lwInit[row.bande] - row.valeur;
+        });
+      }
+    }
 
-    } else {
-      // Premier tronçon → se base sur la source sonore
+    // 3. Si pas de tronçon précédent, utiliser Lw source
+    if (Object.keys(lwInit).length === 0) {
       const [lwSource] = await db.promise().query(
         'SELECT bande, valeur_lw FROM lwsource WHERE id_source = ?', [id_source]
       );
       lwSource.forEach(row => {
-        lwPrec[row.bande] = row.valeur_lw;
+        lwInit[row.bande] = row.valeur_lw;
       });
     }
 
-    // 4. Charger les éléments du tronçon en cours
+    // 4. Charger les éléments du tronçon courant
     const [elements] = await db.promise().query(
-      'SELECT * FROM elementreseau WHERE id_troncon = ? ORDER BY id_element ASC',
+      'SELECT * FROM elementreseau WHERE id_troncon = ? ORDER BY ordre ASC',
       [id_troncon]
     );
 
     const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
     const resultats = [];
+    let lwPrec = { ...lwInit };
 
     for (const element of elements) {
       const id_element = element.id_element;
 
+      // Atténuation et régénération
       const [attenuations] = await db.promise().query(
         'SELECT bande, valeur FROM attenuation WHERE id_element = ?', [id_element]
       );
-      const attMap = {};
-      attenuations.forEach(row => { attMap[row.bande] = row.valeur; });
-
       const [regens] = await db.promise().query(
         'SELECT bande, valeur FROM regeneration WHERE id_element = ?', [id_element]
       );
+
+      const attMap = {};
       const regMap = {};
-      regens.forEach(row => { regMap[row.bande] = row.valeur; });
+      attenuations.forEach(row => attMap[row.bande] = row.valeur);
+      regens.forEach(row => regMap[row.bande] = row.valeur);
 
-      // Copie du Lw entrant
       const lwEntrant = { ...lwPrec };
-
-      // Calcul Lw_resultant
       const lwResultant = {};
+
       BANDES.forEach(bande => {
         const Lw_prec = lwPrec[bande] ?? 0;
         const regen = regMap[bande] ?? 0;
         const atten = attMap[bande] ?? 0;
-        const lw = 10 * Math.log10(Math.pow(10, Lw_prec / 10) + Math.pow(10, regen / 10)) - atten;
+
+        const lw = 10 * Math.log10(
+          Math.pow(10, Lw_prec / 10) + Math.pow(10, regen / 10)
+        ) - atten;
+
         lwResultant[bande] = Number(lw.toFixed(3));
       });
 
-      // Insertion en base
+      // Sauvegarde en base
       for (const [bande, valeur] of Object.entries(lwResultant)) {
         await db.promise().query(
-          `INSERT INTO lwresultant (id_element, bande, valeur) 
+          `INSERT INTO lwresultant (id_element, bande, valeur)
            VALUES (?, ?, ?)
            ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
           [id_element, parseInt(bande), valeur]
@@ -1107,17 +1162,16 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         lw_resultant: lwResultant
       });
 
-      // Mise à jour pour le prochain élément
       lwPrec = lwResultant;
     }
 
     res.json(resultats);
-
   } catch (error) {
     console.error("Erreur calcul Lw_resultant :", error);
     res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
   }
 });
+
 
 
 
