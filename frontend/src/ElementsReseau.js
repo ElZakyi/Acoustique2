@@ -65,12 +65,13 @@ const ElementsReseau = () => {
     // Logique
     const fetchAllData = useCallback(async () => {
         try {
-            const [elementsRes, attenuationsRes, regenerationsRes,attTronconRes, ordreTronconRes] = await Promise.all([
+            const [elementsRes, attenuationsRes, regenerationsRes,attTronconRes, ordreTronconRes,lpRes] = await Promise.all([
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
                 axios.get('http://localhost:5000/api/attenuations'),
                 axios.get('http://localhost:5000/api/regenerations'),
                 axios.get('http://localhost:5000/api/attenuationtroncons'),
-                axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`)
+                axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`),
+                axios.get('http://localhost:5000/api/niveaux_lp') 
             ]);
 
             setElements(elementsRes.data);
@@ -79,7 +80,8 @@ const ElementsReseau = () => {
                 ...prev,
                 attenuation: attenuationsRes.data,
                 regeneration: regenerationsRes.data,
-                attenuation_troncon: attTronconRes.data
+                attenuation_troncon: attTronconRes.data,
+                lp: lpRes.data
             }));
         } catch (err) {
             console.error("Erreur de chargement des données:", err);
@@ -123,7 +125,7 @@ const ElementsReseau = () => {
                     }
                 });
 
-                setAllSpectra(prev => ({ ...prev, lw_resultant: formatted ,lw_entrant : formattedLwEntrant,lw_sortie:formattedLwSortie}));
+                setAllSpectra(currentState => ({ ...currentState, lw_resultant: formatted, lw_entrant: formattedLwEntrant, lw_sortie: formattedLwSortie }));
                 console.log("LW RESULTANT FINAL =", formatted);
                 console.log("LW Entrant FINAL =", formattedLwEntrant);
             } catch (error) {

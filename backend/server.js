@@ -1010,6 +1010,73 @@ app.get('/api/attenuationtroncons', async (req, res) => {
 
 
 
+// ✅ ROUTE SIMPLIFIÉE pour le calcul et la sauvegarde du niveau Lp
+app.get('/api/niveaux_lp', async (req, res) => {
+    try {
+        // --- ÉTAPE 1 : Récupérer les spectres LwSortie de toutes les grilles ---
+        const [lwSortieRows] = await db.promise().query('SELECT * FROM lwsortie');
+
+        const lwSortieMap = lwSortieRows.reduce((acc, row) => {
+            if (!acc[row.id_element]) acc[row.id_element] = {};
+            acc[row.id_element][row.bande] = row.valeur;
+            return acc;
+        }, {});
+
+        // --- ÉTAPE 2 : Récupérer les paramètres de chaque grille ---
+        const [grilleParamsRows] = await db.promise().query(`
+            SELECT 
+                er.id_element,
+                gs.distance_r,
+                s.r AS constante_salle_R
+            FROM elementreseau er
+            JOIN grillesoufflage gs ON er.id_element = gs.id_element
+            JOIN troncon t ON er.id_troncon = t.id_troncon
+            JOIN sourcesonore ss ON t.id_source = ss.id_source
+            JOIN salle s ON ss.id_salle = s.id_salle
+            WHERE er.type = 'grillesoufflage'
+        `);
+
+        // --- ÉTAPE 3 : Calculer le spectre Lp pour chaque grille ---
+        const spectresLp = {};
+        for (const grille of grilleParamsRows) {
+            const id_element = grille.id_element;
+            const spectreLwSortie = lwSortieMap[id_element];
+
+            if (!spectreLwSortie) continue;
+
+            const r = parseFloat(grille.distance_r);
+            const R = parseFloat(grille.constante_salle_R);
+            spectresLp[id_element] = {};
+
+            for (const bande in spectreLwSortie) {
+                const lw_sortie = parseFloat(spectreLwSortie[bande]);
+                let lp_valeur = 0;
+
+                if (r > 0 && R > 0) {
+                    const termeDirectivite = 2 / (4 * Math.PI * Math.pow(r, 2));
+                    const termeReverberation = 4 / R;
+                    lp_valeur = lw_sortie + 10 * Math.log10(termeDirectivite + termeReverberation);
+                }
+                spectresLp[id_element][bande] = parseFloat(lp_valeur.toFixed(1));
+            }
+        }
+
+        // --- ÉTAPE 4 : Sauvegarder les résultats dans la table 'niveaulp' ---
+        for (const [id_element, spectre] of Object.entries(spectresLp)) {
+            const values = Object.entries(spectre).map(([bande, valeur]) => [id_element, parseInt(bande), valeur]);
+            if (values.length > 0) {
+                await db.promise().query('REPLACE INTO niveaulp (id_element, bande, valeur) VALUES ?', [values]);
+            }
+        }
+
+        // --- ÉTAPE 5 : Renvoyer les spectres Lp calculés au frontend ---
+        res.status(200).json(spectresLp);
+
+    } catch (error) {
+        console.error("Erreur lors du calcul du niveau Lp:", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
 
 
 // SAISIE 
@@ -1232,11 +1299,6 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
   }
 });
-
-
-
-
-
 
 
 // ======================
