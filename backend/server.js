@@ -1063,11 +1063,15 @@ app.get('/api/niveaux_lp', async (req, res) => {
 
         //Sauvegarde des résultats dans la table niveaulp
         for (const [id_element, spectre] of Object.entries(spectresLp)) {
-            const values = Object.entries(spectre).map(([bande, valeur]) => [id_element, parseInt(bande), valeur]);
-            if (values.length > 0) {
-                await db.promise().query('REPLACE INTO niveaulp (id_element, bande, valeur) VALUES ?', [values]);
+            for (const [bande, valeur] of Object.entries(spectre)) {
+                await db.promise().query(
+                `INSERT INTO niveaulp (id_element, bande, valeur)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
+                [id_element, parseInt(bande), valeur]
+                );
             }
-        }
+            };
 
         //Renvoyer les Lp au front
         res.status(200).json(spectresLp);
