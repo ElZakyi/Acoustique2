@@ -231,6 +231,7 @@ const ElementsReseau = () => {
         return somme > 0 ? (10 * Math.log10(somme)).toFixed(2) : "-";
     };
 
+    //AFFICHAGE
     return (
         <>
             <div className="logout-global"><button className="btn-logout" onClick={handleLogout}>Déconnexion</button></div>

@@ -1082,6 +1082,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
     }
 });
 
+//CALCUL DU LW TOTAL
 app.get('/api/lw_total', async (req, res) => {
     try {
         console.log("🚀 Lancement du calcul de Lw Total...");
