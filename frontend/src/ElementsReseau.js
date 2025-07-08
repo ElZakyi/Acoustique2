@@ -92,10 +92,8 @@ const ElementsReseau = () => {
 
     useEffect(() => {
         const fetchLwResultants = async () => {
-            console.log("Début fetchLwResultant");
             try {
                 const url = `http://localhost:5000/api/lwresultants/troncon/${id_troncon}`;
-                console.log("URL pour axios :", url);
 
                 const res = await axios.get(url);
                 const data = res.data;
@@ -124,15 +122,13 @@ const ElementsReseau = () => {
                 });
 
                 setAllSpectra(prev => ({ ...prev, lw_resultant: formatted ,lw_entrant : formattedLwEntrant,lw_sortie:formattedLwSortie}));
-                console.log("LW RESULTANT FINAL =", formatted);
-                console.log("LW Entrant FINAL =", formattedLwEntrant);
+
             } catch (error) {
                 console.error("Erreur chargement Lw_resultants :", error);
             }
         };
 
         if (elements.length > 0) {
-            console.log("elements dans useEffect", elements);
             fetchLwResultants();
         }
     }, [elements, id_troncon]);
