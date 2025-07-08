@@ -1010,10 +1010,10 @@ app.get('/api/attenuationtroncons', async (req, res) => {
 
 
 
-// ✅ ROUTE SIMPLIFIÉE pour le calcul et la sauvegarde du niveau Lp
+//calcul et la sauvegarde du niveau Lp
 app.get('/api/niveaux_lp', async (req, res) => {
     try {
-        // --- ÉTAPE 1 : Récupérer les spectres LwSortie de toutes les grilles ---
+        // Récupérer les LwSortie
         const [lwSortieRows] = await db.promise().query('SELECT * FROM lwsortie');
 
         const lwSortieMap = lwSortieRows.reduce((acc, row) => {
@@ -1022,7 +1022,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
             return acc;
         }, {});
 
-        // --- ÉTAPE 2 : Récupérer les paramètres de chaque grille ---
+        //Récupérer les paramètres
         const [grilleParamsRows] = await db.promise().query(`
             SELECT 
                 er.id_element,
@@ -1036,7 +1036,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
             WHERE er.type = 'grillesoufflage'
         `);
 
-        // --- ÉTAPE 3 : Calculer le spectre Lp pour chaque grille ---
+        // Calcul de lp
         const spectresLp = {};
         for (const grille of grilleParamsRows) {
             const id_element = grille.id_element;
@@ -1061,7 +1061,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
             }
         }
 
-        // --- ÉTAPE 4 : Sauvegarder les résultats dans la table 'niveaulp' ---
+        //Sauvegarde des résultats dans la table niveaulp
         for (const [id_element, spectre] of Object.entries(spectresLp)) {
             const values = Object.entries(spectre).map(([bande, valeur]) => [id_element, parseInt(bande), valeur]);
             if (values.length > 0) {
@@ -1069,7 +1069,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
             }
         }
 
-        // --- ÉTAPE 5 : Renvoyer les spectres Lp calculés au frontend ---
+        //Renvoyer les Lp au front
         res.status(200).json(spectresLp);
 
     } catch (error) {
