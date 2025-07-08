@@ -334,8 +334,16 @@ const ElementsReseau = () => {
                 <table className="affaires-table synthese-table">
                     <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '15%' }}>Type</th><th style={{ width: '20%' }}>Valeurs</th>{BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}<th>GLOBAL dBA</th></tr></thead>
                     <tbody>
-                        {elements.map((el, i) => {
-                            const spectraToShow = SPECTRA_CONFIG[el.type] || [];
+                           {elements.map((el, i) => {
+                    let baseSpectra = SPECTRA_CONFIG[el.type] || [];
+                    if (el.type === 'vc') {
+                        if (el.type_vc !== 'Soufflage') {
+                            baseSpectra = baseSpectra.filter(
+                                key => key !== 'lw_sortie_air_neuf' && key !== 'lw_total'
+                            );
+                        }
+                    }
+                    const spectraToShow = baseSpectra;
                             const rowSpan = spectraToShow.length > 0 ? spectraToShow.length : 1;
                             return (
                                 <React.Fragment key={el.id_element}>
