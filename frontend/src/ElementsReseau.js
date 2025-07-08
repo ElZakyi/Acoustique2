@@ -134,6 +134,35 @@ const ElementsReseau = () => {
         }
     }, [elements, id_troncon]);
 
+    useEffect(() => {
+    const fetchLwSortieAirNeuf = async () => {
+        try {
+            const res = await axios.get("http://localhost:5000/api/lwsortie/airneuf");
+            const data = res.data; // format: { '63': 71.79, '125': 58.873, ... }
+
+            // On va associer ces valeurs à tous les VC de type "Soufflage"
+            const newSpectra = {};
+            elements.forEach(el => {
+                if (el.type === 'vc' && el.type_vc === 'Soufflage') {
+                    newSpectra[el.id_element] = data;
+                }
+            });
+
+            setAllSpectra(prev => ({
+                ...prev,
+                lw_sortie_air_neuf: newSpectra
+            }));
+        } catch (err) {
+            console.error("Erreur lors du chargement du Lw Sortie air neuf :", err);
+        }
+    };
+
+    if (elements.length > 0) {
+        fetchLwSortieAirNeuf();
+    }
+}, [elements]);
+
+
 
 
     const handleLogout = () => { localStorage.removeItem("utilisateur"); navigate('/connexion'); };

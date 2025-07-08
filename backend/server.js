@@ -1345,6 +1345,46 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
   }
 });
+//une route pour récupérer les LwSortie d’Air Neuf 
+app.get('/api/lwsortie/airneuf', async (req, res) => {
+  try {
+    // 1. Trouver la source sonore "Air Neuf"
+    const [[sourceAirNeuf]] = await db.promise().query(
+      "SELECT id_source FROM sourcesonore WHERE nom LIKE '%air neuf%' LIMIT 1"
+    );
+
+    if (!sourceAirNeuf) return res.status(404).json({ message: "Source 'Air Neuf' introuvable." });
+
+    const { id_source } = sourceAirNeuf;
+
+    // 2. Trouver la grille de soufflage associée à cette source
+    const [[grille]] = await db.promise().query(
+      `SELECT e.id_element 
+       FROM elementreseau e
+       JOIN troncon t ON e.id_troncon = t.id_troncon
+       WHERE t.id_source = ? AND e.type = 'grillesoufflage'
+       LIMIT 1`,
+      [id_source]
+    );
+
+    if (!grille) return res.status(404).json({ message: "Grille de soufflage pour 'Air Neuf' introuvable." });
+
+    // 3. Récupérer les valeurs LwSortie
+    const [valeurs] = await db.promise().query(
+      'SELECT bande, valeur FROM lwsortie WHERE id_element = ?',
+      [grille.id_element]
+    );
+
+    const result = {};
+    valeurs.forEach(row => result[row.bande] = row.valeur);
+
+    res.json(result);
+  } catch (err) {
+    console.error('Erreur récupération LwSortie Air Neuf :', err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
 
 
 // ======================
