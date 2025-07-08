@@ -1083,12 +1083,12 @@ app.get('/api/niveaux_lp', async (req, res) => {
 });
 
 //CALCUL DU LW TOTAL
+
 app.get('/api/lw_total', async (req, res) => {
     try {
-        console.log("🚀 Lancement du calcul de Lw Total...");
-
         //Récupération des données
         const [lwSortieVcRows] = await db.promise().query('SELECT * FROM lwsortie_vc');
+        
         const [[sourceAirNeuf]] = await db.promise().query(
             "SELECT id_source FROM sourcesonore WHERE nom LIKE '%air neuf%' LIMIT 1"
         );
@@ -1106,20 +1106,21 @@ app.get('/api/lw_total', async (req, res) => {
                 valeursAirNeuf.forEach(row => spectreAirNeuf[row.bande] = row.valeur);
             }
         }
+        
+        //Organisation des données
         const lwSortieVcMap = lwSortieVcRows.reduce((acc, row) => {
             if (!acc[row.id_element]) acc[row.id_element] = {};
             acc[row.id_element][row.bande] = row.valeur;
             return acc;
         }, {});
 
-        //Calcul
+        // Calcul 
         const lwTotalSpectres = {};
         for (const id_element in lwSortieVcMap) {
             const spectreLwSortie = lwSortieVcMap[id_element];
             
             if (!spectreLwSortie || Object.keys(spectreAirNeuf).length === 0) {
-                console.warn(`Données manquantes pour le VC id=${id_element} ou pour l'air neuf. Calcul sauté.`);
-                continue;
+                continue; 
             }
             
             lwTotalSpectres[id_element] = {};
@@ -1132,19 +1133,22 @@ app.get('/api/lw_total', async (req, res) => {
             }
         }
         
-        //Sauvegarder dans lwtotal 
+        // --- 4. Sauvegarde dans lwtotal ---
         for (const [id_element, spectre] of Object.entries(lwTotalSpectres)) {
-            const values = Object.entries(spectre).map(([bande, valeur]) => [id_element, parseInt(bande), valeur]);
-            if (values.length > 0) {
-                await db.promise().query('REPLACE INTO lwtotal (id_element, bande, valeur) VALUES ?', [values]);
+            for (const [bande, valeur] of Object.entries(spectre)) {
+                await db.promise().query(
+                    `INSERT INTO lwtotal (id_element, bande, valeur) VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
+                    [id_element, parseInt(bande), valeur]
+                );
             }
         }
         
-        console.log("Calcul de Lw Total terminé et sauvegardé.");
+        // --- 5. On renvoie les résultats ---
         res.status(200).json(lwTotalSpectres);
 
     } catch (error) {
-        console.error("Erreur lors du calcul du Lw Total:", error);
+        console.error("Erreur lors du calcul du Lw Total:", error); 
         res.status(500).json({ message: "Erreur serveur lors du calcul de Lw Total" });
     }
 });
