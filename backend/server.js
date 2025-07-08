@@ -1281,14 +1281,56 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
             );
         }
         }
+        // 🔶 Calculer et stocker Niveau Lw Sortie pour les VC
+        if (element.type === 'vc') {
+        lwSortie = {};
+        const [attenuations] = await db.promise().query(
+            'SELECT bande, valeur FROM attenuation WHERE id_element = ?', [id_element]
+        );
+        const [regens] = await db.promise().query(
+            'SELECT bande, valeur FROM regeneration WHERE id_element = ?', [id_element]
+        );
+
+        const attMap = {};
+        const regMap = {};
+        attenuations.forEach(row => attMap[row.bande] = row.valeur);
+        regens.forEach(row => regMap[row.bande] = row.valeur);
+
+        BANDES.forEach(bande => {
+            const Lw_prec = lwPrec[bande] ?? 0;
+            const regen = regMap[bande] ?? 0;
+            const atten = attMap[bande] ?? 0;
+
+            const lw = 10 * Math.log10(
+            Math.pow(10, Lw_prec / 10) + Math.pow(10, regen / 10)
+            ) - atten;
+
+            lwSortie[bande] = Number(lw.toFixed(3));
+        });
+
+        // ✅ Sauvegarde dans la table lwsortie_vc
+        for (const [bande, valeur] of Object.entries(lwSortie)) {
+            await db.promise().query(
+            `INSERT INTO lwsortie_vc (id_element, bande, valeur)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
+            [id_element, parseInt(bande), valeur]
+            );
+        }
+        }
+
         resultats.push({
         id_element,
         type: element.type,
         ordre: element.ordre,
         lwEntrant,
         lw_resultant: lwResultant,
-        lw_sortie: element.type === 'grillesoufflage' ? lwSortie : undefined
+        lw_sortie:
+            element.type === 'grillesoufflage' || element.type === 'vc'
+            ? lwSortie
+            : undefined
         });
+
 
         // Mettre à jour lwPrec uniquement si ce n'est PAS une pièce de transformation
         if (element.type !== 'piecetransformation') {
