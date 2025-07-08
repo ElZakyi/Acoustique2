@@ -1082,6 +1082,72 @@ app.get('/api/niveaux_lp', async (req, res) => {
     }
 });
 
+app.get('/api/lw_total', async (req, res) => {
+    try {
+        console.log("🚀 Lancement du calcul de Lw Total...");
+
+        //Récupération des données
+        const [lwSortieVcRows] = await db.promise().query('SELECT * FROM lwsortie_vc');
+        const [[sourceAirNeuf]] = await db.promise().query(
+            "SELECT id_source FROM sourcesonore WHERE nom LIKE '%air neuf%' LIMIT 1"
+        );
+        let spectreAirNeuf = {};
+        if (sourceAirNeuf) {
+            const [[grilleAirNeuf]] = await db.promise().query(
+                `SELECT e.id_element FROM elementreseau e JOIN troncon t ON e.id_troncon = t.id_troncon WHERE t.id_source = ? AND e.type = 'grillesoufflage' LIMIT 1`,
+                [sourceAirNeuf.id_source]
+            );
+            if (grilleAirNeuf) {
+                const [valeursAirNeuf] = await db.promise().query(
+                    'SELECT bande, valeur FROM lwsortie WHERE id_element = ?',
+                    [grilleAirNeuf.id_element]
+                );
+                valeursAirNeuf.forEach(row => spectreAirNeuf[row.bande] = row.valeur);
+            }
+        }
+        const lwSortieVcMap = lwSortieVcRows.reduce((acc, row) => {
+            if (!acc[row.id_element]) acc[row.id_element] = {};
+            acc[row.id_element][row.bande] = row.valeur;
+            return acc;
+        }, {});
+
+        //Calcul
+        const lwTotalSpectres = {};
+        for (const id_element in lwSortieVcMap) {
+            const spectreLwSortie = lwSortieVcMap[id_element];
+            
+            if (!spectreLwSortie || Object.keys(spectreAirNeuf).length === 0) {
+                console.warn(`Données manquantes pour le VC id=${id_element} ou pour l'air neuf. Calcul sauté.`);
+                continue;
+            }
+            
+            lwTotalSpectres[id_element] = {};
+            for (const bande in spectreLwSortie) {
+                const lw_sortie = parseFloat(spectreLwSortie[bande]);
+                const lw_air_neuf = parseFloat(spectreAirNeuf[bande]) || 0; 
+                const sommePuissances = Math.pow(10, lw_sortie / 10) + Math.pow(10, lw_air_neuf / 10);
+                const lw_total_valeur = 10 * Math.log10(sommePuissances);
+                lwTotalSpectres[id_element][bande] = parseFloat(lw_total_valeur.toFixed(1));
+            }
+        }
+        
+        //Sauvegarder dans lwtotal 
+        for (const [id_element, spectre] of Object.entries(lwTotalSpectres)) {
+            const values = Object.entries(spectre).map(([bande, valeur]) => [id_element, parseInt(bande), valeur]);
+            if (values.length > 0) {
+                await db.promise().query('REPLACE INTO lwtotal (id_element, bande, valeur) VALUES ?', [values]);
+            }
+        }
+        
+        console.log("Calcul de Lw Total terminé et sauvegardé.");
+        res.status(200).json(lwTotalSpectres);
+
+    } catch (error) {
+        console.error("Erreur lors du calcul du Lw Total:", error);
+        res.status(500).json({ message: "Erreur serveur lors du calcul de Lw Total" });
+    }
+});
+
 
 // SAISIE 
 //sauvegarder l'atténuation
