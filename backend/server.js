@@ -1032,18 +1032,19 @@ app.post('/api/attenuations', async (req, res) => {
 // Calcul du Lw_resultant pour un tronçon (chaînage entre tronçons)
 app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
   const { id_troncon } = req.params;
+  let lwSortie = undefined;
 
   try {
-    // 1. Récupérer le tronçon courant et son id_source
     const [[troncon]] = await db.promise().query(
-      'SELECT id_troncon, id_source FROM troncon WHERE id_troncon = ?', [id_troncon]
+      'SELECT id_troncon, id_source FROM troncon WHERE id_troncon = ?',
+      [id_troncon]
     );
     if (!troncon) return res.status(404).json({ message: "Tronçon introuvable." });
 
     const { id_source } = troncon;
     let lwInit = {};
 
-    // 2. Chercher le tronçon précédent (plus petit id_troncon de la même source)
+    // ===> 2. Chercher le tronçon précédent
     const [[tronconPrecedent]] = await db.promise().query(
       'SELECT id_troncon FROM troncon WHERE id_source = ? AND id_troncon < ? ORDER BY id_troncon DESC LIMIT 1',
       [id_source, id_troncon]
@@ -1052,7 +1053,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     if (tronconPrecedent) {
       const id_troncon_prec = tronconPrecedent.id_troncon;
 
-      // a. Récupérer le dernier élément du tronçon précédent
+      // a. Dernier élément du tronçon précédent
       const [[dernierElement]] = await db.promise().query(
         'SELECT id_element FROM elementreseau WHERE id_troncon = ? ORDER BY ordre DESC LIMIT 1',
         [id_troncon_prec]
@@ -1061,29 +1062,49 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
       if (dernierElement) {
         const id_element_prec = dernierElement.id_element;
 
-        // b. Récupérer ses Lw_resultant
-        const [lwPrecRows] = await db.promise().query(
-          'SELECT bande, valeur FROM lwresultant WHERE id_element = ?', [id_element_prec]
+        // b. Vérifier le type de cet élément
+        const [[typeElement]] = await db.promise().query(
+          'SELECT type FROM elementreseau WHERE id_element = ?',
+          [id_element_prec]
         );
+
+        let lwPrecRows;
+        if (typeElement.type === 'piecetransformation') {
+          // Si c'est une pièce de transformation, on prend lw_entrant
+          [lwPrecRows] = await db.promise().query(
+            'SELECT bande, valeur FROM lwentrantpiecetransformation WHERE id_element = ?',
+            [id_element_prec]
+          );
+        } else {
+          // Sinon on prend lw_resultant
+          [lwPrecRows] = await db.promise().query(
+            'SELECT bande, valeur FROM lwresultant WHERE id_element = ?',
+            [id_element_prec]
+          );
+        }
+
+        // Charger dans lwInit
         lwPrecRows.forEach(row => lwInit[row.bande] = row.valeur);
 
-        // ✅ c. Récupérer l’atténuation du tronçon précédent via `elementreseau`
+        // c. Atténuation du tronçon précédent
         const [attTronconRows] = await db.promise().query(
           `SELECT at.bande, at.valeur 
            FROM attenuationtroncon at
            JOIN elementreseau er ON at.id_element = er.id_element
-           WHERE er.id_troncon = ?`, [id_troncon_prec]
+           WHERE er.id_troncon = ?`,
+          [id_troncon_prec]
         );
         attTronconRows.forEach(row => {
-          lwInit[row.bande] = lwInit[row.bande] - row.valeur;
+          lwInit[row.bande] = lwInit[row.bande] + row.valeur;
         });
       }
     }
 
-    // 3. Si pas de tronçon précédent, utiliser Lw source
+    // 3. Si pas de tronçon précédent → lwsource
     if (Object.keys(lwInit).length === 0) {
       const [lwSource] = await db.promise().query(
-        'SELECT bande, valeur_lw FROM lwsource WHERE id_source = ?', [id_source]
+        'SELECT bande, valeur_lw FROM lwsource WHERE id_source = ?',
+        [id_source]
       );
       lwSource.forEach(row => {
         lwInit[row.bande] = row.valeur_lw;
@@ -1103,7 +1124,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     for (const element of elements) {
       const id_element = element.id_element;
 
-      // Atténuation et régénération
+      // a. Atténuation et régénération
       const [attenuations] = await db.promise().query(
         'SELECT bande, valeur FROM attenuation WHERE id_element = ?', [id_element]
       );
@@ -1131,7 +1152,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         lwResultant[bande] = Number(lw.toFixed(3));
       });
 
-      // Sauvegarde en base
+      // c. Sauvegarde Lw_resultant
       for (const [bande, valeur] of Object.entries(lwResultant)) {
         await db.promise().query(
           `INSERT INTO lwresultant (id_element, bande, valeur)
@@ -1141,23 +1162,78 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
         );
       }
 
-      resultats.push({
+      // ✅ d. Si pièce de transformation → stocker lwEntrant
+      if (element.type === 'piecetransformation') {
+        for (const [bande, valeur] of Object.entries(lwEntrant)) {
+          await db.promise().query(
+            `INSERT INTO lwentrantpiecetransformation (id_element, bande, valeur)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
+            [id_element, parseInt(bande), valeur]
+          );
+        }
+      }
+        // 🔶 Calculer et stocker Niveau Lw Sortie pour la grille de soufflage
+        if (element.type === 'grillesoufflage') {
+        lwSortie = {};
+        const [attenuations] = await db.promise().query(
+            'SELECT bande, valeur FROM attenuation WHERE id_element = ?', [id_element]
+        );
+        const [regens] = await db.promise().query(
+            'SELECT bande, valeur FROM regeneration WHERE id_element = ?', [id_element]
+        );
+
+        const attMap = {};
+        const regMap = {};
+        attenuations.forEach(row => attMap[row.bande] = row.valeur);
+        regens.forEach(row => regMap[row.bande] = row.valeur);
+
+        BANDES.forEach(bande => {
+            const Lw_prec = lwPrec[bande] ?? 0;
+            const regen = regMap[bande] ?? 0;
+            const atten = attMap[bande] ?? 0;
+
+            const lw = 10 * Math.log10(
+            Math.pow(10, Lw_prec / 10) + Math.pow(10, regen / 10)
+            ) - atten;
+
+            lwSortie[bande] = Number(lw.toFixed(3));
+        });
+
+        // Sauvegarde dans la table lwsortie
+        for (const [bande, valeur] of Object.entries(lwSortie)) {
+            await db.promise().query(
+            `INSERT INTO lwsortie (id_element, bande, valeur)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
+            [id_element, parseInt(bande), valeur]
+            );
+        }
+        }
+        resultats.push({
         id_element,
         type: element.type,
         ordre: element.ordre,
         lwEntrant,
-        lw_resultant: lwResultant
-      });
+        lw_resultant: lwResultant,
+        lw_sortie: element.type === 'grillesoufflage' ? lwSortie : undefined
+        });
 
-      lwPrec = lwResultant;
+        // Mettre à jour lwPrec uniquement si ce n'est PAS une pièce de transformation
+        if (element.type !== 'piecetransformation') {
+        lwPrec = lwResultant;
+        }
+
     }
 
     res.json(resultats);
   } catch (error) {
-    console.error("Erreur calcul Lw_resultant :", error);
+    console.error("❌ Erreur calcul Lw_resultant :", error);
     res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
   }
 });
+
+
 
 
 

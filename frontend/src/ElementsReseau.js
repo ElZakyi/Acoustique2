@@ -103,6 +103,7 @@ const ElementsReseau = () => {
 
                 const formatted = {};
                 const formattedLwEntrant = {};
+                const formattedLwSortie = {}; // nouvelle structure pour niveau lw sortie
                 data.forEach(item => {
                     // ➕ Stockage du lw_resultant
                     formatted[item.id_element] = {};
@@ -113,10 +114,16 @@ const ElementsReseau = () => {
                     formattedLwEntrant[item.id_element] = {}
                     Object.entries(item.lwEntrant || {}).forEach(([freq,value])=>{
                         formattedLwEntrant[item.id_element][String(freq)] = value;
-                    })
+                    });
+                    if(item.lw_sortie){
+                        formattedLwSortie[item.id_element] = {};
+                        Object.entries(item.lw_sortie).forEach(([freq,val])=>{
+                            formattedLwSortie[item.id_element][String(freq)] = val;
+                        })
+                    }
                 });
 
-                setAllSpectra(prev => ({ ...prev, lw_resultant: formatted ,lw_entrant : formattedLwEntrant}));
+                setAllSpectra(prev => ({ ...prev, lw_resultant: formatted ,lw_entrant : formattedLwEntrant,lw_sortie:formattedLwSortie}));
                 console.log("LW RESULTANT FINAL =", formatted);
                 console.log("LW Entrant FINAL =", formattedLwEntrant);
             } catch (error) {
@@ -349,13 +356,23 @@ const ElementsReseau = () => {
                                                 <td rowSpan={rowSpan}>
                                                 {
                                                     (() => {
-                                                        // 👇 On choisit le bon spectre selon le type
-                                                        const key = el.type === 'piecetransformation' ? 'lw_entrant' : 'lw_resultant';
-                                                        const spectre = allSpectra[key]?.[el.id_element];
-                                                        return spectre ? calculerGlobalDBA(spectre) : "-";
+                                                    // ✅ Choisir le bon spectre selon le type
+                                                    let key;
+
+                                                    if (el.type === 'piecetransformation') {
+                                                        key = 'lw_entrant';
+                                                    } else if (el.type === 'grillesoufflage') {
+                                                        key = 'lw_sortie'; // ✅ Utilise le niveau Lw Sortie pour la grille
+                                                    } else {
+                                                        key = 'lw_resultant';
+                                                    }
+
+                                                    const spectre = allSpectra[key]?.[el.id_element];
+                                                    return spectre ? calculerGlobalDBA(spectre) : "-";
                                                     })()
                                                 }
                                                 </td>
+
                                             </>
                                         ) : (<td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>Aucun spectre applicable</td>)}
                                     </tr>
