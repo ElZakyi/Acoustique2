@@ -231,7 +231,7 @@ const ElementsReseau = () => {
             console.error("Erreur sauvegarde régénération:", error);
             setMessage("Erreur lors de la sauvegarde de la régénération.");
         }
-    };
+    }; 
 
     //calcul de GLOBAL dba 
     const calculerGlobalDBA = (spectre) => {
@@ -242,7 +242,7 @@ const ElementsReseau = () => {
         };
 
         let somme = 0;
-        for (const bande of bandes) {
+        for (const bande of bandes) { 
             const val = spectre?.[bande];
             if (val !== undefined && val !== null && !isNaN(val)) {
                 somme += Math.pow(10, (val + pondA[bande]) / 10);
@@ -285,9 +285,9 @@ const ElementsReseau = () => {
                                 <td>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
                                 <td>{(() => { const params = Object.entries(el).filter(([k]) => ['longueur', 'angle', 'orientation', 'materiau', 'distance_r', 'type_vc', 'modele'].includes(k) && el[k] != null && el[k] !== ''); if (params.length === 0) return <em style={{ color: '#999' }}>Aucun</em>; return params.map(([k, v]) => <div key={k}><strong>{k.charAt(0).toUpperCase() + k.slice(1)}</strong>: {v}</div>); })()}</td>
                                 <td><div className="actions-cell"><div className="action-icons"><FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} /><FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} /></div><button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button>
-                                 {el.type === 'grillesoufflage' && (
+                                {(el.type === 'grillesoufflage' || el.type === 'vc') && (
                             <button className="btn-small" style={{ marginLeft: '5px' }} onClick={() => openRegenerationForm(el, i)}>
-                                Régénération
+                                Regénération
                             </button>
                         )}
                             </div>

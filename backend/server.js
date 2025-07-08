@@ -880,7 +880,7 @@ app.get('/api/regenerations', async (req, res) => {
             const element = elementsData[id_element];
             
             // On ne fait le calcul que si ce n'est pas une grille de soufflage
-            if (element.type !== 'grillesoufflage') {
+             if (element.type !== 'grillesoufflage' && element.type !== 'vc') {
                 const calculatedSpectre = {};
                 const correctionsMap = element.corrections;
 
