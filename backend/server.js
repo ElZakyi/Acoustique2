@@ -1444,47 +1444,58 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
   }
 });
 
-/*
-//une route pour récupérer les LwSortie d’Air Neuf 
-app.get('/api/lwsortie/airneuf', async (req, res) => {
-  try {
-    // 1. Trouver la source sonore "Air Neuf"
-    const [[sourceAirNeuf]] = await db.promise().query(
-      "SELECT id_source FROM sourcesonore WHERE nom LIKE '%air neuf%' LIMIT 1"
-    );
+// Exemple route GET /api/lw_sortie_air_neuf/:id_source
+app.get('/api/lw_sortie_air_neuf/:id_source', (req, res) => {
+    const { id_source } = req.params;
 
-    if (!sourceAirNeuf) return res.status(404).json({ message: "Source 'Air Neuf' introuvable." });
+    const findCorrectSourceSql = `
+        SELECT ss2.id_source AS id_cible
+        FROM sourcesonore ss1
+        JOIN salle s ON ss1.id_salle = s.id_salle
+        JOIN sourcesonore ss2 ON ss2.id_salle = s.id_salle
+        WHERE ss1.id_source = ? AND ss2.type = 'Soufflage'
+        ORDER BY ss2.id_source ASC
+        LIMIT 1
+    `;
 
-    const { id_source } = sourceAirNeuf;
+    db.query(findCorrectSourceSql, [id_source], (err, resultSource) => {
+        if (err || resultSource.length === 0) {
+            console.error("❌ Erreur lors de la récupération de la source correcte :", err?.message);
+            return res.status(404).json({});
+        }
 
-    // 2. Trouver la grille de soufflage associée à cette source
-    const [[grille]] = await db.promise().query(
-      `SELECT e.id_element 
-       FROM elementreseau e
-       JOIN troncon t ON e.id_troncon = t.id_troncon
-       WHERE t.id_source = ? AND e.type = 'grillesoufflage'
-       LIMIT 1`,
-      [id_source]
-    );
+        const idCorrectSource = resultSource[0].id_cible;
 
-    if (!grille) return res.status(404).json({ message: "Grille de soufflage pour 'Air Neuf' introuvable." });
+        const sql = `
+            SELECT gs.id_element, lws.bande, lws.valeur
+            FROM grillesoufflage gs
+            JOIN elementreseau er ON gs.id_element = er.id_element
+            JOIN troncon t ON er.id_troncon = t.id_troncon
+            JOIN sourcesonore ss ON t.id_source = ss.id_source
+            JOIN lwsortie lws ON lws.id_element = gs.id_element
+            WHERE ss.id_source = ?
+        `;
 
-    // 3. Récupérer les valeurs LwSortie
-    const [valeurs] = await db.promise().query(
-      'SELECT bande, valeur FROM lwsortie WHERE id_element = ?',
-      [grille.id_element]
-    );
+        db.query(sql, [idCorrectSource], (err2, results) => {
+            if (err2) {
+                console.error("❌ Erreur SQL lw_sortie_air_neuf :", err2.message);
+                return res.status(500).json({});
+            }
 
-    const result = {};
-    valeurs.forEach(row => result[row.bande] = row.valeur);
+            const structured = {};
+            results.forEach(row => {
+                if (!structured[row.id_element]) structured[row.id_element] = {};
+                structured[row.id_element][row.bande] = row.valeur;
+            });
 
-    res.json(result);
-  } catch (err) {
-    console.error('Erreur récupération LwSortie Air Neuf :', err);
-    res.status(500).json({ message: "Erreur serveur" });
-  }
+            res.json(structured);
+        });
+    });
 });
-*/
+
+
+
+
 
 
 

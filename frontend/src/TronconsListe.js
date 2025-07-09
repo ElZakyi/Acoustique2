@@ -229,7 +229,7 @@ const handleDelete = async (id_troncon) => {
                             <td>{troncon.debit}</td>
 
                             <td className="actions-cell">
-                                <Link to={`/troncons/${troncon.id_troncon}/elements`} className="btn-action">
+                                <Link to={`/troncons/${troncon.id_troncon}/${id_source}/elements`} className="btn-action">
                                     Gérer éléments
                                 </Link>
                                 <div className="action-icons">

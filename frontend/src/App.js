@@ -18,7 +18,7 @@ function App() {
         <Route path="/affaires/:id_affaire/salles" element={<SallesListe />} />
         <Route path="/salles/:id_salle/sources" element={<SourcesSonoresListe />} />
         <Route path="/sources/:id_source/troncons" element={<TronconsListe />} />
-        <Route path="/troncons/:id_troncon/elements" element={<ElementsReseau />} />
+        <Route path="/troncons/:id_troncon/:id_source/elements" element={<ElementsReseau />} />
       </Routes>
     </Router>
   );

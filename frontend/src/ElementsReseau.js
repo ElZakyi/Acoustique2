@@ -35,6 +35,7 @@ const BANDES_FREQUENCE = ['63', '125', '250', '500', '1000', '2000', '4000'];
 
 
 const ElementsReseau = () => {
+    const { id_source } = useParams();
     const { id_troncon } = useParams();
     const navigate = useNavigate();
 
@@ -77,7 +78,6 @@ const ElementsReseau = () => {
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`),
                 axios.get('http://localhost:5000/api/niveaux_lp'),
                 axios.get('http://localhost:5000/api/lw_total'),
-                //axios.get('http://localhost:5000/api/lwsortie/airneuf')
             ]);
             
             const fetchedElements = elementsRes.data;
@@ -89,13 +89,14 @@ const ElementsReseau = () => {
                 const calculsRes = await axios.get(`http://localhost:5000/api/lwresultants/troncon/${id_troncon}`);
                 calculsDeChainage = calculsRes.data;
             }
+            const lwSortieAirNeufRes = await axios.get(`http://localhost:5000/api/lw_sortie_air_neuf/${id_source}`);
             const finalSpectra = {
                 attenuation: attenuationsRes.data,
                 regeneration: regenerationsRes.data,
                 attenuation_troncon: attTronconRes.data,
                 lp: lpRes.data,
                 lw_total: lwTotalRes.data,
-                lw_sortie_air_neuf: {},
+                lw_sortie_air_neuf: lwSortieAirNeufRes.data,
                 lw_resultant: {},
                 lw_entrant: {},
                 lw_sortie: {}
@@ -105,12 +106,7 @@ const ElementsReseau = () => {
                 if (item.lwEntrant) finalSpectra.lw_entrant[item.id_element] = item.lwEntrant;
                 if (item.lw_sortie) finalSpectra.lw_sortie[item.id_element] = item.lw_sortie;
             });
-            /*const lwAirNeufData = lwAirNeufRes.data;
-            fetchedElements.forEach(el => {
-                if (el.type === 'vc' && el.type_vc === 'Soufflage') {
-                    finalSpectra.lw_sortie_air_neuf[el.id_element] = lwAirNeufData;
-                }
-            });*/
+            console.log("✅ Spectre lw_sortie_air_neuf chargé :", finalSpectra.lw_sortie_air_neuf);
             setAllSpectra(finalSpectra);
             console.log("--- CHARGEMENT COMPLET ---", finalSpectra);
 
@@ -122,7 +118,6 @@ const ElementsReseau = () => {
     useEffect(() => {
         loadAllData();
     }, [loadAllData]);
-
 
     const handleLogout = () => { localStorage.removeItem("utilisateur"); navigate('/connexion'); };
     const handleTypeChange = (e) => { setSelectedType(e.target.value); setFormData({}); };
@@ -317,11 +312,16 @@ const ElementsReseau = () => {
                                         {spectraToShow.length > 0 ? (
                                             <>
                                                 <td>{SPECTRA_LABELS[spectraToShow[0]]}</td>
-                                                {BANDES_FREQUENCE.map(freq => (
+                                                {BANDES_FREQUENCE.map(freq => {
+                                                const key = spectraToShow[0];
+                                                const value = allSpectra[key]?.[el.id_element]?.[freq];
+                                                return (
                                                     <td key={freq}>
-                                                        {allSpectra[spectraToShow[0]]?.[el.id_element]?.[freq] ?? '-'}
+                                                    {value ?? '-'}
                                                     </td>
-                                                ))}
+                                                );
+                                                })}
+
                                                 <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>
                                                 {
                                                     (() => {
@@ -344,7 +344,19 @@ const ElementsReseau = () => {
                                             <td>{SPECTRA_LABELS[spectrumKey]}</td>
                                             {BANDES_FREQUENCE.map(freq => (
                                                 <td key={`${spectrumKey}-${freq}`}>
-                                                    {allSpectra[spectrumKey]?.[el.id_element]?.[freq] ?? '-'}
+                                                    {(() => {
+                                                    const data = allSpectra[spectrumKey];
+                                                    if (!data) return '-';
+
+                                                    // Pour lw_sortie_air_neuf, on prend la première clé
+                                                    if (spectrumKey === 'lw_sortie_air_neuf') {
+                                                        const firstKey = Object.keys(data)[0]; // souvent "8"
+                                                        return data[firstKey]?.[freq] ?? '-';
+                                                    }
+
+                                                    return data[el.id_element]?.[freq] ?? '-';
+                                                    })()}
+
                                                 </td>
                                             ))}
                                         </tr>
