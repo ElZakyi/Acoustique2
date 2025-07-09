@@ -1433,6 +1433,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
   }
 });
+
 /*
 //une route pour récupérer les LwSortie d’Air Neuf 
 app.get('/api/lwsortie/airneuf', async (req, res) => {
@@ -1474,6 +1475,7 @@ app.get('/api/lwsortie/airneuf', async (req, res) => {
   }
 });
 */
+
 
 
 // ======================
