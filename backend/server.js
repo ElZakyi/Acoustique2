@@ -624,7 +624,8 @@ app.get('/api/troncons/:id_troncon/elements', (req, res) => {
     const { id_troncon } = req.params;
     const sql = `
         SELECT er.*, c.longueur, co.angle, co.orientation, gs.distance_r, vc.type_vc,
-               COALESCE(c.materiau, co.materiau) AS materiau
+               COALESCE(c.materiau, co.materiau) AS materiau,
+               COALESCE(gs.distance_r, vc.distance_r) AS distance_r
         FROM elementreseau er
         LEFT JOIN conduit c ON er.id_element = c.id_element
         LEFT JOIN coude co ON er.id_element = co.id_element
@@ -643,6 +644,7 @@ app.get('/api/elements/:id_element', async (req, res) => {
     const { id_element } = req.params;
     const sql = `
         SELECT er.*, c.longueur, co.angle, co.orientation, gs.distance_r, vc.type_vc,
+               COALESCE(gs.distance_r, vc.distance_r) AS distance_r,
                COALESCE(c.materiau, co.materiau) AS materiau
         FROM elementreseau er
         LEFT JOIN conduit c ON er.id_element = c.id_element
@@ -708,9 +710,9 @@ app.post('/api/troncons/:id_troncon/elements', (req, res) => {
                         break;
                     case 'vc':
                         await db.promise().query(
-                            'INSERT INTO vc (id_element, type_vc) VALUES (?, ?)',
-                            [newElementId, parameters.type_vc]
-                        );
+                        'INSERT INTO vc (id_element, type_vc, distance_r) VALUES (?, ?, ?)',
+                        [newElementId, parameters.type_vc, parameters.distance_r] 
+                    );
                         break;
                 }
             } else {
@@ -758,7 +760,8 @@ app.put('/api/elements/:id_element', (req, res) => {
                     case 'conduit': await db.promise().query('INSERT INTO conduit (id_element, longueur, materiau) VALUES (?, ?, ?)', [id_element, parameters.longueur, parameters.materiau]); break;
                     case 'coude': await db.promise().query('INSERT INTO coude (id_element, angle, orientation, materiau) VALUES (?, ?, ?, ?)', [id_element, parameters.angle, parameters.orientation, parameters.materiau]); break;
                     case 'grillesoufflage': await db.promise().query('INSERT INTO grillesoufflage (id_element, distance_r) VALUES (?, ?)', [id_element, parameters.distance_r]); break;
-                    case 'vc': await db.promise().query('INSERT INTO vc (id_element, type_vc) VALUES (?, ?)', [id_element, parameters.type_vc]); break;
+                    case 'vc': await db.promise().query('INSERT INTO vc (id_element, type_vc, distance_r) VALUES (?, ?, ?)',[id_element, parameters.type_vc, parameters.distance_r]
+);
                 }
             } else {
                  switch(type) {
@@ -1008,44 +1011,50 @@ app.get('/api/attenuationtroncons', async (req, res) => {
     }
 });
 
-
-
-//calcul et la sauvegarde du niveau Lp
+// Calcul et sauvegarde du niveau Lp pour grillesoufflage et vc
 app.get('/api/niveaux_lp', async (req, res) => {
     try {
-        // Récupérer les LwSortie
-        const [lwSortieRows] = await db.promise().query('SELECT * FROM lwsortie');
-
-        const lwSortieMap = lwSortieRows.reduce((acc, row) => {
-            if (!acc[row.id_element]) acc[row.id_element] = {};
-            acc[row.id_element][row.bande] = row.valeur;
-            return acc;
-        }, {});
+        //Récupérer les Lw de sortie
+        const [lwSortieGrilleRows] = await db.promise().query('SELECT * FROM lwsortie');
+        const [lwSortieVcRows] = await db.promise().query('SELECT * FROM lwsortie_vc');
+        
+        const lwSortieMap = {};
+        lwSortieGrilleRows.forEach(row => {
+            if (!lwSortieMap[row.id_element]) lwSortieMap[row.id_element] = {};
+            lwSortieMap[row.id_element][row.bande] = row.valeur;
+        });
+        lwSortieVcRows.forEach(row => {
+            if (!lwSortieMap[row.id_element]) lwSortieMap[row.id_element] = {};
+            lwSortieMap[row.id_element][row.bande] = row.valeur;
+        });
 
         //Récupérer les paramètres
-        const [grilleParamsRows] = await db.promise().query(`
+        const [elementParamsRows] = await db.promise().query(`
             SELECT 
                 er.id_element,
-                gs.distance_r,
+                er.type,
+                -- Utilise COALESCE pour récupérer la distance_r de la bonne table
+                COALESCE(gs.distance_r, vc.distance_r) AS distance_r,
                 s.r AS constante_salle_R
             FROM elementreseau er
-            JOIN grillesoufflage gs ON er.id_element = gs.id_element
+            LEFT JOIN grillesoufflage gs ON er.id_element = gs.id_element
+            LEFT JOIN vc ON er.id_element = vc.id_element
             JOIN troncon t ON er.id_troncon = t.id_troncon
             JOIN sourcesonore ss ON t.id_source = ss.id_source
             JOIN salle s ON ss.id_salle = s.id_salle
-            WHERE er.type = 'grillesoufflage'
+            WHERE er.type IN ('grillesoufflage', 'vc') -- On sélectionne les deux types
         `);
 
-        // Calcul de lp
+        //Calcul de Lp pour chaque élément
         const spectresLp = {};
-        for (const grille of grilleParamsRows) {
-            const id_element = grille.id_element;
+        for (const element of elementParamsRows) {
+            const id_element = element.id_element;
             const spectreLwSortie = lwSortieMap[id_element];
 
             if (!spectreLwSortie) continue;
 
-            const r = parseFloat(grille.distance_r);
-            const R = parseFloat(grille.constante_salle_R);
+            const r = parseFloat(element.distance_r);
+            const R = parseFloat(element.constante_salle_R);
             spectresLp[id_element] = {};
 
             for (const bande in spectreLwSortie) {
@@ -1057,23 +1066,31 @@ app.get('/api/niveaux_lp', async (req, res) => {
                     const termeReverberation = 4 / R;
                     lp_valeur = lw_sortie + 10 * Math.log10(termeDirectivite + termeReverberation);
                 }
+                
                 spectresLp[id_element][bande] = parseFloat(lp_valeur.toFixed(1));
             }
         }
 
-        //Sauvegarde des résultats dans la table niveaulp
+        //Sauvegarde des résultats
         for (const [id_element, spectre] of Object.entries(spectresLp)) {
-            for (const [bande, valeur] of Object.entries(spectre)) {
-                await db.promise().query(
-                `INSERT INTO niveaulp (id_element, bande, valeur)
-                VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)`,
-                [id_element, parseInt(bande), valeur]
-                );
+            const element = elementParamsRows.find(e => e.id_element == id_element);
+            if (!element) {
+                console.warn(`Élément avec id ${id_element} non trouvé dans les paramètres lors de la sauvegarde Lp.`);
+                continue;
             }
-            };
+            const elementType = element.type;
+            if (elementType === 'grillesoufflage' || elementType === 'vc') {
+                for (const [bande, valeur] of Object.entries(spectre)) {
+                    
+                    await db.promise().query(
+                        `REPLACE INTO niveaulp (id_element, bande, type_element, valeur) VALUES (?, ?, ?, ?)`,
+                        [id_element, parseInt(bande), elementType, valeur]
+                    );
+                }
+            }
+        }
 
-        //Renvoyer les Lp au front
+        // Renvoyer les Lp calculés au front 
         res.status(200).json(spectresLp);
 
     } catch (error) {
@@ -1416,6 +1433,7 @@ app.get('/api/lwresultants/troncon/:id_troncon', async (req, res) => {
     res.status(500).json({ message: "Erreur serveur lors du calcul des niveaux Lw." });
   }
 });
+/*
 //une route pour récupérer les LwSortie d’Air Neuf 
 app.get('/api/lwsortie/airneuf', async (req, res) => {
   try {
@@ -1455,7 +1473,7 @@ app.get('/api/lwsortie/airneuf', async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
-
+*/
 
 
 // ======================

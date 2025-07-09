@@ -12,7 +12,7 @@ const ELEMENT_CONFIG = {
     piecetransformation: { label: 'Pièce de transformation', fields: [] },
     grillesoufflage: { label: 'Grille de soufflage', fields: [{ name: 'distance_r', label: 'Distance R (m)', type: 'number' }] },
     plenum: { label: 'Plenum', fields: [] },
-    vc: { label: 'VC CRSL-ECM 2', fields: [{ name: 'type_vc', label: 'Type VC', type: 'select', options: ['Soufflage', 'Reprise'] }] }
+    vc: { label: 'VC CRSL-ECM 2', fields: [{ name: 'type_vc', label: 'Type VC', type: 'select', options: ['Soufflage', 'Reprise'] },{ name: 'distance_r', label: 'Distance R (m)', type: 'number' } ] }
 };
 
 const SPECTRA_CONFIG = {
