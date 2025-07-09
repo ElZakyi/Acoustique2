@@ -69,7 +69,7 @@ const ElementsReseau = () => {
 
         try {
             console.log("--- DÉBUT DU CHARGEMENT GLOBAL DES DONNÉES ---");
-            const [elementsRes,attenuationsRes,regenerationsRes,attTronconRes,ordreTronconRes,lpRes,lwTotalRes,lwAirNeufRes] = await Promise.all([
+            const [elementsRes,attenuationsRes,regenerationsRes,attTronconRes,ordreTronconRes,lpRes,lwTotalRes] = await Promise.all([
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
                 axios.get('http://localhost:5000/api/attenuations'),
                 axios.get('http://localhost:5000/api/regenerations'),
@@ -77,7 +77,7 @@ const ElementsReseau = () => {
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`),
                 axios.get('http://localhost:5000/api/niveaux_lp'),
                 axios.get('http://localhost:5000/api/lw_total'),
-                axios.get('http://localhost:5000/api/lwsortie/airneuf')
+                //axios.get('http://localhost:5000/api/lwsortie/airneuf')
             ]);
             
             const fetchedElements = elementsRes.data;
@@ -105,12 +105,12 @@ const ElementsReseau = () => {
                 if (item.lwEntrant) finalSpectra.lw_entrant[item.id_element] = item.lwEntrant;
                 if (item.lw_sortie) finalSpectra.lw_sortie[item.id_element] = item.lw_sortie;
             });
-            const lwAirNeufData = lwAirNeufRes.data;
+            /*const lwAirNeufData = lwAirNeufRes.data;
             fetchedElements.forEach(el => {
                 if (el.type === 'vc' && el.type_vc === 'Soufflage') {
                     finalSpectra.lw_sortie_air_neuf[el.id_element] = lwAirNeufData;
                 }
-            });
+            });*/
             setAllSpectra(finalSpectra);
             console.log("--- CHARGEMENT COMPLET ---", finalSpectra);
 
