@@ -1014,11 +1014,17 @@ app.get('/api/attenuationtroncons', async (req, res) => {
 // Calcul et sauvegarde du niveau Lp pour grillesoufflage et vc
 app.get('/api/niveaux_lp', async (req, res) => {
     try {
-        //Récupérer les Lw de sortie
+        //Récupération Lw Total
+        const [lwTotalRows] = await db.promise().query('SELECT * FROM lwtotal');
+        const lwTotalMap = {};
+        lwTotalRows.forEach(row => {
+            if (!lwTotalMap[row.id_element]) lwTotalMap[row.id_element] = {};
+            lwTotalMap[row.id_element][row.bande] = row.valeur;
+        });
         const [lwSortieGrilleRows] = await db.promise().query('SELECT * FROM lwsortie');
         const [lwSortieVcRows] = await db.promise().query('SELECT * FROM lwsortie_vc');
         
-        const lwSortieMap = {};
+        const lwSortieMap = {}; 
         lwSortieGrilleRows.forEach(row => {
             if (!lwSortieMap[row.id_element]) lwSortieMap[row.id_element] = {};
             lwSortieMap[row.id_element][row.bande] = row.valeur;
@@ -1049,22 +1055,26 @@ app.get('/api/niveaux_lp', async (req, res) => {
         const spectresLp = {};
         for (const element of elementParamsRows) {
             const id_element = element.id_element;
-            const spectreLwSortie = lwSortieMap[id_element];
+            
+            const spectreLwTotalPourElement = lwTotalMap[id_element];
 
-            if (!spectreLwSortie) continue;
+            if (!spectreLwTotalPourElement) {
+                console.warn(`Aucun Lw Total trouvé pour l'élément ${id_element}. Ignoré pour le calcul Lp.`);
+                continue; 
+            }
 
             const r = parseFloat(element.distance_r);
             const R = parseFloat(element.constante_salle_R);
             spectresLp[id_element] = {};
 
-            for (const bande in spectreLwSortie) {
-                const lw_sortie = parseFloat(spectreLwSortie[bande]);
+            for (const bande in spectreLwTotalPourElement) { 
+                const lw_total_valeur = parseFloat(spectreLwTotalPourElement[bande]); // On utilise lw_total_valeur
                 let lp_valeur = 0;
 
                 if (r > 0 && R > 0) {
                     const termeDirectivite = 2 / (4 * Math.PI * Math.pow(r, 2));
                     const termeReverberation = 4 / R;
-                    lp_valeur = lw_sortie + 10 * Math.log10(termeDirectivite + termeReverberation);
+                    lp_valeur = lw_total_valeur + 10 * Math.log10(termeDirectivite + termeReverberation);
                 }
                 
                 spectresLp[id_element][bande] = parseFloat(lp_valeur.toFixed(1));
