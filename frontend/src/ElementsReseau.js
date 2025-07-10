@@ -325,17 +325,20 @@ const ElementsReseau = () => {
                                                 <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>
                                                 {
                                                     (() => {
-                                                        let key;
-                                                        if (el.type === 'piecetransformation') key = 'lw_entrant';
-                                                        else if (el.type === 'grillesoufflage') key = 'lw_sortie';
-                                                        else if (el.type === 'vc' && el.type_vc === 'Soufflage') key = 'lw_total';
-                                                        else key = 'lw_resultant';
-                                                        
-                                                        const spectre = allSpectra[key]?.[el.id_element];
-                                                        return spectre ? calculerGlobalDBA(spectre) : "-";
+                                                    let key = null;
+
+                                                    // Cas spécifiques
+                                                    if (el.type === 'piecetransformation') key = 'lw_entrant';
+                                                    else if (el.type === 'grillesoufflage') key = 'lw_sortie';
+                                                    else if (el.type === 'vc') key = 'lw_sortie'; // <-- toujours utiliser 'lw_sortie' pour VC
+                                                    else key = 'lw_resultant'; // défaut
+
+                                                    const spectre = allSpectra[key]?.[el.id_element];
+                                                    return spectre ? calculerGlobalDBA(spectre) : "-";
                                                     })()
                                                 }
                                                 </td>
+
                                             </>
                                         ) : (<td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>Aucun spectre applicable</td>)}
                                     </tr>
