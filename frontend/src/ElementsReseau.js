@@ -292,82 +292,77 @@ const ElementsReseau = () => {
                 <table className="affaires-table synthese-table">
                     <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '15%' }}>Type</th><th style={{ width: '20%' }}>Valeurs</th>{BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}<th>GLOBAL dBA</th></tr></thead>
                     <tbody>
-                        {elements.map((el, i) => {
-                            let baseSpectra = SPECTRA_CONFIG[el.type] || [];
-                            if (el.type === 'vc') {
-                                if (el.type_vc !== 'Soufflage') {
-                                    baseSpectra = baseSpectra.filter(
-                                        key => key !== 'lw_sortie_air_neuf' && key !== 'lw_total'
-                                    );
+                    {elements.map((el, i) => {
+                        let baseSpectra = SPECTRA_CONFIG[el.type] || [];
+
+                        if (el.type === 'vc' && el.type_vc !== 'Soufflage') {
+                        baseSpectra = baseSpectra.filter(
+                            key => key !== 'lw_sortie_air_neuf' && key !== 'lw_total'
+                        );
+                        }
+
+                        const spectraToShow = baseSpectra;
+                        const rowSpan = spectraToShow.length > 0 ? spectraToShow.length : 1;
+
+                        return (
+                        <React.Fragment key={el.id_element}>
+                            <tr>
+                            <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{i + 1}</td>
+                            <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
+
+                            {/* Première ligne de spectre */}
+                            <td>{SPECTRA_LABELS[spectraToShow[0]]}</td>
+                            {BANDES_FREQUENCE.map(freq => {
+                                const key = spectraToShow[0];
+                                const value = allSpectra[key]?.[el.id_element]?.[freq];
+                                return <td key={freq}>{value ?? '-'}</td>;
+                            })}
+
+                            {/* Global dBA principal (fusionné sur les lignes) */}
+                            <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>
+                                {
+                                (() => {
+                                    let key = null;
+                                    if (el.type === 'piecetransformation') key = 'lw_entrant';
+                                    else if (el.type === 'grillesoufflage') key = 'lw_sortie';
+                                    else if (el.type === 'vc') key = 'lw_sortie';
+                                    else key = 'lw_resultant';
+
+                                    const spectre = allSpectra[key]?.[el.id_element];
+                                    return spectre ? calculerGlobalDBA(spectre) : "-";
+                                })()
                                 }
-                            }
-                            const spectraToShow = baseSpectra;
-                            const rowSpan = spectraToShow.length > 0 ? spectraToShow.length : 1;
-                            
+                            </td>
+                            </tr>
+
+                            {/* Lignes restantes */}
+                            {spectraToShow.slice(1).map((spectrumKey) => {
+                            const data = allSpectra[spectrumKey];
+                            const isLp = spectrumKey === 'lp';
+                            const spectre = data?.[el.id_element];
+                            const globalDBA_LP = isLp ? calculerGlobalDBA(spectre) : null;
+
                             return (
-                                <React.Fragment key={el.id_element}>
-                                    <tr>
-                                        <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{i + 1}</td>
-                                        <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
-                                        {spectraToShow.length > 0 ? (
-                                            <>
-                                                <td>{SPECTRA_LABELS[spectraToShow[0]]}</td>
-                                                {BANDES_FREQUENCE.map(freq => {
-                                                const key = spectraToShow[0];
-                                                const value = allSpectra[key]?.[el.id_element]?.[freq];
-                                                return (
-                                                    <td key={freq}>
-                                                    {value ?? '-'}
-                                                    </td>
-                                                );
-                                                })}
-
-                                                <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>
-                                                {
-                                                    (() => {
-                                                    let key = null;
-
-                                                    // Cas spécifiques
-                                                    if (el.type === 'piecetransformation') key = 'lw_entrant';
-                                                    else if (el.type === 'grillesoufflage') key = 'lw_sortie';
-                                                    else if (el.type === 'vc') key = 'lw_sortie'; // <-- toujours utiliser 'lw_sortie' pour VC
-                                                    else key = 'lw_resultant'; // défaut
-
-                                                    const spectre = allSpectra[key]?.[el.id_element];
-                                                    return spectre ? calculerGlobalDBA(spectre) : "-";
-                                                    })()
-                                                }
-                                                </td>
-
-                                            </>
-                                        ) : (<td colSpan={BANDES_FREQUENCE.length + 1} style={{ textAlign: 'center', color: '#888' }}>Aucun spectre applicable</td>)}
-                                    </tr>
-                                    {spectraToShow.slice(1).map(spectrumKey => (
-                                        <tr key={`${el.id_element}-${spectrumKey}`}>
-                                            <td>{SPECTRA_LABELS[spectrumKey]}</td>
-                                            {BANDES_FREQUENCE.map(freq => (
-                                                <td key={`${spectrumKey}-${freq}`}>
-                                                    {(() => {
-                                                    const data = allSpectra[spectrumKey];
-                                                    if (!data) return '-';
-
-                                                    // Pour lw_sortie_air_neuf, on prend la première clé
-                                                    if (spectrumKey === 'lw_sortie_air_neuf') {
-                                                        const firstKey = Object.keys(data)[0]; // souvent "8"
-                                                        return data[firstKey]?.[freq] ?? '-';
-                                                    }
-
-                                                    return data[el.id_element]?.[freq] ?? '-';
-                                                    })()}
-
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </React.Fragment>
+                                <tr key={`${el.id_element}-${spectrumKey}`}>
+                                <td>{SPECTRA_LABELS[spectrumKey]}</td>
+                                {BANDES_FREQUENCE.map(freq => {
+                                    if (spectrumKey === 'lw_sortie_air_neuf') {
+                                    const firstKey = Object.keys(data || {})[0];
+                                    return <td key={`${spectrumKey}-${freq}`}>{data?.[firstKey]?.[freq] ?? '-'}</td>;
+                                    }
+                                    return <td key={`${spectrumKey}-${freq}`}>{spectre?.[freq] ?? '-'}</td>;
+                                })}
+                                
+                                {/* Affiche Global dBA uniquement pour Niveau Lp */}
+                                {isLp && <td>{globalDBA_LP}</td>}
+                                </tr>
                             );
-                        })}
+                            })}
+                        </React.Fragment>
+                        );
+                    })}
                     </tbody>
+
                 </table>
 
                 <div className="footer-actions"><button className="btn-secondary" onClick={() => navigate(-1)}>Retour</button></div>
