@@ -1014,7 +1014,7 @@ app.get('/api/attenuationtroncons', async (req, res) => {
 // Calcul et sauvegarde du niveau Lp pour grillesoufflage et vc
 app.get('/api/niveaux_lp', async (req, res) => {
     try {
-        // Récupération Lw Total (utilisé pour les VC)
+        // Récupération Lw Total
         const [lwTotalRows] = await db.promise().query('SELECT * FROM lwtotal');
         const lwTotalMap = {};
         lwTotalRows.forEach(row => {
@@ -1022,16 +1022,16 @@ app.get('/api/niveaux_lp', async (req, res) => {
             lwTotalMap[row.id_element][row.bande] = row.valeur;
         });
 
-        // Récupération Lw Sortie pour les grilles
+        // Récupération Lw Sortie pour les grilles et les VC
         const [lwSortieGrilleRows] = await db.promise().query('SELECT * FROM lwsortie'); 
-        const lwSortieMap = {};
+        const lwSortieMap = {}; 
         lwSortieGrilleRows.forEach(row => {
             if (!lwSortieMap[row.id_element]) lwSortieMap[row.id_element] = {};
             lwSortieMap[row.id_element][row.bande] = row.valeur;
         });
 
         const [lwSortieVcRows_raw] = await db.promise().query('SELECT * FROM lwsortie_vc');
-        const lwSortieVcDataMap = {};
+        const lwSortieVcDataMap = {}; 
         lwSortieVcRows_raw.forEach(row => {
             if (!lwSortieVcDataMap[row.id_element]) lwSortieVcDataMap[row.id_element] = {};
             lwSortieVcDataMap[row.id_element][row.bande] = row.valeur;
@@ -1042,7 +1042,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
             SELECT 
                 er.id_element,
                 er.type,
-                -- Utilise COALESCE pour récupérer la distance_r de la bonne table
+                vc.type_vc,
                 COALESCE(gs.distance_r, vc.distance_r) AS distance_r,
                 s.r AS constante_salle_R
             FROM elementreseau er
@@ -1060,19 +1060,28 @@ app.get('/api/niveaux_lp', async (req, res) => {
             const id_element = element.id_element;
             
             let input_lw_spectre = null;
-
             if (element.type === 'grillesoufflage') {
-                input_lw_spectre = lwSortieMap[id_element];
+                input_lw_spectre = lwSortieMap[id_element]; // Grille: utilise Lw_sortie
+                console.log(`[Backend-Lp] Élément ${id_element} (Grille): utilise Lw_sortie`);
             } else if (element.type === 'vc') {
-                input_lw_spectre = lwTotalMap[id_element];
-                if (!input_lw_spectre) {
-                    console.warn(`[Backend-Lp] Lw Total non trouvé pour VC ${id_element}. Tentative d'utiliser Lw Sortie.`);
-                    input_lw_spectre = lwSortieVcDataMap[id_element];
+                if (element.type_vc === 'Soufflage') {
+                    input_lw_spectre = lwTotalMap[id_element]; // VC Soufflage: utilise Lw_total
+                    console.log(`[Backend-Lp] Élément ${id_element} (VC Soufflage): utilise Lw_total`);
+                    if (!input_lw_spectre) {
+                        console.warn(`[Backend-Lp] Lw Total non trouvé pour VC Soufflage ${id_element}. Tentative d'utiliser Lw Sortie VC.`);
+                        input_lw_spectre = lwSortieVcDataMap[id_element];
+                    }
+                } else if (element.type_vc === 'Reprise') {
+                    input_lw_spectre = lwSortieVcDataMap[id_element]; // VC Reprise: utilise Lw_sortie de la VC
+                    console.log(`[Backend-Lp] Élément ${id_element} (VC Reprise): utilise Lw_sortie VC.`);
+                } else {
+                    console.warn(`[Backend-Lp] Type_vc inconnu pour l'élément VC ${id_element}. Calcul de Lp ignoré.`);
+                    continue;
                 }
             }
 
             if (!input_lw_spectre) {
-                console.warn(`[Backend-Lp] Aucun spectre Lw d'entrée (Lw_sortie ou Lw_total) trouvé pour l'élément ${id_element} de type ${element.type}. Ignoré pour le calcul Lp.`);
+                console.warn(`[Backend-Lp] Aucun spectre Lw d'entrée valide trouvé pour l'élément ${id_element} de type ${element.type} (type_vc: ${element.type_vc}). Ignoré pour le calcul Lp.`);
                 continue; 
             }
 
