@@ -118,6 +118,33 @@ const ElementsReseau = () => {
     useEffect(() => {
         loadAllData();
     }, [loadAllData]);
+    const enregistrerGlobalDbaLp = async (id_element, global_dba_lp) => {
+    try {
+        await fetch('http://localhost:5000/api/lp-dba', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id_element, global_dba_lp }),
+        });
+        console.log(`✅ Global DBA Lp enregistré pour l’élément ${id_element}`);
+    } catch (err) {
+        console.error('❌ Erreur lors de l’enregistrement du Global DBA Lp', err);
+    }
+    };
+
+    useEffect(() => {
+    elements.forEach((el) => {
+        const lpSpectre = allSpectra.lp?.[el.id_element];
+        if (lpSpectre) {
+        const globalDBA_LP = calculerGlobalDBA(lpSpectre);
+        if (globalDBA_LP !== '-' && globalDBA_LP !== null) {
+            enregistrerGlobalDbaLp(el.id_element, globalDBA_LP);
+        }
+        }
+    });
+    }, [elements, allSpectra.lp]);
+
 
     const handleLogout = () => { localStorage.removeItem("utilisateur"); navigate('/connexion'); };
     const handleTypeChange = (e) => { setSelectedType(e.target.value); setFormData({}); };

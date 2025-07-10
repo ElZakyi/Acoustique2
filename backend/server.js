@@ -1516,6 +1516,25 @@ app.get('/api/lw_sortie_air_neuf/:id_source', (req, res) => {
     });
 });
 
+//insertion du globaldba en base donné pour les niveau lp disponible
+app.post('/api/lp-dba', (req, res) => {
+  const { id_element, global_dba_lp } = req.body;
+
+  const sql = `
+    INSERT INTO lp_dba (id_element, valeur)
+    VALUES (?, ?)
+    ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)
+  `;
+
+  db.query(sql, [id_element, global_dba_lp], (err, result) => {
+    if (err) {
+      console.error("Erreur insertion Global DBA LP:", err);
+      return res.status(500).json({ message: "Erreur serveur" });
+    }
+    res.status(200).json({ message: "Valeur Global DBA LP insérée avec succès" });
+  });
+});
+
 
 
 
