@@ -1014,24 +1014,27 @@ app.get('/api/attenuationtroncons', async (req, res) => {
 // Calcul et sauvegarde du niveau Lp pour grillesoufflage et vc
 app.get('/api/niveaux_lp', async (req, res) => {
     try {
-        //Récupération Lw Total
+        // Récupération Lw Total (utilisé pour les VC)
         const [lwTotalRows] = await db.promise().query('SELECT * FROM lwtotal');
         const lwTotalMap = {};
         lwTotalRows.forEach(row => {
             if (!lwTotalMap[row.id_element]) lwTotalMap[row.id_element] = {};
             lwTotalMap[row.id_element][row.bande] = row.valeur;
         });
-        const [lwSortieGrilleRows] = await db.promise().query('SELECT * FROM lwsortie');
-        const [lwSortieVcRows] = await db.promise().query('SELECT * FROM lwsortie_vc');
-        
-        const lwSortieMap = {}; 
+
+        // Récupération Lw Sortie pour les grilles
+        const [lwSortieGrilleRows] = await db.promise().query('SELECT * FROM lwsortie'); 
+        const lwSortieMap = {};
         lwSortieGrilleRows.forEach(row => {
             if (!lwSortieMap[row.id_element]) lwSortieMap[row.id_element] = {};
             lwSortieMap[row.id_element][row.bande] = row.valeur;
         });
-        lwSortieVcRows.forEach(row => {
-            if (!lwSortieMap[row.id_element]) lwSortieMap[row.id_element] = {};
-            lwSortieMap[row.id_element][row.bande] = row.valeur;
+
+        const [lwSortieVcRows_raw] = await db.promise().query('SELECT * FROM lwsortie_vc');
+        const lwSortieVcDataMap = {};
+        lwSortieVcRows_raw.forEach(row => {
+            if (!lwSortieVcDataMap[row.id_element]) lwSortieVcDataMap[row.id_element] = {};
+            lwSortieVcDataMap[row.id_element][row.bande] = row.valeur;
         });
 
         //Récupérer les paramètres
@@ -1048,7 +1051,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
             JOIN troncon t ON er.id_troncon = t.id_troncon
             JOIN sourcesonore ss ON t.id_source = ss.id_source
             JOIN salle s ON ss.id_salle = s.id_salle
-            WHERE er.type IN ('grillesoufflage', 'vc') -- On sélectionne les deux types
+            WHERE er.type IN ('grillesoufflage', 'vc') 
         `);
 
         //Calcul de Lp pour chaque élément
@@ -1056,10 +1059,20 @@ app.get('/api/niveaux_lp', async (req, res) => {
         for (const element of elementParamsRows) {
             const id_element = element.id_element;
             
-            const spectreLwTotalPourElement = lwTotalMap[id_element];
+            let input_lw_spectre = null;
 
-            if (!spectreLwTotalPourElement) {
-                console.warn(`Aucun Lw Total trouvé pour l'élément ${id_element}. Ignoré pour le calcul Lp.`);
+            if (element.type === 'grillesoufflage') {
+                input_lw_spectre = lwSortieMap[id_element];
+            } else if (element.type === 'vc') {
+                input_lw_spectre = lwTotalMap[id_element];
+                if (!input_lw_spectre) {
+                    console.warn(`[Backend-Lp] Lw Total non trouvé pour VC ${id_element}. Tentative d'utiliser Lw Sortie.`);
+                    input_lw_spectre = lwSortieVcDataMap[id_element];
+                }
+            }
+
+            if (!input_lw_spectre) {
+                console.warn(`[Backend-Lp] Aucun spectre Lw d'entrée (Lw_sortie ou Lw_total) trouvé pour l'élément ${id_element} de type ${element.type}. Ignoré pour le calcul Lp.`);
                 continue; 
             }
 
@@ -1067,21 +1080,21 @@ app.get('/api/niveaux_lp', async (req, res) => {
             const R = parseFloat(element.constante_salle_R);
             spectresLp[id_element] = {};
 
-            for (const bande in spectreLwTotalPourElement) { 
-                const lw_total_valeur = parseFloat(spectreLwTotalPourElement[bande]); // On utilise lw_total_valeur
+            for (const bande in input_lw_spectre) { 
+                const initial_lw_valeur = parseFloat(input_lw_spectre[bande]); 
                 let lp_valeur = 0;
 
                 if (r > 0 && R > 0) {
                     const termeDirectivite = 2 / (4 * Math.PI * Math.pow(r, 2));
                     const termeReverberation = 4 / R;
-                    lp_valeur = lw_total_valeur + 10 * Math.log10(termeDirectivite + termeReverberation);
+                    lp_valeur = initial_lw_valeur + 10 * Math.log10(termeDirectivite + termeReverberation);
                 }
                 
                 spectresLp[id_element][bande] = parseFloat(lp_valeur.toFixed(1));
             }
         }
 
-        //Sauvegarde des résultats
+        // Sauvegarde des résultats
         for (const [id_element, spectre] of Object.entries(spectresLp)) {
             const element = elementParamsRows.find(e => e.id_element == id_element);
             if (!element) {
@@ -1091,7 +1104,6 @@ app.get('/api/niveaux_lp', async (req, res) => {
             const elementType = element.type;
             if (elementType === 'grillesoufflage' || elementType === 'vc') {
                 for (const [bande, valeur] of Object.entries(spectre)) {
-                    
                     await db.promise().query(
                         `REPLACE INTO niveaulp (id_element, bande, type_element, valeur) VALUES (?, ?, ?, ?)`,
                         [id_element, parseInt(bande), elementType, valeur]
@@ -1108,6 +1120,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
         res.status(500).json({ message: "Erreur serveur" });
     }
 });
+
 
 //CALCUL DU LW TOTAL
 
@@ -1146,9 +1159,10 @@ app.get('/api/lw_total', async (req, res) => {
         for (const id_element in lwSortieVcMap) {
             const spectreLwSortie = lwSortieVcMap[id_element];
             
-            if (!spectreLwSortie || Object.keys(spectreAirNeuf).length === 0) {
-                continue; 
-            }
+                    if (!spectreLwSortie) {
+            console.warn(`[Backend-LwTotal] Aucune donnée 'lw_sortie' pour la VC avec id_element ${id_element}. Calcul de Lw Total ignoré.`);
+            continue; 
+        }
             
             lwTotalSpectres[id_element] = {};
             for (const bande in spectreLwSortie) {
@@ -1160,7 +1174,7 @@ app.get('/api/lw_total', async (req, res) => {
             }
         }
         
-        // --- 4. Sauvegarde dans lwtotal ---
+        // Sauvegarde dans lwtotal
         for (const [id_element, spectre] of Object.entries(lwTotalSpectres)) {
             for (const [bande, valeur] of Object.entries(spectre)) {
                 await db.promise().query(
@@ -1171,7 +1185,7 @@ app.get('/api/lw_total', async (req, res) => {
             }
         }
         
-        // --- 5. On renvoie les résultats ---
+        // On renvoie les résultats
         res.status(200).json(lwTotalSpectres);
 
     } catch (error) {
