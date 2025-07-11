@@ -849,6 +849,47 @@ app.put('/api/troncons/:id_troncon/elements/reorder', async (req, res) => {
     }
 });
 
+
+// Nouvelle route pour la réorganisation des tronçons
+app.put('/api/sources/:id_source/troncons/reorder', async (req, res) => {
+    const { id_source } = req.params;
+    const updates = req.body; // Attendu: [{ id_troncon: 1, ordre: 0 }, { id_troncon: 2, ordre: 1 }, ...]
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ message: "Payload invalide: un tableau d'objets { id_troncon, ordre } est requis." });
+    }
+
+    try {
+        await db.promise().beginTransaction();
+
+        // Optionnel mais recommandé: Vérifier que tous les tronçons appartiennent bien à cette source
+        const tronconIds = updates.map(u => u.id_troncon);
+        const [checkResults] = await db.promise().query(
+            'SELECT id_troncon FROM troncon WHERE id_troncon IN (?) AND id_source = ?',
+            [tronconIds, id_source]
+        );
+        if (checkResults.length !== tronconIds.length) {
+            await db.promise().rollback();
+            return res.status(403).json({ message: "Un ou plusieurs tronçons ne sont pas associés à cette source." });
+        }
+
+        for (const update of updates) {
+            // Mettre à jour l'ordre de chaque tronçon
+            await db.promise().query(
+                'UPDATE troncon SET ordre = ? WHERE id_troncon = ? AND id_source = ?',
+                [update.ordre, update.id_troncon, id_source]
+            );
+        }
+
+        await db.promise().commit();
+        res.status(200).json({ message: "Ordre des tronçons mis à jour avec succès." });
+    } catch (error) {
+        await db.promise().rollback();
+        console.error("❌ Erreur lors de la réorganisation des tronçons :", error);
+        res.status(500).json({ message: "Erreur serveur lors de la réorganisation." });
+    }
+});
+
 // ===============================
 // GESTION DES SPECTRES & CALCULS
 // ===============================

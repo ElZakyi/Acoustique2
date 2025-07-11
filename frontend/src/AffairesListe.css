@@ -491,3 +491,33 @@
 .affaires-table:not(.synthese-table) tbody tr {
     cursor: grab;
 }
+
+/* Styles pour les lignes de tableau draggables */
+.affaires-table tbody tr {
+    cursor: grab; /* Curseur de main pour indiquer que l'élément est déplaçable */
+    transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+/* Styles pour l'élément glissé */
+.affaires-table tbody tr.is-dragging {
+    cursor: grabbing; /* Curseur de main qui attrape pendant le glisser */
+    /* L'opacité est gérée par le style inline du composant React */
+}
+
+/* Styles pour la cible de dépôt (l'endroit où l'élément sera inséré) */
+.affaires-table tbody tr.is-over {
+    background-color: #e0f7fa; /* Couleur de fond lors du survol */
+    border-top: 2px solid #007bff; /* Bordures pour indiquer la position d'insertion */
+    border-bottom: 2px solid #007bff;
+}
+
+/* Conteneur pour le défilement automatique */
+.table-scroll-container {
+    max-height: 500px; /* Hauteur maximale fixe pour activer le défilement */
+    overflow-y: auto; /* Active le défilement vertical si le contenu dépasse */
+    border: 1px solid #e0e0e0; /* Bordure pour encadrer la zone de défilement */
+    border-radius: 8px;
+    margin-top: 20px; /* Espace au-dessus du conteneur */
+}
+
+/* Le reste de votre CSS existant... */

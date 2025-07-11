@@ -450,7 +450,7 @@ const ElementsReseau = () => {
                 )}
 
                 {/* Tableau des paramètres des éléments- D&D appliqué */}
-                <h3 style={{ marginTop: '20px' }}>Paramètres des éléments (Glisser-déposer pour réordonner)</h3>
+                <h3 style={{ marginTop: '20px' }}>Paramètres des éléments</h3>
                 <table className="affaires-table">
                     <thead><tr><th>#</th><th>Type</th><th>Paramètres</th><th>Action</th></tr></thead>
                     <tbody>
