@@ -1,8 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import './AffairesListe.css';
+import './AffairesListe.css'; // Assurez-vous que le chemin est correct
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
+
+//Imports pour React DnD
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import update from 'immutability-helper';
 
 // CONFIGURATIONS
 const ELEMENT_CONFIG = {
@@ -33,7 +38,121 @@ const SPECTRA_LABELS = {
 
 const BANDES_FREQUENCE = ['63', '125', '250', '500', '1000', '2000', '4000'];
 
+// Type d'élément draggable
+const ItemTypes = {
+  ELEMENT: 'element',
+};
 
+//Composant DraggableElementRow
+const DraggableElementRow = ({
+    element,
+    index,
+    moveElement, 
+    handleEditClick,
+    handleDeleteElement,
+    openAttenuationForm,
+    openRegenerationForm,
+    ELEMENT_CONFIG,
+    SPECTRA_CONFIG,
+    SPECTRA_LABELS,
+    BANDES_FREQUENCE,
+    allSpectra,
+    calculerGlobalDBA,
+}) => {
+    const ref = useRef(null);
+
+    //pour rendre la ligne une cible de dépôt
+    const [{ handlerId, isOver }, drop] = useDrop({
+        accept: ItemTypes.ELEMENT,
+        collect(monitor) {
+            return {
+                handlerId: monitor.getHandlerId(),
+                isOver: monitor.isOver(),
+            };
+        },
+        hover(item, monitor) {
+            if (!ref.current) {
+                return;
+            }
+            const dragIndex = item.index; 
+            const hoverIndex = index;
+
+            if (dragIndex === hoverIndex) {
+                return;
+            }
+
+            const hoverBoundingRect = ref.current?.getBoundingClientRect();
+            const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+            const clientOffset = monitor.getClientOffset();
+            const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+            // Glisser vers le bas
+            if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+                return;
+            }
+            // Glisser vers le haut
+            if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+                return;
+            }
+            moveElement(dragIndex, hoverIndex);
+            item.index = hoverIndex;
+        },
+    });
+
+    //rendre la ligne draggable
+    const [{ isDragging }, drag] = useDrag({
+        type: ItemTypes.ELEMENT,
+        item: () => {
+            return { id: element.id_element, index };
+        },
+        collect: (monitor) => ({
+            isDragging: monitor.isDragging(),
+        }),
+    });
+
+    //gestion des classes CSS
+    const className = `
+        ${isDragging ? 'is-dragging' : ''}
+        ${isOver ? 'is-over' : ''}
+    `.trim();
+    drag(drop(ref));
+    const params = Object.entries(element).filter(([k]) => ['longueur', 'angle', 'orientation', 'materiau', 'distance_r', 'type_vc', 'modele'].includes(k) && element[k] != null && element[k] !== '');
+
+    return (
+        <tr ref={ref} className={className} style={{ opacity: isDragging ? 0 : 1 }} data-handler-id={handlerId}>
+            <td>{index + 1}</td>
+            <td>{ELEMENT_CONFIG[element.type]?.label || element.type}</td>
+            <td>
+                {params.length === 0 ? (
+                    <em style={{ color: '#999' }}>Aucun</em>
+                ) : (
+                    params.map(([k, v]) => (
+                        <div key={k}>
+                            <strong>{k.charAt(0).toUpperCase() + k.slice(1)}</strong>: {v}
+                        </div>
+                    ))
+                )}
+            </td>
+            <td>
+                <div className="actions-cell">
+                    <div className="action-icons">
+                        <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(element)} />
+                        <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(element.id_element)} />
+                    </div>
+                    <button className="btn-small" onClick={() => openAttenuationForm(element, index)}>Atténuation</button>
+                    {(element.type === 'grillesoufflage' || element.type === 'vc') && (
+                        <button className="btn-small" style={{ marginLeft: '5px' }} onClick={() => openRegenerationForm(element, index)}>
+                            Regénération
+                        </button>
+                    )}
+                </div>
+            </td>
+        </tr>
+    );
+};
+
+
+//Composant principal ElementsReseau
 const ElementsReseau = () => {
     const { id_source } = useParams();
     const { id_troncon } = useParams();
@@ -61,7 +180,7 @@ const ElementsReseau = () => {
     const [showRegenerationForm, setShowRegenerationForm] = useState(false);
     const [regenerationValues, setRegenerationValues] = useState(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, ''])));
 
-    // logique
+    // logique de chargement de toutes les données
     const loadAllData = useCallback(async () => {
         if (!localStorage.getItem("utilisateur")) {
             navigate('/connexion');
@@ -89,14 +208,27 @@ const ElementsReseau = () => {
                 const calculsRes = await axios.get(`http://localhost:5000/api/lwresultants/troncon/${id_troncon}`);
                 calculsDeChainage = calculsRes.data;
             }
-            const lwSortieAirNeufRes = await axios.get(`http://localhost:5000/api/lw_sortie_air_neuf/${id_source}`);
+            
+            // Chargement conditionnel de lw_sortie_air_neuf
+            let lwSortieAirNeufData = {};
+            if (id_source) { 
+                try {
+                     const lwSortieAirNeufRes = await axios.get(`http://localhost:5000/api/lw_sortie_air_neuf/${id_source}`);
+                     lwSortieAirNeufData = lwSortieAirNeufRes.data;
+                } catch (error) {
+                    console.warn("Impossible de charger le spectre d'air neuf pour cette source.", error);
+                    lwSortieAirNeufData = {}; 
+                }
+            }
+
+
             const finalSpectra = {
                 attenuation: attenuationsRes.data,
                 regeneration: regenerationsRes.data,
                 attenuation_troncon: attTronconRes.data,
                 lp: lpRes.data,
                 lw_total: lwTotalRes.data,
-                lw_sortie_air_neuf: lwSortieAirNeufRes.data,
+                lw_sortie_air_neuf: lwSortieAirNeufData, 
                 lw_resultant: {},
                 lw_entrant: {},
                 lw_sortie: {}
@@ -114,35 +246,31 @@ const ElementsReseau = () => {
             console.error("Une erreur est survenue lors du chargement des données:", error);
             setMessage("Erreur de chargement des données. Vérifiez la console.");
         }
-    }, [id_troncon, navigate]);
+    }, [id_troncon, id_source, navigate]); 
+    
     useEffect(() => {
         loadAllData();
     }, [loadAllData]);
+
     const enregistrerGlobalDbaLp = async (id_element, global_dba_lp) => {
-    try {
-        await fetch('http://localhost:5000/api/lp-dba', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id_element, global_dba_lp }),
-        });
-        console.log(`✅ Global DBA Lp enregistré pour l’élément ${id_element}`);
-    } catch (err) {
-        console.error('❌ Erreur lors de l’enregistrement du Global DBA Lp', err);
-    }
+        try {
+            await axios.post('http://localhost:5000/api/lp-dba', { id_element, global_dba_lp });
+            console.log(`✅ Global DBA Lp enregistré pour l’élément ${id_element}`);
+        } catch (err) {
+            console.error('❌ Erreur lors de l’enregistrement du Global DBA Lp', err);
+        }
     };
 
     useEffect(() => {
-    elements.forEach((el) => {
-        const lpSpectre = allSpectra.lp?.[el.id_element];
-        if (lpSpectre) {
-        const globalDBA_LP = calculerGlobalDBA(lpSpectre);
-        if (globalDBA_LP !== '-' && globalDBA_LP !== null) {
-            enregistrerGlobalDbaLp(el.id_element, globalDBA_LP);
-        }
-        }
-    });
+        elements.forEach((el) => {
+            const lpSpectre = allSpectra.lp?.[el.id_element];
+            if (lpSpectre) {
+                const globalDBA_LP = calculerGlobalDBA(lpSpectre);
+                if (globalDBA_LP !== '-' && globalDBA_LP !== null) {
+                    enregistrerGlobalDbaLp(el.id_element, globalDBA_LP);
+                }
+            }
+        });
     }, [elements, allSpectra.lp]);
 
 
@@ -252,10 +380,57 @@ const ElementsReseau = () => {
         }
         return somme > 0 ? (10 * Math.log10(somme)).toFixed(2) : "-";
     };
+    // Fonction de déplacement pour le drag and drop
+    const moveElement = useCallback((dragIndex, hoverIndex) => {
+        setElements((prevElements) =>
+            update(prevElements, {
+                $splice: [
+                    [dragIndex, 1],
+                    [hoverIndex, 0, prevElements[dragIndex]],
+                ],
+            }),
+        );
+    }, []);
+
+    // Fonction pour sauvegarder le nouvel ordre après un drop 
+    const saveNewOrder = useCallback(async () => {
+        const newOrder = elements.map((element, index) => ({
+            id_element: element.id_element,
+            ordre: index, 
+        }));
+
+        try {
+            await axios.put(`http://localhost:5000/api/troncons/${id_troncon}/elements/reorder`, newOrder);
+            setMessage("Ordre des éléments mis à jour avec succès !");
+            await loadAllData(); 
+        } catch (err) {
+            console.error("Erreur lors de la sauvegarde du nouvel ordre :", err);
+            setMessage("Erreur lors de la sauvegarde du nouvel ordre.");
+        }
+    }, [elements, id_troncon, loadAllData]);
+    const debouncedSaveNewOrderRef = useRef();
+
+    useEffect(() => {
+        if (debouncedSaveNewOrderRef.current) {
+            clearTimeout(debouncedSaveNewOrderRef.current);
+        }
+        debouncedSaveNewOrderRef.current = setTimeout(() => {
+            if (elements.length > 0) { 
+                saveNewOrder();
+            }
+        }, 500);
+
+        return () => {
+            if (debouncedSaveNewOrderRef.current) {
+                clearTimeout(debouncedSaveNewOrderRef.current);
+            }
+        };
+    }, [elements, saveNewOrder]); 
 
     //AFFICHAGE
     return (
-        <>
+        //activer le glisser-déposer
+        <DndProvider backend={HTML5Backend}>
             <div className="logout-global"><button className="btn-logout" onClick={handleLogout}>Déconnexion</button></div>
             <div className="container-box">
                 <div className="page-header">
@@ -274,27 +449,33 @@ const ElementsReseau = () => {
                     </form>
                 )}
 
-                <h3 style={{ marginTop: '20px' }}>Paramètres des éléments</h3>
+                {/* Tableau des paramètres des éléments- D&D appliqué */}
+                <h3 style={{ marginTop: '20px' }}>Paramètres des éléments (Glisser-déposer pour réordonner)</h3>
                 <table className="affaires-table">
                     <thead><tr><th>#</th><th>Type</th><th>Paramètres</th><th>Action</th></tr></thead>
                     <tbody>
                         {elements.map((el, i) => (
-                            <tr key={el.id_element}>
-                                <td>{i + 1}</td>
-                                <td>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
-                                <td>{(() => { const params = Object.entries(el).filter(([k]) => ['longueur', 'angle', 'orientation', 'materiau', 'distance_r', 'type_vc', 'modele'].includes(k) && el[k] != null && el[k] !== ''); if (params.length === 0) return <em style={{ color: '#999' }}>Aucun</em>; return params.map(([k, v]) => <div key={k}><strong>{k.charAt(0).toUpperCase() + k.slice(1)}</strong>: {v}</div>); })()}</td>
-                                <td><div className="actions-cell"><div className="action-icons"><FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(el)} /><FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(el.id_element)} /></div><button className="btn-small" onClick={() => openAttenuationForm(el, i)}>Atténuation</button>
-                                {(el.type === 'grillesoufflage' || el.type === 'vc') && (
-                                    <button className="btn-small" style={{ marginLeft: '5px' }} onClick={() => openRegenerationForm(el, i)}>
-                                        Regénération
-                                    </button>
-                                )}
-                                </div></td>
-                            </tr>
+                            <DraggableElementRow
+                                key={el.id_element}
+                                element={el}
+                                index={i}
+                                moveElement={moveElement}
+                                handleEditClick={handleEditClick}
+                                handleDeleteElement={handleDeleteElement}
+                                openAttenuationForm={openAttenuationForm}
+                                openRegenerationForm={openRegenerationForm}
+                                ELEMENT_CONFIG={ELEMENT_CONFIG}
+                                SPECTRA_CONFIG={SPECTRA_CONFIG}
+                                SPECTRA_LABELS={SPECTRA_LABELS}
+                                BANDES_FREQUENCE={BANDES_FREQUENCE}
+                                allSpectra={allSpectra}
+                                calculerGlobalDBA={calculerGlobalDBA}
+                            />
                         ))}
                     </tbody>
                 </table>
 
+                {/*pour l'atténuation et la régénération */}
                 {showAttenuationForm && (
                     <div className="modal-overlay">
                         <div className="modal">
@@ -315,6 +496,7 @@ const ElementsReseau = () => {
                     </div>
                 )}
 
+                {/* Tableau de synthèse acoustique*/}
                 <h3 style={{ marginTop: '30px' }}>Tableau de synthèse acoustique</h3>
                 <table className="affaires-table synthese-table">
                     <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '15%' }}>Type</th><th style={{ width: '20%' }}>Valeurs</th>{BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}<th>GLOBAL dBA</th></tr></thead>
@@ -332,12 +514,11 @@ const ElementsReseau = () => {
                         const rowSpan = spectraToShow.length > 0 ? spectraToShow.length : 1;
 
                         return (
-                        <React.Fragment key={el.id_element}>
+                        <React.Fragment key={`synth-${el.id_element}`}> 
                             <tr>
                             <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{i + 1}</td>
                             <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
 
-                            {/* Première ligne de spectre */}
                             <td>{SPECTRA_LABELS[spectraToShow[0]]}</td>
                             {BANDES_FREQUENCE.map(freq => {
                                 const key = spectraToShow[0];
@@ -345,16 +526,20 @@ const ElementsReseau = () => {
                                 return <td key={freq}>{value ?? '-'}</td>;
                             })}
 
-                            {/* Global dBA principal (fusionné sur les lignes) */}
                             <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>
                                 {
                                 (() => {
                                     let key = null;
                                     if (el.type === 'piecetransformation') key = 'lw_entrant';
                                     else if (el.type === 'grillesoufflage') key = 'lw_sortie';
-                                    else if (el.type === 'vc') key = 'lw_sortie';
-                                    else key = 'lw_resultant';
+                                    else if (el.type === 'vc') key = 'lw_sortie'; 
 
+                                    if (el.type === 'vc' && el.type_vc === 'Soufflage') {
+                                        key = 'lw_total'; 
+                                    } else if (el.type !== 'piecetransformation' && el.type !== 'grillesoufflage' && el.type !== 'vc') {
+                                        key = 'lw_resultant';
+                                    }
+                                    
                                     const spectre = allSpectra[key]?.[el.id_element];
                                     return spectre ? calculerGlobalDBA(spectre) : "-";
                                 })()
@@ -362,7 +547,6 @@ const ElementsReseau = () => {
                             </td>
                             </tr>
 
-                            {/* Lignes restantes */}
                             {spectraToShow.slice(1).map((spectrumKey) => {
                             const data = allSpectra[spectrumKey];
                             const isLp = spectrumKey === 'lp';
@@ -374,13 +558,12 @@ const ElementsReseau = () => {
                                 <td>{SPECTRA_LABELS[spectrumKey]}</td>
                                 {BANDES_FREQUENCE.map(freq => {
                                     if (spectrumKey === 'lw_sortie_air_neuf') {
-                                    const firstKey = Object.keys(data || {})[0];
-                                    return <td key={`${spectrumKey}-${freq}`}>{data?.[firstKey]?.[freq] ?? '-'}</td>;
+                                    const firstIdElementInAirNeuf = Object.keys(data || {})[0];
+                                    return <td key={`${spectrumKey}-${freq}`}>{data?.[firstIdElementInAirNeuf]?.[freq] ?? '-'}</td>;
                                     }
                                     return <td key={`${spectrumKey}-${freq}`}>{spectre?.[freq] ?? '-'}</td>;
                                 })}
                                 
-                                {/* Affiche Global dBA uniquement pour Niveau Lp */}
                                 {isLp && <td>{globalDBA_LP}</td>}
                                 </tr>
                             );
@@ -394,7 +577,7 @@ const ElementsReseau = () => {
 
                 <div className="footer-actions"><button className="btn-secondary" onClick={() => navigate(-1)}>Retour</button></div>
             </div>
-        </>
+        </DndProvider>
     );
 };
 

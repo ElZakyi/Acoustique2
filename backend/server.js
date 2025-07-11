@@ -809,6 +809,45 @@ app.delete('/api/elements/:id_element', (req, res) => {
     });
 });
 
+// la réorganisation des éléments apres d&d
+app.put('/api/troncons/:id_troncon/elements/reorder', async (req, res) => {
+    const { id_troncon } = req.params;
+    const updates = req.body;
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ message: "Payload invalide: un tableau d'objets { id_element, ordre } est requis." });
+    }
+
+    try {
+        await db.promise().beginTransaction();
+
+        //Vérifier que tous les éléments appartiennent bien à ce tronçon
+        const elementIds = updates.map(u => u.id_element);
+        const [checkResults] = await db.promise().query(
+            'SELECT id_element FROM elementreseau WHERE id_element IN (?) AND id_troncon = ?',
+            [elementIds, id_troncon]
+        );
+        if (checkResults.length !== elementIds.length) {
+            await db.promise().rollback();
+            return res.status(403).json({ message: "Un ou plusieurs éléments ne sont pas associés à ce tronçon." });
+        }
+
+        for (const update of updates) {
+            // Mettre à jour l'ordre de chaque élément
+            await db.promise().query(
+                'UPDATE elementreseau SET ordre = ? WHERE id_element = ? AND id_troncon = ?',
+                [update.ordre, update.id_element, id_troncon]
+            );
+        }
+
+        await db.promise().commit();
+        res.status(200).json({ message: "Ordre des éléments mis à jour avec succès." });
+    } catch (error) {
+        await db.promise().rollback();
+        console.error("❌ Erreur lors de la réorganisation des éléments :", error);
+        res.status(500).json({ message: "Erreur serveur lors de la réorganisation." });
+    }
+});
 
 // ===============================
 // GESTION DES SPECTRES & CALCULS
@@ -1075,7 +1114,6 @@ app.get('/api/niveaux_lp', async (req, res) => {
                     input_lw_spectre = lwSortieVcDataMap[id_element]; // VC Reprise: utilise Lw_sortie de la VC
                     //console.log(`[Backend-Lp] Élément ${id_element} (VC Reprise): utilise Lw_sortie VC.`);
                 } else {
-                    //console.warn(`[Backend-Lp] Type_vc inconnu pour l'élément VC ${id_element}. Calcul de Lp ignoré.`);
                     continue;
                 }
             }
@@ -1515,7 +1553,6 @@ app.get('/api/lw_sortie_air_neuf/:id_source', (req, res) => {
         });
     });
 });
-
 //insertion du globaldba en base donné pour les niveau lp disponible
 app.post('/api/lp-dba', (req, res) => {
   const { id_element, global_dba_lp } = req.body;
@@ -1532,7 +1569,8 @@ app.post('/api/lp-dba', (req, res) => {
       console.error("Erreur récupération type source:", err || "Aucune correspondance");
       return res.status(500).json({ message: "Erreur récupération type source" });
     }
-
+    
+    // Supprimez les marqueurs et laissez juste le code propre.
     const type_source = rows[0].type;
 
     const insertSql = `

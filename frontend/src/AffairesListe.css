@@ -474,41 +474,20 @@
   font-weight: bold;
 }
 
-/* AffairesListe.css */
-.affaires-table tr[draggable="true"] {
-    cursor: move;
-}
+/*style draggable*/
 
-.dragging {
-    opacity: 0.5;
-    background-color: #f0f0f0;
+.affaires-table tbody tr {
+    cursor: grab;
+    transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
 }
-
-.drag-over {
-    border: 2px solid #007bff;
-    background-color: #e6f3ff;
+.affaires-table tbody tr.is-dragging {
+    cursor: grabbing; 
 }
-
-.dragging-active {
-    pointer-events: none; /* Disable interactions during drag */
+.affaires-table tbody tr.is-over {
+    background-color: #e0f7fa;
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
 }
-
-.order-controls {
-    display: flex;
-    gap: 5px;
-    margin-top: 5px;
-}
-
-.order-controls button {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 2px 6px;
-    cursor: pointer;
-    border-radius: 3px;
-}
-
-.order-controls button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+.affaires-table:not(.synthese-table) tbody tr {
+    cursor: grab;
 }
