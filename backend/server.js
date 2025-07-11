@@ -1062,20 +1062,20 @@ app.get('/api/niveaux_lp', async (req, res) => {
             let input_lw_spectre = null;
             if (element.type === 'grillesoufflage') {
                 input_lw_spectre = lwSortieMap[id_element]; // Grille: utilise Lw_sortie
-                console.log(`[Backend-Lp] Élément ${id_element} (Grille): utilise Lw_sortie`);
+                //console.log(`[Backend-Lp] Élément ${id_element} (Grille): utilise Lw_sortie`);
             } else if (element.type === 'vc') {
                 if (element.type_vc === 'Soufflage') {
                     input_lw_spectre = lwTotalMap[id_element]; // VC Soufflage: utilise Lw_total
-                    console.log(`[Backend-Lp] Élément ${id_element} (VC Soufflage): utilise Lw_total`);
+                    //console.log(`[Backend-Lp] Élément ${id_element} (VC Soufflage): utilise Lw_total`);
                     if (!input_lw_spectre) {
-                        console.warn(`[Backend-Lp] Lw Total non trouvé pour VC Soufflage ${id_element}. Tentative d'utiliser Lw Sortie VC.`);
+                        //console.warn(`[Backend-Lp] Lw Total non trouvé pour VC Soufflage ${id_element}. Tentative d'utiliser Lw Sortie VC.`);
                         input_lw_spectre = lwSortieVcDataMap[id_element];
                     }
                 } else if (element.type_vc === 'Reprise') {
                     input_lw_spectre = lwSortieVcDataMap[id_element]; // VC Reprise: utilise Lw_sortie de la VC
-                    console.log(`[Backend-Lp] Élément ${id_element} (VC Reprise): utilise Lw_sortie VC.`);
+                    //console.log(`[Backend-Lp] Élément ${id_element} (VC Reprise): utilise Lw_sortie VC.`);
                 } else {
-                    console.warn(`[Backend-Lp] Type_vc inconnu pour l'élément VC ${id_element}. Calcul de Lp ignoré.`);
+                    //console.warn(`[Backend-Lp] Type_vc inconnu pour l'élément VC ${id_element}. Calcul de Lp ignoré.`);
                     continue;
                 }
             }
@@ -1107,7 +1107,7 @@ app.get('/api/niveaux_lp', async (req, res) => {
         for (const [id_element, spectre] of Object.entries(spectresLp)) {
             const element = elementParamsRows.find(e => e.id_element == id_element);
             if (!element) {
-                console.warn(`Élément avec id ${id_element} non trouvé dans les paramètres lors de la sauvegarde Lp.`);
+                //console.warn(`Élément avec id ${id_element} non trouvé dans les paramètres lors de la sauvegarde Lp.`);
                 continue;
             }
             const elementType = element.type;
@@ -1169,7 +1169,7 @@ app.get('/api/lw_total', async (req, res) => {
             const spectreLwSortie = lwSortieVcMap[id_element];
             
                     if (!spectreLwSortie) {
-            console.warn(`[Backend-LwTotal] Aucune donnée 'lw_sortie' pour la VC avec id_element ${id_element}. Calcul de Lw Total ignoré.`);
+            //console.warn(`[Backend-LwTotal] Aucune donnée 'lw_sortie' pour la VC avec id_element ${id_element}. Calcul de Lw Total ignoré.`);
             continue; 
         }
             

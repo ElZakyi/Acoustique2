@@ -474,4 +474,41 @@
   font-weight: bold;
 }
 
+/* AffairesListe.css */
+.affaires-table tr[draggable="true"] {
+    cursor: move;
+}
 
+.dragging {
+    opacity: 0.5;
+    background-color: #f0f0f0;
+}
+
+.drag-over {
+    border: 2px solid #007bff;
+    background-color: #e6f3ff;
+}
+
+.dragging-active {
+    pointer-events: none; /* Disable interactions during drag */
+}
+
+.order-controls {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.order-controls button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.order-controls button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
