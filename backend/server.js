@@ -1520,20 +1520,37 @@ app.get('/api/lw_sortie_air_neuf/:id_source', (req, res) => {
 app.post('/api/lp-dba', (req, res) => {
   const { id_element, global_dba_lp } = req.body;
 
-  const sql = `
-    INSERT INTO lp_dba (id_element, valeur)
-    VALUES (?, ?)
-    ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)
+  const getTypeSql = `
+    SELECT ss.type FROM sourcesonore ss
+    JOIN troncon t ON ss.id_source = t.id_source
+    JOIN elementreseau e ON e.id_troncon = t.id_troncon
+    WHERE e.id_element = ?
   `;
 
-  db.query(sql, [id_element, global_dba_lp], (err, result) => {
-    if (err) {
-      console.error("Erreur insertion Global DBA LP:", err);
-      return res.status(500).json({ message: "Erreur serveur" });
+  db.query(getTypeSql, [id_element], (err, rows) => {
+    if (err || rows.length === 0) {
+      console.error("Erreur récupération type source:", err || "Aucune correspondance");
+      return res.status(500).json({ message: "Erreur récupération type source" });
     }
-    res.status(200).json({ message: "Valeur Global DBA LP insérée avec succès" });
+
+    const type_source = rows[0].type;
+
+    const insertSql = `
+      INSERT INTO lp_dba (id_element, valeur, type_source)
+      VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE valeur = VALUES(valeur), type_source = VALUES(type_source)
+    `;
+
+    db.query(insertSql, [id_element, global_dba_lp, type_source], (err2, result) => {
+      if (err2) {
+        console.error("Erreur insertion Global DBA LP:", err2);
+        return res.status(500).json({ message: "Erreur serveur" });
+      }
+      res.status(200).json({ message: "Global DBA LP enregistré avec type source" });
+    });
   });
 });
+
 
 
 
