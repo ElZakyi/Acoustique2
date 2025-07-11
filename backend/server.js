@@ -1569,8 +1569,7 @@ app.post('/api/lp-dba', (req, res) => {
       console.error("Erreur récupération type source:", err || "Aucune correspondance");
       return res.status(500).json({ message: "Erreur récupération type source" });
     }
-    
-    // Supprimez les marqueurs et laissez juste le code propre.
+
     const type_source = rows[0].type;
 
     const insertSql = `
@@ -1588,13 +1587,6 @@ app.post('/api/lp-dba', (req, res) => {
     });
   });
 });
-
-
-
-
-
-
-
 
 // ======================
 // DÉMARRAGE DU SERVEUR
