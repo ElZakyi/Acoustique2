@@ -1629,6 +1629,29 @@ app.post('/api/lp-dba', (req, res) => {
   });
 });
 
+//recuperation de niveau lp pour VC/reprise 
+app.get('/api/lp-vc-reprise', (req, res) => {
+  const sql = `
+    SELECT nl.bande, nl.valeur
+    FROM sourcesonore ss
+    JOIN troncon t ON t.id_source = ss.id_source
+    JOIN elementreseau er ON er.id_troncon = t.id_troncon
+    JOIN vc ON vc.id_element = er.id_element
+    JOIN niveaulp nl ON nl.id_element = vc.id_element
+    WHERE ss.type = 'VC CRSL-ECM 2 /reprise'
+      AND vc.type_vc = 'Reprise'
+  `;
+
+  db.query(sql, (error, results) => {
+    if (error) {
+      console.error('Erreur récupération Lp VC Reprise:', error);
+      return res.status(500).json({ error: 'Erreur serveur' });
+    }
+    res.json(results);
+  });
+});
+
+
 // ======================
 // DÉMARRAGE DU SERVEUR
 // ======================
