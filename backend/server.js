@@ -1650,6 +1650,46 @@ app.get('/api/lp-vc-reprise', (req, res) => {
     res.json(results);
   });
 });
+//recuperation du niveau lp du source sonore de type extraction 
+app.get('/api/lp-extraction', (req, res) => {
+  const sql = `
+    SELECT nl.bande, nl.valeur
+    FROM sourcesonore ss
+    JOIN troncon t ON t.id_source = ss.id_source
+    JOIN elementreseau er ON er.id_troncon = t.id_troncon
+    JOIN niveaulp nl ON nl.id_element = er.id_element
+    WHERE ss.type = 'Extraction'
+  `;
+
+  db.query(sql, (error, results) => {
+    if (error) {
+      console.error('Erreur récupération Lp Extraction:', error);
+      return res.status(500).json({ error: 'Erreur serveur' });
+    }
+    res.json(results);
+  });
+});
+//recuperation du niveau lp du source sonore VC de type soufflage 
+app.get('/api/lp-vc-soufflage', (req, res) => {
+  const sql = `
+    SELECT nl.bande, nl.valeur
+    FROM sourcesonore ss
+    JOIN troncon t ON t.id_source = ss.id_source
+    JOIN elementreseau er ON er.id_troncon = t.id_troncon
+    JOIN vc ON vc.id_element = er.id_element
+    JOIN niveaulp nl ON nl.id_element = vc.id_element
+    WHERE ss.type = 'VC CRSL-ECM 2 /soufflage'
+      AND vc.type_vc = 'Soufflage'
+  `;
+
+  db.query(sql, (error, results) => {
+    if (error) {
+      console.error('❌ Erreur récupération Lp VC Soufflage :', error);
+      return res.status(500).json({ error: 'Erreur serveur' });
+    }
+    res.json(results);
+  });
+});
 
 
 // ======================
