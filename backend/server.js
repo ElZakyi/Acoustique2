@@ -1690,6 +1690,24 @@ app.get('/api/lp-vc-soufflage', (req, res) => {
     res.json(results);
   });
 });
+//recuperation des GLOBAL DBA pour les source sonore 
+app.get('/api/lp-dba', (req, res) => {
+  const sql = `
+    SELECT type_source, valeur
+    FROM lp_dba
+    WHERE type_source IN ('VC CRSL-ECM 2 /soufflage', 'VC CRSL-ECM 2 /reprise', 'extraction')
+  `;
+
+  db.query(sql, (error, results) => {
+    if (error) {
+      console.error('Erreur récupération LP dBA:', error);
+      return res.status(500).json({ error: 'Erreur serveur' });
+    }
+    res.json(results);
+  });
+});
+
+
 
 
 // ======================
