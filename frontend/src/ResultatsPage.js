@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+
 import axios from 'axios';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import './AffairesListe.css';
 
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import './AffairesListe.css'; // Make sure this import is correct
-
-// Import Chart.js components
+// Import pour Chart.js
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -18,10 +17,8 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-// Import and Register the datalabels plugin
 import DatalabelsPlugin from 'chartjs-plugin-datalabels';
 
-// Register all necessary components and the plugin
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -30,30 +27,24 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    DatalabelsPlugin // Register the datalabels plugin here
+    DatalabelsPlugin 
 );
 
 const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
 const TYPES_LIGNES = ["Soufflage", "reprise", "extraction", "Lp tot"];
 
-// Define the available NR options
 const NR_OPTIONS = [0, 10, 20, 30, 35, 40, 45, 50, 60];
 
-// Helper function to calculate Lp total using logarithmic sum
-// Returns a number or null if calculation is not possible
 const calculateLpTot = (lpSoufflageVal, lpRepriseVal, lpExtractionVal) => {
     const val1 = parseFloat(lpSoufflageVal);
     const val2 = parseFloat(lpRepriseVal);
     const val3 = parseFloat(lpExtractionVal);
 
-    // If any of the required values are not valid numbers, return null
     if (isNaN(val1) || isNaN(val2) || isNaN(val3)) {
         return null;
     }
 
     const sumPowers = Math.pow(10, val1 / 10) + Math.pow(10, val2 / 10) + Math.pow(10, val3 / 10);
-
-    // Ensure sumPowers is not zero or negative before taking log
     if (sumPowers <= 0) {
         return null;
     }
@@ -71,13 +62,12 @@ const ResultatsPage = () => {
     const location = useLocation();
     const id_salle = idParam || location.state?.id_salle;
 
-    // etats pour courbe
     const [showNRSelectSection, setShowNRSelectSection] = useState(false);
     const [tempSelectedNR, setTempSelectedNR] = useState('');
     const [selectedNRForChart, setSelectedNRForChart] = useState(null);
     const [showChart, setShowChart] = useState(false);
 
-    // etats pour lp total pour courbe
+
     const lpTotValues = useMemo(() => {
         const values = {};
         BANDES.forEach(freq => {
@@ -89,14 +79,13 @@ const ResultatsPage = () => {
         return values;
     }, [lpSoufflage, lpReprise, lpExtraction]);
 
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
 
     const handleLogout = () => {
         localStorage.removeItem("email");
         localStorage.removeItem("id_utilisateur");
         navigate("/connexion");
     };
-
 
     useEffect(() => {
         const fetchNR = async () => {
@@ -111,30 +100,12 @@ const ResultatsPage = () => {
     }, []);
 
     useEffect(() => {
-        const fetchLpGlobalDBA = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/api/lp-dba');
-                const data = response.data;
-                const valeurs = {};
-                data.forEach(item => {
-                    valeurs[item.type_source.toLowerCase()] = item.valeur;
-                });
-                setLpGlobalDBA(valeurs);
-            } catch (error) {
-                console.error('Erreur chargement Global dBA:', error);
-            }
-        };
-        fetchLpGlobalDBA();
-    }, []);
-
-
-    useEffect(() => {
+        if (!id_salle) return;
         const fetchLpSoufflage = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/lp-vc-soufflage');
-                const data = response.data;
+                const response = await axios.get(`http://localhost:5000/api/lp-vc-soufflage/${id_salle}`);
                 const valeurs = {};
-                data.forEach(item => {
+                response.data.forEach(item => {
                     valeurs[item.bande] = item.valeur;
                 });
                 setLpSoufflage(valeurs);
@@ -143,34 +114,15 @@ const ResultatsPage = () => {
             }
         };
         fetchLpSoufflage();
-    }, []);
-
-    // Fetching Lp Extraction data
-    useEffect(() => {
-        const fetchLpExtraction = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/api/lp-extraction');
-                const data = response.data;
-                const valeurs = {};
-                data.forEach(item => {
-                    valeurs[item.bande] = item.valeur;
-                });
-                setLpExtraction(valeurs);
-            } catch (error) {
-                console.error('Erreur chargement Lp Extraction:', error);
-            }
-        };
-        fetchLpExtraction();
-    }, []);
+    }, [id_salle]);
 
     useEffect(() => {
-
+        if (!id_salle) return;
         const fetchLpReprise = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/lp-vc-reprise');
-                const data = response.data;
+                const response = await axios.get(`http://localhost:5000/api/lp-vc-reprise/${id_salle}`);
                 const valeurs = {};
-                data.forEach(item => {
+                response.data.forEach(item => {
                     valeurs[item.bande] = item.valeur;
                 });
                 setLpReprise(valeurs);
@@ -179,9 +131,41 @@ const ResultatsPage = () => {
             }
         };
         fetchLpReprise();
-    }, []);
+    }, [id_salle]); 
 
-    //affichage de la courbe
+    useEffect(() => {
+        if (!id_salle) return;
+        const fetchLpExtraction = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/lp-extraction/${id_salle}`);
+                const valeurs = {};
+                response.data.forEach(item => {
+                    valeurs[item.bande] = item.valeur;
+                });
+                setLpExtraction(valeurs);
+            } catch (error) {
+                console.error('Erreur chargement Lp Extraction:', error);
+            }
+        };
+        fetchLpExtraction();
+    }, [id_salle]);
+
+    useEffect(() => {
+        if (!id_salle) return;
+        const fetchLpGlobalDBA = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/lp-dba/${id_salle}`);
+                const valeurs = {};
+                response.data.forEach(item => {
+                    valeurs[item.type_source.toLowerCase()] = item.valeur;
+                });
+                setLpGlobalDBA(valeurs);
+            } catch (error) {
+                console.error('Erreur chargement Global dBA:', error);
+            }
+        };
+        fetchLpGlobalDBA();
+    }, [id_salle]);
 
     const handleDisplayChartButtonClick = () => {
         setShowNRSelectSection(true);
@@ -206,7 +190,7 @@ const ResultatsPage = () => {
         setTempSelectedNR('');
     };
 
-    // Prepare chart en se basant sur lp total and NR choisi
+    // Prepare chart data en se basant sur lp total et NR
     const chartData = useMemo(() => {
         const nrData = nrReference.map(row => row[`nr${selectedNRForChart}`]);
         const lpTotData = BANDES.map(band => lpTotValues[band] || null);
@@ -220,17 +204,17 @@ const ResultatsPage = () => {
                     borderColor: '#ff7f0e', // Orange
                     backgroundColor: '#ff7f0e',
                     tension: 0.1,
-                    pointRadius: 0,
-                    pointHitRadius: 0,
-                    pointHoverRadius: 0,
+                    pointRadius: 0, 
+                    pointHitRadius: 0, 
+                    pointHoverRadius: 0, 
                 },
                 {
                     label: 'Lp tot',
                     data: lpTotData,
-                    borderColor: '#1f77b4', // Bleu
+                    borderColor: '#1f77b4', // Blue
                     backgroundColor: '#1f77b4',
                     tension: 0.1,
-                    pointRadius: 0,
+                    pointRadius: 0, 
                     pointHitRadius: 0,
                     pointHoverRadius: 0,
                 },
@@ -238,7 +222,7 @@ const ResultatsPage = () => {
         };
     }, [lpTotValues, selectedNRForChart, nrReference]);
 
-
+    // Chart options
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -264,11 +248,11 @@ const ResultatsPage = () => {
                     }
                 }
             },
-            datalabels: {
-                display: true,
-                color: 'black',
+            datalabels: { 
+                display: true, 
+                color: 'black', 
                 align: 'end',
-                anchor: 'end',
+                anchor: 'end', 
                 formatter: function(value, context) {
                     return value !== null && !isNaN(value) ? value.toFixed(3) : '';
                 },
@@ -308,7 +292,7 @@ const ResultatsPage = () => {
     };
 
     return (
-        <>
+        <> 
             <div className="logout-global">
                 <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
             </div>
@@ -359,7 +343,6 @@ const ResultatsPage = () => {
                     ))}
                     </tbody>
                 </table>
-
                 <h3 className="page-title margin-top-table">Tableau NR (Référence)</h3>
                 <table className="affaires-table synthese-table">
                 <thead>
@@ -383,7 +366,7 @@ const ResultatsPage = () => {
                 </table>
 
                 <div className="footer-actions chart-actions-container">
-                    <button className="btn-secondary" onClick={handleDisplayChartButtonClick}>
+                    <button className="btn-secondary btn-full-width" onClick={handleDisplayChartButtonClick}>
                         Afficher la courbe
                     </button>
 
@@ -429,7 +412,7 @@ const ResultatsPage = () => {
                     </button>
                 </div>
             </div>
-        </> // Closing the Fragment opened for logout button
+        </>
     );
 };
 
