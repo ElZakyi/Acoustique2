@@ -188,7 +188,7 @@ const ElementsReseau = () => {
         }
 
         try {
-            console.log("--- DÉBUT DU CHARGEMENT GLOBAL DES DONNÉES ---");
+            //console.log("--- DÉBUT DU CHARGEMENT GLOBAL DES DONNÉES ---");
             const [elementsRes,attenuationsRes,regenerationsRes,attTronconRes,ordreTronconRes,lpRes,lwTotalRes] = await Promise.all([
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
                 axios.get('http://localhost:5000/api/attenuations'),
@@ -240,7 +240,7 @@ const ElementsReseau = () => {
             });
             console.log("✅ Spectre lw_sortie_air_neuf chargé :", finalSpectra.lw_sortie_air_neuf);
             setAllSpectra(finalSpectra);
-            console.log("--- CHARGEMENT COMPLET ---", finalSpectra);
+            //console.log("--- CHARGEMENT COMPLET ---", finalSpectra);
 
         } catch (error) {
             console.error("Une erreur est survenue lors du chargement des données:", error);
