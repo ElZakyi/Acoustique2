@@ -7,6 +7,50 @@ const TYPES_LIGNES = ["Soufflage", "reprise", "extraction", "Lp tot"];
 
 const ResultatsPage = () => {
     const [lpReprise, setLpReprise] = useState({});
+    const [lpExtraction, setLpExtraction] = useState({});
+    const [lpSoufflage, setLpSoufflage] = useState({});
+
+    useEffect(() => {
+    const fetchLpSoufflage = async () => {
+        try {
+        const response = await axios.get('http://localhost:5000/api/lp-vc-soufflage');
+        const data = response.data;
+
+        const valeurs = {};
+        data.forEach(item => {
+            valeurs[item.bande] = item.valeur;
+        });
+
+        setLpSoufflage(valeurs);
+        } catch (error) {
+        console.error('Erreur chargement Lp VC Soufflage:', error);
+        }
+    };
+
+    fetchLpSoufflage();
+    }, []);
+
+
+    useEffect(() => {
+    const fetchLpExtraction = async () => {
+        try {
+        const response = await axios.get('http://localhost:5000/api/lp-extraction');
+        const data = response.data;
+
+        const valeurs = {};
+        data.forEach(item => {
+            valeurs[item.bande] = item.valeur;
+        });
+
+        setLpExtraction(valeurs);
+        } catch (error) {
+        console.error('Erreur chargement Lp Extraction:', error);
+        }
+    };
+
+    fetchLpExtraction();
+    }, []);
+
 
     useEffect(() => {
         const fetchLpReprise = async () => {
@@ -19,7 +63,6 @@ const ResultatsPage = () => {
                 data.forEach(item => {
                     valeurs[item.bande] = item.valeur;
                 });
-                console.log(valeurs);
 
                 setLpReprise(valeurs);
             } catch (error) {
@@ -51,11 +94,14 @@ const ResultatsPage = () => {
                     <tr key={idx}>
                     <td>{type}</td>
                     {BANDES.map(freq => (
-                        <td key={freq}>
-                        {type === "reprise" ? lpReprise[freq] ?? '' : ''}
-                        </td>
+                        <td key={freq}>{
+                        type === "reprise" ? lpReprise[freq] ?? '' :
+                        type === "extraction" ? lpExtraction[freq] ?? '' :
+                        type === "Soufflage" ? lpSoufflage[freq] ?? '' :
+                        ''
+                        }</td>
                     ))}
-                    <td>{/* Pas encore de calcul pour GLOBAL dBA */}</td>
+                    <td></td>
                     </tr>
                 ))}
                 </tbody>
