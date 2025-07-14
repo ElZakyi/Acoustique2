@@ -5,6 +5,26 @@ import './AffairesListe.css';
 const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
 const TYPES_LIGNES = ["Soufflage", "reprise", "extraction", "Lp tot"];
 
+//calcule de Lp total
+const calculateLpTot = (lpSoufflageVal, lpRepriseVal, lpExtractionVal) => {
+    const val1 = parseFloat(lpSoufflageVal);
+    const val2 = parseFloat(lpRepriseVal);
+    const val3 = parseFloat(lpExtractionVal);
+    if (isNaN(val1) || isNaN(val2) || isNaN(val3)) {
+        return '';
+    }
+
+    // formule
+    const sumPowers = Math.pow(10, val1 / 10) + Math.pow(10, val2 / 10) + Math.pow(10, val3 / 10);
+    if (sumPowers <= 0) {
+        return '';
+    }
+
+    const result = 10 * Math.log10(sumPowers);
+    return result.toFixed(3);
+};
+
+
 const ResultatsPage = () => {
     const [lpReprise, setLpReprise] = useState({});
     const [lpExtraction, setLpExtraction] = useState({});
@@ -120,6 +140,7 @@ const ResultatsPage = () => {
                         type === "reprise" ? lpReprise[freq] ?? '' :
                         type === "extraction" ? lpExtraction[freq] ?? '' :
                         type === "Soufflage" ? lpSoufflage[freq] ?? '' :
+                        type === "Lp tot" ? calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq]) :
                         ''
                         }</td>
                     ))}
@@ -130,6 +151,12 @@ const ResultatsPage = () => {
                         ? lpGlobalDBA["extraction"] ?? ''
                         : type === "Soufflage"
                         ? lpGlobalDBA["vc crsl-ecm 2 /soufflage"] ?? ''
+                        : type === "Lp tot"
+                        ? calculateLpTot(
+                            lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
+                            lpGlobalDBA["vc crsl-ecm 2 /reprise"],
+                            lpGlobalDBA["extraction"]
+                          )
                         : ''}
                     </td>
 
