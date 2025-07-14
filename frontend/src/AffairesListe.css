@@ -516,3 +516,48 @@
     border-radius: 8px;
     margin-top: 20px;
 }
+
+/* Styles ResultatsPage courbe et NR */
+
+.chart-actions-container {
+    margin-top: 20px;
+    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.nr-selection-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.nr-selection-controls select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.nr-selection-controls .btn-primary,
+.nr-selection-controls .btn-secondary {
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.chart-container {
+    width: 80%;
+    max-width: 900px;
+    margin: 40px auto;
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    height: 400px;
+    min-height: 300px;
+}
+
+.margin-top-table {
+    margin-top: 40px;
+}

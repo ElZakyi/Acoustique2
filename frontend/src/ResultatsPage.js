@@ -1,112 +1,163 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
-import './AffairesListe.css';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import './AffairesListe.css'; // Make sure this import is correct
+
+// Import Chart.js components
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+// Import and Register the datalabels plugin
+import DatalabelsPlugin from 'chartjs-plugin-datalabels';
+
+// Register all necessary components and the plugin
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    DatalabelsPlugin // Register the datalabels plugin here
+);
 
 const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
 const TYPES_LIGNES = ["Soufflage", "reprise", "extraction", "Lp tot"];
 
-//calcule de Lp total
+// Define the available NR options
+const NR_OPTIONS = [0, 10, 20, 30, 35, 40, 45, 50, 60];
+
+// Helper function to calculate Lp total using logarithmic sum
+// Returns a number or null if calculation is not possible
 const calculateLpTot = (lpSoufflageVal, lpRepriseVal, lpExtractionVal) => {
     const val1 = parseFloat(lpSoufflageVal);
     const val2 = parseFloat(lpRepriseVal);
     const val3 = parseFloat(lpExtractionVal);
+
+    // If any of the required values are not valid numbers, return null
     if (isNaN(val1) || isNaN(val2) || isNaN(val3)) {
-        return '';
+        return null;
     }
 
-    // formule
     const sumPowers = Math.pow(10, val1 / 10) + Math.pow(10, val2 / 10) + Math.pow(10, val3 / 10);
+
+    // Ensure sumPowers is not zero or negative before taking log
     if (sumPowers <= 0) {
-        return '';
+        return null;
     }
 
-    const result = 10 * Math.log10(sumPowers);
-    return result.toFixed(3);
+    return 10 * Math.log10(sumPowers);
 };
-
 
 const ResultatsPage = () => {
     const [lpReprise, setLpReprise] = useState({});
     const [lpExtraction, setLpExtraction] = useState({});
     const [lpSoufflage, setLpSoufflage] = useState({});
     const [lpGlobalDBA, setLpGlobalDBA] = useState({});
-
     const [nrReference, setNrReference] = useState([]);
 
-    useEffect(() => {
-    const fetchNR = async () => {
-        try {
-        const response = await axios.get('http://localhost:5000/api/nr-reference');
-        setNrReference(response.data);
-        } catch (error) {
-        console.error('Erreur chargement NR:', error);
-        }
+    // etats pour courbe
+    const [showNRSelectSection, setShowNRSelectSection] = useState(false);
+    const [tempSelectedNR, setTempSelectedNR] = useState('');
+    const [selectedNRForChart, setSelectedNRForChart] = useState(null);
+    const [showChart, setShowChart] = useState(false);
+
+    // etats pour lp total pour courbe
+    const lpTotValues = useMemo(() => {
+        const values = {};
+        BANDES.forEach(freq => {
+            const lpTot = calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq]);
+            if (lpTot !== null) {
+                values[freq] = lpTot;
+            }
+        });
+        return values;
+    }, [lpSoufflage, lpReprise, lpExtraction]);
+
+    const navigate = useNavigate(); // Initialize useNavigate hook
+
+    // Function to handle logout
+    const handleLogout = () => {
+        localStorage.removeItem("email");
+        localStorage.removeItem("id_utilisateur");
+        navigate("/connexion");
     };
 
-    fetchNR();
+
+    useEffect(() => {
+        const fetchNR = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/nr-reference');
+                setNrReference(response.data);
+            } catch (error) {
+                console.error('Erreur chargement NR:', error);
+            }
+        };
+        fetchNR();
     }, []);
 
 
     useEffect(() => {
-    const fetchLpGlobalDBA = async () => {
-        try {
-        const response = await axios.get('http://localhost:5000/api/lp-dba');
-        const data = response.data;
-
-        const valeurs = {};
-        data.forEach(item => {
-            valeurs[item.type_source.toLowerCase()] = item.valeur;
-        });
-
-        setLpGlobalDBA(valeurs);
-        } catch (error) {
-        console.error('Erreur chargement Global dBA:', error);
-        }
-    };
-
-    fetchLpGlobalDBA();
+        const fetchLpGlobalDBA = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/lp-dba');
+                const data = response.data;
+                const valeurs = {};
+                data.forEach(item => {
+                    valeurs[item.type_source.toLowerCase()] = item.valeur;
+                });
+                setLpGlobalDBA(valeurs);
+            } catch (error) {
+                console.error('Erreur chargement Global dBA:', error);
+            }
+        };
+        fetchLpGlobalDBA();
     }, []);
 
 
     useEffect(() => {
-    const fetchLpSoufflage = async () => {
-        try {
-        const response = await axios.get('http://localhost:5000/api/lp-vc-soufflage');
-        const data = response.data;
-
-        const valeurs = {};
-        data.forEach(item => {
-            valeurs[item.bande] = item.valeur;
-        });
-
-        setLpSoufflage(valeurs);
-        } catch (error) {
-        console.error('Erreur chargement Lp VC Soufflage:', error);
-        }
-    };
-
-    fetchLpSoufflage();
+        const fetchLpSoufflage = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/lp-vc-soufflage');
+                const data = response.data;
+                const valeurs = {};
+                data.forEach(item => {
+                    valeurs[item.bande] = item.valeur;
+                });
+                setLpSoufflage(valeurs);
+            } catch (error) {
+                console.error('Erreur chargement Lp VC Soufflage:', error);
+            }
+        };
+        fetchLpSoufflage();
     }, []);
 
-
+    // Fetching Lp Extraction data
     useEffect(() => {
-    const fetchLpExtraction = async () => {
-        try {
-        const response = await axios.get('http://localhost:5000/api/lp-extraction');
-        const data = response.data;
-
-        const valeurs = {};
-        data.forEach(item => {
-            valeurs[item.bande] = item.valeur;
-        });
-
-        setLpExtraction(valeurs);
-        } catch (error) {
-        console.error('Erreur chargement Lp Extraction:', error);
-        }
-    };
-
-    fetchLpExtraction();
+        const fetchLpExtraction = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/lp-extraction');
+                const data = response.data;
+                const valeurs = {};
+                data.forEach(item => {
+                    valeurs[item.bande] = item.valeur;
+                });
+                setLpExtraction(valeurs);
+            } catch (error) {
+                console.error('Erreur chargement Lp Extraction:', error);
+            }
+        };
+        fetchLpExtraction();
     }, []);
 
 
@@ -115,113 +166,267 @@ const ResultatsPage = () => {
             try {
                 const response = await axios.get('http://localhost:5000/api/lp-vc-reprise');
                 const data = response.data;
-
-                // Organiser les valeurs par bande
                 const valeurs = {};
                 data.forEach(item => {
                     valeurs[item.bande] = item.valeur;
                 });
-
                 setLpReprise(valeurs);
             } catch (error) {
                 console.error('Erreur chargement Lp VC Reprise:', error);
             }
         };
-
         fetchLpReprise();
     }, []);
 
-    return (
-        <div className="container-box">
-            <div className="page-header">
-                <h2 className="page-title">Résultats Acoustiques - Synthèse</h2>
-            </div>
+    //affichage de la courbe
 
-            <table className="affaires-table synthese-table">
+    const handleDisplayChartButtonClick = () => {
+        setShowNRSelectSection(true);
+        setShowChart(false);
+        setSelectedNRForChart(null);
+        setTempSelectedNR('');
+    };
+
+    const handleConfirmNRSelection = () => {
+        const nrValue = parseInt(tempSelectedNR);
+        if (NR_OPTIONS.includes(nrValue)) {
+            setSelectedNRForChart(nrValue);
+            setShowChart(true);
+            setShowNRSelectSection(false);
+        } else {
+            alert("Veuillez sélectionner un NR valide.");
+        }
+    };
+
+    const handleCancelNRSelection = () => {
+        setShowNRSelectSection(false);
+        setTempSelectedNR('');
+    };
+
+    // Prepare chart en se basant sur lp total and NR choisi
+    const chartData = useMemo(() => {
+        const nrData = nrReference.map(row => row[`nr${selectedNRForChart}`]);
+        const lpTotData = BANDES.map(band => lpTotValues[band] || null);
+
+        return {
+            labels: BANDES.map(String),
+            datasets: [
+                {
+                    label: `NR ${selectedNRForChart}`,
+                    data: nrData,
+                    borderColor: '#ff7f0e', // Orange
+                    backgroundColor: '#ff7f0e',
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    pointHoverRadius: 0,
+                },
+                {
+                    label: 'Lp tot',
+                    data: lpTotData,
+                    borderColor: '#1f77b4', // Bleu
+                    backgroundColor: '#1f77b4',
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    pointHoverRadius: 0,
+                },
+            ],
+        };
+    }, [lpTotValues, selectedNRForChart, nrReference]);
+
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            },
+            title: {
+                display: true,
+                text: 'Courbe de Niveau Sonore',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null && !isNaN(context.parsed.y)) {
+                            label += context.parsed.y.toFixed(3);
+                        }
+                        return label;
+                    }
+                }
+            },
+            datalabels: {
+                display: true,
+                color: 'black',
+                align: 'end',
+                anchor: 'end',
+                formatter: function(value, context) {
+                    return value !== null && !isNaN(value) ? value.toFixed(3) : '';
+                },
+                font: {
+                    weight: 'bold',
+                    size: 10,
+                },
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                borderColor: 'rgba(0, 0, 0, 0.2)',
+                borderWidth: 0,
+                borderRadius: 4,
+                padding: {
+                    top: 4,
+                    bottom: 4,
+                    left: 6,
+                    right: 6
+                }
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Fréquence (Hz)',
+                },
+                type: 'category',
+                labels: BANDES.map(String),
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Niveau Sonore (dB)',
+                },
+                beginAtZero: false,
+            },
+        },
+    };
+
+    return (
+        <>
+            <div className="logout-global">
+                <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
+            </div>
+            <div className="container-box">
+                <div className="page-header">
+                    <h2 className="page-title">Résultats Acoustiques - Synthèse</h2>
+                </div>
+
+                <table className="affaires-table synthese-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            {BANDES.map(freq => (
+                                <th key={freq}>{freq} Hz</th>
+                            ))}
+                            <th>GLOBAL dBA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {TYPES_LIGNES.map((type, idx) => (
+                        <tr key={idx}>
+                        <td>{type}</td>
+                        {BANDES.map(freq => (
+                            <td key={freq}>{
+                            type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
+                            type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
+                            type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
+                            type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
+                            ''
+                            }</td>
+                        ))}
+                        <td>
+                        {type === "reprise"
+                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
+                            : type === "extraction"
+                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
+                            : type === "Soufflage"
+                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
+                            : type === "Lp tot"
+                            ? (calculateLpTot(
+                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
+                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
+                                lpGlobalDBA["extraction"]
+                              )?.toFixed(3) ?? '')
+                            : ''}
+                        </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+
+                <h3 className="page-title margin-top-table">Tableau NR (Référence)</h3>
+                <table className="affaires-table synthese-table">
                 <thead>
                     <tr>
-                        <th>Type</th>
-                        {BANDES.map(freq => (
-                            <th key={freq}>{freq} Hz</th>
-                        ))}
-                        <th>GLOBAL dBA</th>
+                    <th>Hz / NR</th>
+                    {NR_OPTIONS.map(nr => (
+                        <th key={`nr-header-${nr}`}>{`NR ${nr}`}</th>
+                    ))}
                     </tr>
                 </thead>
                 <tbody>
-                {TYPES_LIGNES.map((type, idx) => (
-                    <tr key={idx}>
-                    <td>{type}</td>
-                    {BANDES.map(freq => (
-                        <td key={freq}>{
-                        type === "reprise" ? lpReprise[freq] ?? '' :
-                        type === "extraction" ? lpExtraction[freq] ?? '' :
-                        type === "Soufflage" ? lpSoufflage[freq] ?? '' :
-                        type === "Lp tot" ? calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq]) :
-                        ''
-                        }</td>
-                    ))}
-                    <td>
-                    {type === "reprise"
-                        ? lpGlobalDBA["vc crsl-ecm 2 /reprise"] ?? ''
-                        : type === "extraction"
-                        ? lpGlobalDBA["extraction"] ?? ''
-                        : type === "Soufflage"
-                        ? lpGlobalDBA["vc crsl-ecm 2 /soufflage"] ?? ''
-                        : type === "Lp tot"
-                        ? calculateLpTot(
-                            lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
-                            lpGlobalDBA["vc crsl-ecm 2 /reprise"],
-                            lpGlobalDBA["extraction"]
-                          )
-                        : ''}
-                    </td>
-
+                    {nrReference.map((row, index) => (
+                    <tr key={index}>
+                        <td>{row.bande}</td>
+                        {NR_OPTIONS.map(nr => (
+                            <td key={`nr-value-${row.bande}-${nr}`}>{row[`nr${nr}`]}</td>
+                        ))}
                     </tr>
-                ))}
+                    ))}
                 </tbody>
+                </table>
 
-            </table>
-            <h3 className="page-title">Tableau NR (Référence)</h3>
-            <table className="affaires-table synthese-table">
-            <thead>
-                <tr>
-                <th>Hz / NR</th>
-                <th>NR 0</th>
-                <th>NR 10</th>
-                <th>NR 20</th>
-                <th>NR 30</th>
-                <th>NR 35</th>
-                <th>NR 40</th>
-                <th>NR 45</th>
-                <th>NR 50</th>
-                <th>NR 60</th>
-                </tr>
-            </thead>
-            <tbody>
-                {nrReference.map((row, index) => (
-                <tr key={index}>
-                    <td>{row.bande}</td>
-                    <td>{row.nr0}</td>
-                    <td>{row.nr10}</td>
-                    <td>{row.nr20}</td>
-                    <td>{row.nr30}</td>
-                    <td>{row.nr35}</td>
-                    <td>{row.nr40}</td>
-                    <td>{row.nr45}</td>
-                    <td>{row.nr50}</td>
-                    <td>{row.nr60}</td>
-                </tr>
-                ))}
-            </tbody>
-            </table>
+                <div className="footer-actions chart-actions-container">
+                    <button className="btn-secondary" onClick={handleDisplayChartButtonClick}>
+                        Afficher la courbe
+                    </button>
 
+                    {showNRSelectSection && (
+                        <div className="nr-selection-controls">
+                            <label htmlFor="nr-select">Choisir un NR:</label>
+                            <select
+                                id="nr-select"
+                                value={tempSelectedNR}
+                                onChange={(e) => setTempSelectedNR(e.target.value)}
+                            >
+                                <option value="" disabled>Sélectionnez un NR</option>
+                                {NR_OPTIONS.map(nr => (
+                                    <option key={nr} value={nr}>{`NR ${nr}`}</option>
+                                ))}
+                            </select>
+                            <button
+                                className="btn-primary"
+                                onClick={handleConfirmNRSelection}
+                                disabled={!tempSelectedNR}
+                            >
+                                Valider
+                            </button>
+                            <button
+                                className="btn-secondary"
+                                onClick={handleCancelNRSelection}
+                            >
+                                Annuler
+                            </button>
+                        </div>
+                    )}
+                </div>
 
-            <div className="footer-actions">
-                <button className="btn-secondary" onClick={() => window.history.back()}>
-                    Retour
-                </button>
+                {showChart && selectedNRForChart !== null && (
+                    <div className="chart-container">
+                        <Line data={chartData} options={chartOptions} />
+                    </div>
+                )}
+
+                <div className="footer-actions">
+                    <button className="btn-secondary" onClick={() => window.history.back()}>
+                        Retour
+                    </button>
+                </div>
             </div>
-        </div>
+        </> // Closing the Fragment opened for logout button
     );
 };
 
