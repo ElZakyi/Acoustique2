@@ -6,6 +6,7 @@ import SallesListe from './SallesListe';
 import SourcesSonoresListe from './SourcesSonoresListe'; 
 import TronconsListe from './TronconsListe';
 import ElementsReseau from './ElementsReseau';
+import ResultatsPage from './ResultatsPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/salles/:id_salle/sources" element={<SourcesSonoresListe />} />
         <Route path="/sources/:id_source/troncons" element={<TronconsListe />} />
         <Route path="/troncons/:id_troncon/:id_source/elements" element={<ElementsReseau />} />
+        <Route path="/salles/:id_salle/resultats" element={<ResultatsPage />} />
       </Routes>
     </Router>
   );

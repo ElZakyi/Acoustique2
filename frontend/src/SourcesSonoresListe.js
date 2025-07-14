@@ -292,6 +292,15 @@ const SourcesSonoresListe = () => {
                         ))}
                     </tbody>
                 </table>
+                <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                <button
+                    className="btn-primary"
+                    onClick={() => navigate(`/salles/${id_salle}/resultats`)}
+                >
+                    Résultat
+                </button>
+            </div>
+
 
                 <h2 style={{ marginTop: '40px' }}>Tableau des spectres</h2>
                  <table className="affaires-table">
