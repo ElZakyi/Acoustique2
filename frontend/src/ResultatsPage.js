@@ -9,6 +9,28 @@ const ResultatsPage = () => {
     const [lpReprise, setLpReprise] = useState({});
     const [lpExtraction, setLpExtraction] = useState({});
     const [lpSoufflage, setLpSoufflage] = useState({});
+    const [lpGlobalDBA, setLpGlobalDBA] = useState({});
+
+    useEffect(() => {
+    const fetchLpGlobalDBA = async () => {
+        try {
+        const response = await axios.get('http://localhost:5000/api/lp-dba');
+        const data = response.data;
+
+        const valeurs = {};
+        data.forEach(item => {
+            valeurs[item.type_source.toLowerCase()] = item.valeur;
+        });
+
+        setLpGlobalDBA(valeurs);
+        } catch (error) {
+        console.error('Erreur chargement Global dBA:', error);
+        }
+    };
+
+    fetchLpGlobalDBA();
+    }, []);
+
 
     useEffect(() => {
     const fetchLpSoufflage = async () => {
@@ -101,7 +123,16 @@ const ResultatsPage = () => {
                         ''
                         }</td>
                     ))}
-                    <td></td>
+                    <td>
+                    {type === "reprise"
+                        ? lpGlobalDBA["vc crsl-ecm 2 /reprise"] ?? ''
+                        : type === "extraction"
+                        ? lpGlobalDBA["extraction"] ?? ''
+                        : type === "Soufflage"
+                        ? lpGlobalDBA["vc crsl-ecm 2 /soufflage"] ?? ''
+                        : ''}
+                    </td>
+
                     </tr>
                 ))}
                 </tbody>
