@@ -1594,6 +1594,7 @@ app.get('/api/lw_sortie_air_neuf/:id_source', (req, res) => {
         });
     });
 });
+
 //insertion du globaldba en base donné pour les niveau lp disponible
 app.post('/api/lp-dba', (req, res) => {
   const { id_element, global_dba_lp } = req.body;
