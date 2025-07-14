@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
+
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import './AffairesListe.css'; // Make sure this import is correct
 
@@ -65,6 +67,9 @@ const ResultatsPage = () => {
     const [lpSoufflage, setLpSoufflage] = useState({});
     const [lpGlobalDBA, setLpGlobalDBA] = useState({});
     const [nrReference, setNrReference] = useState([]);
+    const { id_salle: idParam } = useParams();
+    const location = useLocation();
+    const id_salle = idParam || location.state?.id_salle;
 
     // etats pour courbe
     const [showNRSelectSection, setShowNRSelectSection] = useState(false);
@@ -84,9 +89,8 @@ const ResultatsPage = () => {
         return values;
     }, [lpSoufflage, lpReprise, lpExtraction]);
 
-    const navigate = useNavigate(); // Initialize useNavigate hook
+    const navigate = useNavigate(); 
 
-    // Function to handle logout
     const handleLogout = () => {
         localStorage.removeItem("email");
         localStorage.removeItem("id_utilisateur");
@@ -105,7 +109,6 @@ const ResultatsPage = () => {
         };
         fetchNR();
     }, []);
-
 
     useEffect(() => {
         const fetchLpGlobalDBA = async () => {
@@ -160,8 +163,8 @@ const ResultatsPage = () => {
         fetchLpExtraction();
     }, []);
 
-
     useEffect(() => {
+
         const fetchLpReprise = async () => {
             try {
                 const response = await axios.get('http://localhost:5000/api/lp-vc-reprise');
