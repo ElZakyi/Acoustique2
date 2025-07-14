@@ -1707,6 +1707,18 @@ app.get('/api/lp-dba', (req, res) => {
     res.json(results);
   });
 });
+//recuperation des valeurs de courbe nr et les visualisé
+app.get('/api/nr-reference', (req, res) => {
+  const sql = `SELECT * FROM nr_reference ORDER BY bande ASC`;
+
+  db.query(sql, (error, results) => {
+    if (error) {
+      console.error("Erreur récupération NR:", error);
+      return res.status(500).json({ error: 'Erreur serveur' });
+    }
+    res.json(results);
+  });
+});
 
 
 

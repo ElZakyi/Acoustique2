@@ -31,6 +31,22 @@ const ResultatsPage = () => {
     const [lpSoufflage, setLpSoufflage] = useState({});
     const [lpGlobalDBA, setLpGlobalDBA] = useState({});
 
+    const [nrReference, setNrReference] = useState([]);
+
+    useEffect(() => {
+    const fetchNR = async () => {
+        try {
+        const response = await axios.get('http://localhost:5000/api/nr-reference');
+        setNrReference(response.data);
+        } catch (error) {
+        console.error('Erreur chargement NR:', error);
+        }
+    };
+
+    fetchNR();
+    }, []);
+
+
     useEffect(() => {
     const fetchLpGlobalDBA = async () => {
         try {
@@ -165,6 +181,40 @@ const ResultatsPage = () => {
                 </tbody>
 
             </table>
+            <h3 className="page-title">Tableau NR (Référence)</h3>
+            <table className="affaires-table synthese-table">
+            <thead>
+                <tr>
+                <th>Hz / NR</th>
+                <th>NR 0</th>
+                <th>NR 10</th>
+                <th>NR 20</th>
+                <th>NR 30</th>
+                <th>NR 35</th>
+                <th>NR 40</th>
+                <th>NR 45</th>
+                <th>NR 50</th>
+                <th>NR 60</th>
+                </tr>
+            </thead>
+            <tbody>
+                {nrReference.map((row, index) => (
+                <tr key={index}>
+                    <td>{row.bande}</td>
+                    <td>{row.nr0}</td>
+                    <td>{row.nr10}</td>
+                    <td>{row.nr20}</td>
+                    <td>{row.nr30}</td>
+                    <td>{row.nr35}</td>
+                    <td>{row.nr40}</td>
+                    <td>{row.nr45}</td>
+                    <td>{row.nr50}</td>
+                    <td>{row.nr60}</td>
+                </tr>
+                ))}
+            </tbody>
+            </table>
+
 
             <div className="footer-actions">
                 <button className="btn-secondary" onClick={() => window.history.back()}>
