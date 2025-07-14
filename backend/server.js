@@ -1631,7 +1631,8 @@ app.post('/api/lp-dba', (req, res) => {
 });
 
 //recuperation de niveau lp pour VC/reprise 
-app.get('/api/lp-vc-reprise', (req, res) => {
+app.get('/api/lp-vc-reprise/:id_salle', (req, res) => {
+  const id_salle = req.params.id_salle;
   const sql = `
     SELECT nl.bande, nl.valeur
     FROM sourcesonore ss
@@ -1641,18 +1642,17 @@ app.get('/api/lp-vc-reprise', (req, res) => {
     JOIN niveaulp nl ON nl.id_element = vc.id_element
     WHERE ss.type = 'VC CRSL-ECM 2 /reprise'
       AND vc.type_vc = 'Reprise'
+      AND ss.id_salle = ?
   `;
-
-  db.query(sql, (error, results) => {
-    if (error) {
-      console.error('Erreur récupération Lp VC Reprise:', error);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+  db.query(sql, [id_salle], (error, results) => {
+    if (error) return res.status(500).json({ error: 'Erreur serveur' });
     res.json(results);
   });
 });
+
 //recuperation du niveau lp du source sonore de type extraction 
-app.get('/api/lp-extraction', (req, res) => {
+app.get('/api/lp-extraction/:id_salle', (req, res) => {
+  const id_salle = req.params.id_salle;
   const sql = `
     SELECT nl.bande, nl.valeur
     FROM sourcesonore ss
@@ -1660,18 +1660,17 @@ app.get('/api/lp-extraction', (req, res) => {
     JOIN elementreseau er ON er.id_troncon = t.id_troncon
     JOIN niveaulp nl ON nl.id_element = er.id_element
     WHERE ss.type = 'Extraction'
+      AND ss.id_salle = ?
   `;
-
-  db.query(sql, (error, results) => {
-    if (error) {
-      console.error('Erreur récupération Lp Extraction:', error);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+  db.query(sql, [id_salle], (error, results) => {
+    if (error) return res.status(500).json({ error: 'Erreur serveur' });
     res.json(results);
   });
 });
+
 //recuperation du niveau lp du source sonore VC de type soufflage 
-app.get('/api/lp-vc-soufflage', (req, res) => {
+app.get('/api/lp-vc-soufflage/:id_salle', (req, res) => {
+  const id_salle = req.params.id_salle;
   const sql = `
     SELECT nl.bande, nl.valeur
     FROM sourcesonore ss
@@ -1681,25 +1680,28 @@ app.get('/api/lp-vc-soufflage', (req, res) => {
     JOIN niveaulp nl ON nl.id_element = vc.id_element
     WHERE ss.type = 'VC CRSL-ECM 2 /soufflage'
       AND vc.type_vc = 'Soufflage'
+      AND ss.id_salle = ?
   `;
-
-  db.query(sql, (error, results) => {
-    if (error) {
-      console.error('❌ Erreur récupération Lp VC Soufflage :', error);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+  db.query(sql, [id_salle], (error, results) => {
+    if (error) return res.status(500).json({ error: 'Erreur serveur' });
     res.json(results);
   });
 });
-//recuperation des GLOBAL DBA pour les source sonore 
-app.get('/api/lp-dba', (req, res) => {
+
+
+// récupération des GLOBAL DBA pour les sources sonores liées à une salle
+app.get('/api/lp-dba/:id_salle', (req, res) => {
+  const id_salle = req.params.id_salle;
+
   const sql = `
-    SELECT type_source, valeur
-    FROM lp_dba
-    WHERE type_source IN ('VC CRSL-ECM 2 /soufflage', 'VC CRSL-ECM 2 /reprise', 'extraction')
+    SELECT ss.type AS type_source, ld.valeur
+    FROM lp_dba ld
+    JOIN sourcesonore ss ON ss.type = ld.type_source
+    WHERE ss.id_salle = ?
+      AND ld.type_source IN ('VC CRSL-ECM 2 /soufflage', 'VC CRSL-ECM 2 /reprise', 'extraction')
   `;
 
-  db.query(sql, (error, results) => {
+  db.query(sql, [id_salle], (error, results) => {
     if (error) {
       console.error('Erreur récupération LP dBA:', error);
       return res.status(500).json({ error: 'Erreur serveur' });
@@ -1707,6 +1709,8 @@ app.get('/api/lp-dba', (req, res) => {
     res.json(results);
   });
 });
+
+
 //recuperation des valeurs de courbe nr et les visualisé
 app.get('/api/nr-reference', (req, res) => {
   const sql = `SELECT * FROM nr_reference ORDER BY bande ASC`;

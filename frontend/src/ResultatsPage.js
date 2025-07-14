@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './AffairesListe.css';
-
+import { useParams, useLocation } from 'react-router-dom';
 const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
 const TYPES_LIGNES = ["Soufflage", "reprise", "extraction", "Lp tot"];
 
@@ -32,6 +32,9 @@ const ResultatsPage = () => {
     const [lpGlobalDBA, setLpGlobalDBA] = useState({});
 
     const [nrReference, setNrReference] = useState([]);
+    const { id_salle: idParam } = useParams();
+    const location = useLocation();
+    const id_salle = idParam || location.state?.id_salle;
 
     useEffect(() => {
     const fetchNR = async () => {
@@ -46,90 +49,73 @@ const ResultatsPage = () => {
     fetchNR();
     }, []);
 
-
-    useEffect(() => {
-    const fetchLpGlobalDBA = async () => {
-        try {
-        const response = await axios.get('http://localhost:5000/api/lp-dba');
-        const data = response.data;
-
-        const valeurs = {};
-        data.forEach(item => {
-            valeurs[item.type_source.toLowerCase()] = item.valeur;
-        });
-
-        setLpGlobalDBA(valeurs);
-        } catch (error) {
-        console.error('Erreur chargement Global dBA:', error);
-        }
-    };
-
-    fetchLpGlobalDBA();
-    }, []);
-
-
-    useEffect(() => {
+   useEffect(() => {
+    if (!id_salle) return;
     const fetchLpSoufflage = async () => {
         try {
-        const response = await axios.get('http://localhost:5000/api/lp-vc-soufflage');
-        const data = response.data;
-
+        const response = await axios.get(`http://localhost:5000/api/lp-vc-soufflage/${id_salle}`);
         const valeurs = {};
-        data.forEach(item => {
+        response.data.forEach(item => {
             valeurs[item.bande] = item.valeur;
         });
-
         setLpSoufflage(valeurs);
         } catch (error) {
         console.error('Erreur chargement Lp VC Soufflage:', error);
         }
     };
-
     fetchLpSoufflage();
-    }, []);
+    }, [id_salle]);
 
+    useEffect(() => {
+    if (!id_salle) return;
+    const fetchLpReprise = async () => {
+        try {
+        const response = await axios.get(`http://localhost:5000/api/lp-vc-reprise/${id_salle}`);
+        const valeurs = {};
+        response.data.forEach(item => {
+            valeurs[item.bande] = item.valeur;
+        });
+        setLpReprise(valeurs);
+        } catch (error) {
+        console.error('Erreur chargement Lp VC Reprise:', error);
+        }
+    };
+    fetchLpReprise();
+    }, [id_salle]);
 
     useEffect(() => {
     const fetchLpExtraction = async () => {
         try {
-        const response = await axios.get('http://localhost:5000/api/lp-extraction');
-        const data = response.data;
-
+        const response = await axios.get(`http://localhost:5000/api/lp-extraction/${id_salle}`);
         const valeurs = {};
-        data.forEach(item => {
+        response.data.forEach(item => {
             valeurs[item.bande] = item.valeur;
         });
-
         setLpExtraction(valeurs);
         } catch (error) {
         console.error('Erreur chargement Lp Extraction:', error);
         }
     };
-
     fetchLpExtraction();
     }, []);
 
-
     useEffect(() => {
-        const fetchLpReprise = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/api/lp-vc-reprise');
-                const data = response.data;
+    if (!id_salle) return;
+    const fetchLpGlobalDBA = async () => {
+        try {
+        const response = await axios.get(`http://localhost:5000/api/lp-dba/${id_salle}`);
+        const valeurs = {};
+        response.data.forEach(item => {
+            valeurs[item.type_source.toLowerCase()] = item.valeur;
+        });
+        setLpGlobalDBA(valeurs);
+        } catch (error) {
+        console.error('Erreur chargement Global dBA:', error);
+        }
+    };
+    fetchLpGlobalDBA();
+    }, [id_salle]);
 
-                // Organiser les valeurs par bande
-                const valeurs = {};
-                data.forEach(item => {
-                    valeurs[item.bande] = item.valeur;
-                });
-
-                setLpReprise(valeurs);
-            } catch (error) {
-                console.error('Erreur chargement Lp VC Reprise:', error);
-            }
-        };
-
-        fetchLpReprise();
-    }, []);
 
     return (
         <div className="container-box">
