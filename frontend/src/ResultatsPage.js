@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react';
-
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import './AffairesListe.css';
@@ -16,7 +15,6 @@ import {
     Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-
 import DatalabelsPlugin from 'chartjs-plugin-datalabels';
 
 ChartJS.register(
@@ -27,12 +25,11 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    DatalabelsPlugin 
+    DatalabelsPlugin
 );
 
 const BANDES = [63, 125, 250, 500, 1000, 2000, 4000];
 const TYPES_LIGNES = ["Soufflage", "reprise", "extraction", "Lp tot"];
-
 const NR_OPTIONS = [0, 10, 20, 30, 35, 40, 45, 50, 60];
 
 const calculateLpTot = (lpSoufflageVal, lpRepriseVal, lpExtractionVal) => {
@@ -66,14 +63,18 @@ const ResultatsPage = () => {
     const [tempSelectedNR, setTempSelectedNR] = useState('');
     const [selectedNRForChart, setSelectedNRForChart] = useState(null);
     const [showChart, setShowChart] = useState(false);
-    const [tracabiliteData, setTracabiliteData] = useState([]);
+
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [openSidebarSections, setOpenSidebarSections] = useState({});
+
+    const [rawTracabiliteData, setRawTracabiliteData] = useState([]);
 
     useEffect(() => {
         if (!id_salle) return;
         const fetchTracabilite = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/api/tracabilite/${id_salle}`);
-                setTracabiliteData(response.data);
+                setRawTracabiliteData(response.data); 
             } catch (error) {
                 console.error("Erreur chargement tracabilité :", error);
             }
@@ -81,7 +82,60 @@ const ResultatsPage = () => {
         fetchTracabilite();
     }, [id_salle]);
 
+    // Traitement des données de traçabilité
+    const processedTracabiliteData = useMemo(() => {
+        if (!rawTracabiliteData || rawTracabiliteData.length === 0) return null;
 
+        const affaire = rawTracabiliteData[0];
+        const result = {
+            numero_affaire: affaire.numero_affaire,
+            objet_affaire: affaire.objet,
+            nom_salle: affaire.nom_salle,
+            sources: {},
+        };
+
+        rawTracabiliteData.forEach(row => {
+            if (!result.sources[row.id_source]) {
+                result.sources[row.id_source] = {
+                    id: row.id_source,
+                    nom_source: row.nom_source,
+                    type_source: row.type_source,
+                    troncons: {},
+                };
+            }
+
+            const currentSource = result.sources[row.id_source];
+            if (!currentSource.troncons[row.id_troncon]) {
+                currentSource.troncons[row.id_troncon] = {
+                    id: row.id_troncon,
+                    forme: row.forme,
+                    elements: [],
+                };
+            }
+
+            // Ajouter l'élément au tronçon
+            const currentTroncon = currentSource.troncons[row.id_troncon];
+            const elementLabel = row.type_element === "vc" && row.type_vc
+                ? `${row.type_element} (${row.type_vc})`
+                : row.type_element;
+            currentTroncon.elements.push(elementLabel);
+        });
+
+        result.sources = Object.values(result.sources).map(source => ({
+            ...source,
+            troncons: Object.values(source.troncons),
+        }));
+
+        return result;
+    }, [rawTracabiliteData]);
+
+    // Fonction pour basculer l'état d'une section déplier et replier
+    const toggleSidebarSection = (id) => {
+        setOpenSidebarSections(prev => ({
+            ...prev,
+            [id]: !prev[id],
+        }));
+    };
 
     const lpTotValues = useMemo(() => {
         const values = {};
@@ -146,7 +200,7 @@ const ResultatsPage = () => {
             }
         };
         fetchLpReprise();
-    }, [id_salle]); 
+    }, [id_salle]);
 
     useEffect(() => {
         if (!id_salle) return;
@@ -219,9 +273,9 @@ const ResultatsPage = () => {
                     borderColor: '#ff7f0e', // Orange
                     backgroundColor: '#ff7f0e',
                     tension: 0.1,
-                    pointRadius: 0, 
-                    pointHitRadius: 0, 
-                    pointHoverRadius: 0, 
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    pointHoverRadius: 0,
                 },
                 {
                     label: 'Lp tot',
@@ -229,7 +283,7 @@ const ResultatsPage = () => {
                     borderColor: '#1f77b4', // Blue
                     backgroundColor: '#1f77b4',
                     tension: 0.1,
-                    pointRadius: 0, 
+                    pointRadius: 0,
                     pointHitRadius: 0,
                     pointHoverRadius: 0,
                 },
@@ -263,11 +317,11 @@ const ResultatsPage = () => {
                     }
                 }
             },
-            datalabels: { 
-                display: true, 
-                color: 'black', 
+            datalabels: {
+                display: true,
+                color: 'black',
                 align: 'end',
-                anchor: 'end', 
+                anchor: 'end',
                 formatter: function(value, context) {
                     return value !== null && !isNaN(value) ? value.toFixed(3) : '';
                 },
@@ -307,198 +361,198 @@ const ResultatsPage = () => {
     };
 
     return (
-  <>
-    {/* Bouton Déconnexion */}
-    <div className="logout-global">
-      <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
-    </div>
-
-    {/* Disposition en 2 colonnes : traçabilité à gauche + contenu principal à droite */}
-    <div className="main-layout">
-
-      {/* Colonne gauche - Traçabilité */}
-      {tracabiliteData.length > 0 && (
-  <div className="tracabilite-fixed">
-    <h3 className="page-title">Traçabilité Affaire → Réseau</h3>
-    {(() => {
-      const affaire = tracabiliteData[0];
-      const lines = [
-        `Affaire : ${affaire.numero_affaire} - ${affaire.objet}`,
-        `  └── Salle : ${affaire.nom_salle}`
-      ];
-
-      const groupedBySource = {};
-
-      // Grouper les données par source, puis tronçon, puis élément
-      tracabiliteData.forEach(row => {
-        if (!groupedBySource[row.id_source]) {
-          groupedBySource[row.id_source] = {
-            nom_source: row.nom_source,
-            type_source: row.type_source,
-            troncons: {}
-          };
-        }
-
-        if (!groupedBySource[row.id_source].troncons[row.id_troncon]) {
-        groupedBySource[row.id_source].troncons[row.id_troncon] = {
-            forme: row.forme,
-            elements: [] // ✅ tableau dès le départ
-        };
-        }
-
-        const elementLabel = row.type_element === "vc" && row.type_vc
-        ? `${row.type_element} (${row.type_vc})`
-        : row.type_element;
-
-        groupedBySource[row.id_source].troncons[row.id_troncon].elements.push(elementLabel);
-
-
-
-      });
-
-      // Construire les lignes de l’arborescence
-      Object.values(groupedBySource).forEach(source => {
-        lines.push(`      └── Source sonore : ${source.nom_source} (${source.type_source})`);
-        Object.values(source.troncons).forEach(troncon => {
-          lines.push(`          └── Tronçon : ${troncon.forme}`);
-          troncon.elements.forEach(el => {
-            lines.push(`              └── Élément : ${el}`);
-          });
-        });
-      });
-
-      return <pre className="tracabilite-box">{lines.join('\n')}</pre>;
-    })()}
-  </div>
-)}
-
-
-      {/* Colonne droite - Contenu principal */}
-      <div className="container-box">
-        <div className="page-header">
-          <h2 className="page-title">Résultats Acoustiques - Synthèse</h2>
-        </div>
-
-        <table className="affaires-table synthese-table">
-          <thead>
-            <tr>
-              <th>Type</th>
-              {BANDES.map(freq => (
-                <th key={freq}>{freq} Hz</th>
-              ))}
-              <th>GLOBAL dBA</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TYPES_LIGNES.map((type, idx) => (
-              <tr key={idx}>
-                <td>{type}</td>
-                {BANDES.map(freq => (
-                  <td key={freq}>
-                    {
-                      type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
-                      type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
-                      type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
-                      type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
-                      ''
-                    }
-                  </td>
-                ))}
-                <td>
-                  {type === "reprise"
-                    ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
-                    : type === "extraction"
-                    ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
-                    : type === "Soufflage"
-                    ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
-                    : type === "Lp tot"
-                    ? (calculateLpTot(
-                        lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
-                        lpGlobalDBA["vc crsl-ecm 2 /reprise"],
-                        lpGlobalDBA["extraction"]
-                      )?.toFixed(3) ?? '')
-                    : ''}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h3 className="page-title margin-top-table">Tableau NR (Référence)</h3>
-        <table className="affaires-table synthese-table">
-          <thead>
-            <tr>
-              <th>Hz / NR</th>
-              {NR_OPTIONS.map(nr => (
-                <th key={`nr-header-${nr}`}>{`NR ${nr}`}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {nrReference.map((row, index) => (
-              <tr key={index}>
-                <td>{row.bande}</td>
-                {NR_OPTIONS.map(nr => (
-                  <td key={`nr-value-${row.bande}-${nr}`}>{row[`nr${nr}`]}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Bouton Afficher courbe */}
-        <div className="footer-actions chart-actions-container">
-          <button className="btn-secondary btn-full-width" onClick={handleDisplayChartButtonClick}>
-            Afficher la courbe
-          </button>
-
-          {showNRSelectSection && (
-            <div className="nr-selection-controls">
-              <label htmlFor="nr-select">Choisir un NR:</label>
-              <select
-                id="nr-select"
-                value={tempSelectedNR}
-                onChange={(e) => setTempSelectedNR(e.target.value)}
-              >
-                <option value="" disabled>Sélectionnez un NR</option>
-                {NR_OPTIONS.map(nr => (
-                  <option key={nr} value={nr}>{`NR ${nr}`}</option>
-                ))}
-              </select>
-              <button
-                className="btn-primary"
-                onClick={handleConfirmNRSelection}
-                disabled={!tempSelectedNR}
-              >
-                Valider
-              </button>
-              <button
-                className="btn-secondary"
-                onClick={handleCancelNRSelection}
-              >
-                Annuler
-              </button>
+        <>
+            {/* Bouton Déconnexion*/}
+            <div className="logout-global">
+                <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
             </div>
-          )}
-        </div>
 
-        {/* Courbe Chart.js */}
-        {showChart && selectedNRForChart !== null && (
-          <div className="chart-container">
-            <Line data={chartData} options={chartOptions} />
-          </div>
-        )}
+            {/* Bouton Hamburger*/}
+            <button className="hamburger-button" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                ☰
+            </button>
 
-        <div className="footer-actions">
-          <button className="btn-secondary" onClick={() => window.history.back()}>
-            Retour
-          </button>
-        </div>
-      </div>
-    </div>
-  </>
-);
+            {/* Sidebar de Traçabilité */}
+            <div className={`tracabilite-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <h3 className="sidebar-title">Traçabilité Affaire → Réseau</h3>
+                {processedTracabiliteData ? (
+                    <div className="sidebar-content-scrollable">
+                        <div className="sidebar-item-root">
+                            <div className="sidebar-label">
+                                Affaire : {processedTracabiliteData.numero_affaire} - {processedTracabiliteData.objet_affaire}
+                            </div>
+                            <div className="sidebar-sub-item-indent">
+                                Salle : {processedTracabiliteData.nom_salle}
+                            </div>
+                        </div>
 
+                        {processedTracabiliteData.sources.map(source => (
+                            <div key={`source-${source.id}`} className="sidebar-item-container">
+                                <div
+                                    className="sidebar-toggle-header"
+                                    onClick={() => toggleSidebarSection(`source-${source.id}`)}
+                                >
+                                    <span className={`sidebar-arrow ${openSidebarSections[`source-${source.id}`] ? 'expanded' : ''}`}>►</span>
+                                    <span className="sidebar-label">Source : {source.nom_source} ({source.type_source})</span>
+                                </div>
+                                {openSidebarSections[`source-${source.id}`] && (
+                                    <div className="sidebar-nested-items">
+                                        {source.troncons.map(troncon => (
+                                            <div key={`troncon-${troncon.id}`} className="sidebar-item-container">
+                                                <div
+                                                    className="sidebar-toggle-header"
+                                                    onClick={() => toggleSidebarSection(`troncon-${troncon.id}`)}
+                                                >
+                                                    <span className={`sidebar-arrow ${openSidebarSections[`troncon-${troncon.id}`] ? 'expanded' : ''}`}>►</span>
+                                                    <span className="sidebar-label">Tronçon : {troncon.forme}</span>
+                                                </div>
+                                                {openSidebarSections[`troncon-${troncon.id}`] && (
+                                                    <div className="sidebar-nested-items">
+                                                        {troncon.elements.map((element, elIdx) => (
+                                                            <div key={`element-${elIdx}`} className="sidebar-simple-item">
+                                                                Élément : {element}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="sidebar-content-scrollable">Aucune donnée de traçabilité disponible.</p>
+                )}
+            </div>
+
+            {/* Contenu principal de la page */}
+            <div className={`main-page-content ${isSidebarOpen ? 'shifted' : ''}`}>
+                <div className="container-box">
+                    <div className="page-header">
+                        <h2 className="page-title">Résultats Acoustiques - Synthèse</h2>
+                    </div>
+
+                    <table className="affaires-table synthese-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                {BANDES.map(freq => (
+                                    <th key={freq}>{freq} Hz</th>
+                                ))}
+                                <th>GLOBAL dBA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {TYPES_LIGNES.map((type, idx) => (
+                                <tr key={idx}>
+                                    <td>{type}</td>
+                                    {BANDES.map(freq => (
+                                        <td key={freq}>
+                                            {
+                                                type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
+                                                type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
+                                                type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
+                                                type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
+                                                ''
+                                            }
+                                        </td>
+                                    ))}
+                                    <td>
+                                        {type === "reprise"
+                                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
+                                            : type === "extraction"
+                                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
+                                            : type === "Soufflage"
+                                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
+                                            : type === "Lp tot"
+                                            ? (calculateLpTot(
+                                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
+                                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
+                                                lpGlobalDBA["extraction"]
+                                              )?.toFixed(3) ?? '')
+                                            : ''}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <h3 className="page-title margin-top-table">Tableau NR (Référence)</h3>
+                    <table className="affaires-table synthese-table">
+                        <thead>
+                            <tr>
+                                <th>Hz / NR</th>
+                                {NR_OPTIONS.map(nr => (
+                                    <th key={`nr-header-${nr}`}>{`NR ${nr}`}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {nrReference.map((row, index) => (
+                                <tr key={index}>
+                                    <td>{row.bande}</td>
+                                    {NR_OPTIONS.map(nr => (
+                                        <td key={`nr-value-${row.bande}-${nr}`}>{row[`nr${nr}`]}</td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Bouton Afficher courbe */}
+                    <div className="footer-actions chart-actions-container">
+                        <button className="btn-secondary btn-full-width" onClick={handleDisplayChartButtonClick}>
+                            Afficher la courbe
+                        </button>
+
+                        {showNRSelectSection && (
+                            <div className="nr-selection-controls">
+                                <label htmlFor="nr-select">Choisir un NR:</label>
+                                <select
+                                    id="nr-select"
+                                    value={tempSelectedNR}
+                                    onChange={(e) => setTempSelectedNR(e.target.value)}
+                                >
+                                    <option value="" disabled>Sélectionnez un NR</option>
+                                    {NR_OPTIONS.map(nr => (
+                                        <option key={nr} value={nr}>{`NR ${nr}`}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    className="btn-primary"
+                                    onClick={handleConfirmNRSelection}
+                                    disabled={!tempSelectedNR}
+                                >
+                                    Valider
+                                </button>
+                                <button
+                                    className="btn-secondary"
+                                    onClick={handleCancelNRSelection}
+                                >
+                                    Annuler
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Courbe Chart.js */}
+                    {showChart && selectedNRForChart !== null && (
+                        <div className="chart-container">
+                            <Line data={chartData} options={chartOptions} />
+                        </div>
+                    )}
+
+                    <div className="footer-actions">
+                        <button className="btn-secondary" onClick={() => window.history.back()}>
+                            Retour
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
 };
 
 export default ResultatsPage;
