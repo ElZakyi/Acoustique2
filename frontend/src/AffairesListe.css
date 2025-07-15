@@ -561,6 +561,35 @@
 .margin-top-table {
     margin-top: 40px;
 }
-.btn-full-width {
-    width: 100%;
+.tracabilite-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 2rem;
+  margin-left: 1rem; /* distance par rapport au bord gauche */
 }
+
+.main-layout {
+  display: flex;
+  align-items: flex-start;
+}
+
+.tracabilite-fixed {
+  flex: 0 0 480px;
+  padding: 1rem;
+  margin-right: 1rem;
+}
+
+.tracabilite-box {
+  background-color: #f9f9f9;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  font-family: "Courier New", monospace;
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.4;
+  border: 1px solid #ddd;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
