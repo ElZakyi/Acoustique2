@@ -318,29 +318,53 @@ const ResultatsPage = () => {
 
       {/* Colonne gauche - Traçabilité */}
       {tracabiliteData.length > 0 && (
-        <div className="tracabilite-fixed">
-          <h3 className="page-title">Traçabilité Affaire → Réseau</h3>
-          {(() => {
-            const affaire = tracabiliteData[0];
-            const sources = [...new Set(tracabiliteData.map(row => `${row.nom_source} (${row.type_source})`))];
-            const troncons = [...new Set(tracabiliteData.map(row => row.forme))];
-            const elements = [...new Set(tracabiliteData.map(row => row.type_element))];
+  <div className="tracabilite-fixed">
+    <h3 className="page-title">Traçabilité Affaire → Réseau</h3>
+    {(() => {
+      const affaire = tracabiliteData[0];
+      const lines = [
+        `Affaire : ${affaire.numero_affaire} - ${affaire.objet}`,
+        `  └── Salle : ${affaire.nom_salle}`
+      ];
 
-            const lines = [
-              `Affaire : ${affaire.numero_affaire} - ${affaire.objet}`,
-              `  └── Salle : ${affaire.nom_salle}`,
-              `      └── Sources sonores :`,
-              ...sources.map(src => `          └── ${src}`),
-              `      └── Tronçons :`,
-              ...troncons.map(t => `          └── ${t}`),
-              `      └── Éléments réseau :`,
-              ...elements.map(el => `          └── ${el}`),
-            ];
+      const groupedBySource = {};
 
-            return <pre className="tracabilite-box">{lines.join('\n')}</pre>;
-          })()}
-        </div>
-      )}
+      // Grouper les données par source, puis tronçon, puis élément
+      tracabiliteData.forEach(row => {
+        if (!groupedBySource[row.id_source]) {
+          groupedBySource[row.id_source] = {
+            nom_source: row.nom_source,
+            type_source: row.type_source,
+            troncons: {}
+          };
+        }
+
+        if (!groupedBySource[row.id_source].troncons[row.id_troncon]) {
+          groupedBySource[row.id_source].troncons[row.id_troncon] = {
+            forme: row.forme,
+            elements: new Set()
+          };
+        }
+
+        groupedBySource[row.id_source].troncons[row.id_troncon].elements.add(row.type_element);
+      });
+
+      // Construire les lignes de l’arborescence
+      Object.values(groupedBySource).forEach(source => {
+        lines.push(`      └── Source sonore : ${source.nom_source} (${source.type_source})`);
+        Object.values(source.troncons).forEach(troncon => {
+          lines.push(`          └── Tronçon : ${troncon.forme}`);
+          troncon.elements.forEach(el => {
+            lines.push(`              └── Élément : ${el}`);
+          });
+        });
+      });
+
+      return <pre className="tracabilite-box">{lines.join('\n')}</pre>;
+    })()}
+  </div>
+)}
+
 
       {/* Colonne droite - Contenu principal */}
       <div className="container-box">
