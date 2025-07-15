@@ -1734,12 +1734,14 @@ app.get('/api/tracabilite/:id_salle', (req, res) => {
             s.id_salle, s.nom AS nom_salle,
             ss.id_source, ss.nom AS nom_source, ss.type AS type_source,
             t.id_troncon, t.forme,
-            er.id_element, er.type AS type_element
+            er.id_element, er.type AS type_element,
+            vc.type_vc
         FROM affaire a
         JOIN salle s ON s.id_affaire = a.id_affaire
         JOIN sourcesonore ss ON ss.id_salle = s.id_salle
         JOIN troncon t ON t.id_source = ss.id_source
         JOIN elementreseau er ON er.id_troncon = t.id_troncon
+        LEFT JOIN vc ON vc.id_element = er.id_element 
         WHERE s.id_salle = ?
     `;
 
