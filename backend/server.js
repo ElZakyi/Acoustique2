@@ -1724,6 +1724,35 @@ app.get('/api/nr-reference', (req, res) => {
   });
 });
 
+//ajout de la tracibilité des données 
+app.get('/api/tracabilite/:id_salle', (req, res) => {
+    const { id_salle } = req.params;
+
+    const sql = `
+        SELECT 
+            a.id_affaire, a.numero_affaire, a.objet, 
+            s.id_salle, s.nom AS nom_salle,
+            ss.id_source, ss.nom AS nom_source, ss.type AS type_source,
+            t.id_troncon, t.forme,
+            er.id_element, er.type AS type_element
+        FROM affaire a
+        JOIN salle s ON s.id_affaire = a.id_affaire
+        JOIN sourcesonore ss ON ss.id_salle = s.id_salle
+        JOIN troncon t ON t.id_source = ss.id_source
+        JOIN elementreseau er ON er.id_troncon = t.id_troncon
+        WHERE s.id_salle = ?
+    `;
+
+    db.query(sql, [id_salle], (err, results) => {
+        if (err) {
+            console.error("Erreur tracabilité :", err);
+            return res.status(500).json({ error: "Erreur serveur" });
+        }
+
+        res.json(results);
+    });
+});
+
 
 
 
