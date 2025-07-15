@@ -752,12 +752,12 @@ body, html {
         top: 10px;
         left: 10px;
     }
-    .logout-global {
-        top: 10px;
-        right: 10px;
-    }
     .main-page-content {
         padding: 15px;
         padding-top: 60px;
+    }
+        .logout-global {
+        top: 10px;
+        right: 10px;
     }
 }
