@@ -340,13 +340,20 @@ const ResultatsPage = () => {
         }
 
         if (!groupedBySource[row.id_source].troncons[row.id_troncon]) {
-          groupedBySource[row.id_source].troncons[row.id_troncon] = {
+        groupedBySource[row.id_source].troncons[row.id_troncon] = {
             forme: row.forme,
-            elements: new Set()
-          };
+            elements: [] // ✅ tableau dès le départ
+        };
         }
 
-        groupedBySource[row.id_source].troncons[row.id_troncon].elements.add(row.type_element);
+        const elementLabel = row.type_element === "vc" && row.type_vc
+        ? `${row.type_element} (${row.type_vc})`
+        : row.type_element;
+
+        groupedBySource[row.id_source].troncons[row.id_troncon].elements.push(elementLabel);
+
+
+
       });
 
       // Construire les lignes de l’arborescence
