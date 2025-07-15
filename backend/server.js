@@ -921,7 +921,6 @@ app.get('/api/lwresultants', (req, res) => getGroupedSpectrum('lwresultant', res
 
 //CALCULs
 // Calculer et récupérer les régénérations
-
 app.get('/api/regenerations', async (req, res) => {
     try {
         const [savedRegensRows] = await db.promise().query('SELECT * FROM regeneration');
@@ -933,18 +932,18 @@ app.get('/api/regenerations', async (req, res) => {
             return acc;
         }, {});
 
-        // calcul automatique
         const [calcDataRows] = await db.promise().query(`
-            SELECT 
+            SELECT
                 er.id_element, er.type, er.id_troncon,
                 t.vitesse, t.forme, t.largeur, t.hauteur, t.diametre,
-                cs.bande AS cs_bande, 
+                cs.bande AS cs_bande,
                 cs.valeur AS cs_valeur
             FROM elementreseau er
             JOIN troncon t ON er.id_troncon = t.id_troncon
             JOIN sourcesonore ss ON t.id_source = ss.id_source
             LEFT JOIN correctionspectral cs ON ss.id_salle = cs.id_salle
         `);
+
         const elementsData = calcDataRows.reduce((acc, row) => {
             if (!acc[row.id_element]) {
                 acc[row.id_element] = {
@@ -959,11 +958,13 @@ app.get('/api/regenerations', async (req, res) => {
         }, {});
 
         const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000];
-        for (const id_element in elementsData) {
-            const element = elementsData[id_element];
-            
-            // On ne fait le calcul que si ce n'est pas une grille de soufflage ni vc
-             if (element.type !== 'grillesoufflage' && element.type !== 'vc') {
+        const elementsToCalculateAndSave = []; 
+
+        for (const id_element_str in elementsData) { 
+            const id_element = parseInt(id_element_str);
+            const element = elementsData[id_element_str];
+
+            if (element.type !== 'grillesoufflage' && element.type !== 'vc') {
                 const calculatedSpectre = {};
                 const correctionsMap = element.corrections;
 
@@ -984,16 +985,28 @@ app.get('/api/regenerations', async (req, res) => {
                             regenerationValue = 10 + 50 * Math.log10(vitesse_ms) + 10 * Math.log10(surface_m2) + correctionValeur;
                         }
                     }
-                    calculatedSpectre[bande] = regenerationValue.toFixed(0);
+                    calculatedSpectre[bande] = parseFloat(regenerationValue.toFixed(0)); 
                 }
                 finalRegenerations[id_element] = calculatedSpectre;
+                elementsToCalculateAndSave.push({ id_element, spectre: calculatedSpectre });
+            }
+        }
 
-                //sauvegarde des nouvelles valeurs en bd
-                const valuesToSave = Object.entries(calculatedSpectre).map(([b, v]) => [id_element, b, v]);
+        if (elementsToCalculateAndSave.length > 0) {
+            for (const item of elementsToCalculateAndSave) {
+                const valuesToSave = Object.entries(item.spectre).map(([b, v]) => [item.id_element, parseInt(b), v]);
                 if (valuesToSave.length > 0) {
-                    await db.promise().query(
-                        'REPLACE INTO regeneration (id_element, bande, valeur) VALUES ?', [valuesToSave]
-                    );
+                    try {
+                        await db.promise().query(
+                            'REPLACE INTO regeneration (id_element, bande, valeur) VALUES ?', [valuesToSave]
+                        );
+                    } catch (innerError) {
+                        if (innerError.code === 'ER_NO_REFERENCED_ROW_2' || innerError.code === 'ER_ROW_IS_REFERENCED_2') {
+                            console.warn(`Backend (Regeneration): Skipping save for element ${item.id_element} because its parent elementreseau is missing or was just deleted.`);
+                        } else {
+                            throw innerError;
+                        }
+                    }
                 }
             }
         }
@@ -1001,7 +1014,7 @@ app.get('/api/regenerations', async (req, res) => {
 
     } catch (error) {
         console.error("Erreur calcul et lecture régénération:", error);
-        res.status(500).json({ message: "Erreur serveur" });
+        res.status(500).json({ message: "Erreur serveur lors du calcul des régénérations." });
     }
 });
 
