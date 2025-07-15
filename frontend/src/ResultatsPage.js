@@ -369,7 +369,7 @@ const ResultatsPage = () => {
 
             {/* Bouton Hamburger*/}
             <button className="hamburger-button" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                ☰
+                ☰ Tracabilité 
             </button>
 
             {/* Sidebar de Traçabilité */}
