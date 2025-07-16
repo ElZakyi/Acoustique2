@@ -762,23 +762,18 @@ body, html {
     }
 }
 
-
-/* ========================================= */
-/* STYLES SPÉCIFIQUES POUR L'EXPORT PDF      */
-/* ========================================= */
-
+/* STYLES POUR L'EXPORT PDF*/
 .pdf-report-container {
-    /* Cache le conteneur du PDF par défaut */
-    position: fixed; /* Ou absolute */
+    position: fixed;
     top: 0;
     left: 0;
-    width: 100%; /* S'adapter à 100% de la fenêtre, le format A4 sera géré par jsPDF */
+    width: 100%;
     height: 100%;
     z-index: -1;
     opacity: 0;
-    background-color: white; /* Important pour que le fond soit blanc dans le PDF */
-    padding: 0; /* Les marges seront gérées par jsPDF */
-    font-family: 'Segoe UI', Arial, sans-serif; /* Police de caractère pour le PDF */
+    background-color: white;
+    padding: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
     color: #333;
     box-sizing: border-box;
 }
@@ -799,23 +794,17 @@ body, html {
     margin-bottom: 10px;
 }
 
-/* Vous pouvez ajouter un logo */
-/* .pdf-logo {
-    max-width: 150px;
-    margin-bottom: 15px;
-} */
-
 .pdf-section {
     margin-bottom: 25px;
     padding-bottom: 15px;
-    border-bottom: 1px dashed #eee; /* Ligne de séparation légère */
+    border-bottom: 1px dashed #eee;
 }
 
 .pdf-section h2 {
     font-size: 18px;
     color: #5699df;
     margin-bottom: 15px;
-    border-left: 4px solid #d8b95a; /* Bande jaune sur le côté */
+    border-left: 4px solid #d8b95a;
     padding-left: 10px;
 }
 
@@ -823,22 +812,22 @@ body, html {
     font-size: 11px;
     line-height: 1.6;
     margin-bottom: 5px;
-    margin-left: 15px; /* Légère indentation */
+    margin-left: 15px;
 }
 
 .pdf-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
-    font-size: 9px; /* Taille de police réduite pour les tableaux */
-    table-layout: fixed; /* Aide à la gestion des largeurs de colonnes */
+    font-size: 9px;
+    table-layout: fixed;
 }
 
 .pdf-table th, .pdf-table td {
     border: 1px solid #ddd;
     text-align: center;
-    padding: 6px 4px; /* Padding réduit */
-    word-wrap: break-word; /* Important pour les longs contenus */
+    padding: 6px 4px;
+    word-wrap: break-word;
 }
 
 .pdf-table thead {
@@ -849,44 +838,41 @@ body, html {
 .pdf-table thead th {
     font-weight: bold;
     text-transform: uppercase;
-    font-size: 8px; /* Encore plus petite pour les en-têtes */
+    font-size: 8px;
 }
 
 .pdf-table tbody tr:nth-child(even) {
     background-color: #f9f9f9;
 }
 
-/* Largeurs de colonnes spécifiques pour le tableau de résultats */
 .pdf-table.synthese-table .pdf-col-type {
-    width: 10%; /* Type de ligne */
+    width: 10%;
 }
 .pdf-table.synthese-table th:not(.pdf-col-type):not(.pdf-col-global),
 .pdf-table.synthese-table td:not(:first-child):not(:last-child) {
-    width: 11%; /* Colonnes de fréquences (7 colonnes * 11% = 77%) */
+    width: 11%;
 }
 .pdf-table.synthese-table .pdf-col-global {
-    width: 13%; /* Colonne Global dBA */
+    width: 13%;
 }
 
-/* Section graphique */
 .pdf-chart-section {
-    page-break-before: always; /* Force la courbe sur une nouvelle page */
-    margin-top: 50px; /* Espace après le saut de page */
+    page-break-before: always;
+    margin-top: 50px;
 }
 
 .pdf-chart-section h2 {
     text-align: center;
     margin-bottom: 20px;
-    border: none; /* Supprime la bordure latérale pour le titre du graphique */
+    border: none;
 }
 
 .pdf-chart-container {
-    width: 90%; /* Occupe une grande partie de la largeur */
-    height: 450px; /* Hauteur fixe pour le graphique */
-    margin: 0 auto; /* Centrer le graphique */
-    /* Pas de bordure ou ombre ici, html2pdf.js gère la capture du canvas */
-    background-color: white; /* S'assurer d'un fond blanc pour le graphique */
-    display: flex; /* Utile pour le centrage de Chart.js si besoin */
+    width: 90%;
+    height: 450px;
+    margin: 0 auto;
+    background-color: white;
+    display: flex;
     justify-content: center;
     align-items: center;
 }
