@@ -616,7 +616,7 @@ const ResultatsPage = () => {
 
             <h3 style={{
                 fontSize: "20px",
-                marginTop: "40px",
+                marginTop: "100px",
                 marginBottom: "15px",
                 textAlign: "center",
                 color: "#006666",          // ✅ Couleur secondaire douce
@@ -688,7 +688,7 @@ const ResultatsPage = () => {
                 fontWeight: "bold",
                 color: "#006666", // même code couleur secondaire   
                 }}>
-                Courbe du niveau sonore
+                Courbe sonore
                 </h3>
 
 
