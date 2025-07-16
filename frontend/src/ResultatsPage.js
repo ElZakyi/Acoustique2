@@ -568,105 +568,87 @@ const ResultatsPage = () => {
                 </div>
             </div>
 
-            {/*CONTENU POUR PDF */}
-            <div
-                ref={pdfRef}
-                className="pdf-report-container" // Nouvelle classe CSS pour le conteneur PDF
+            {/* CONTENU POUR PDF UNIQUEMENT */}
+           <div
+            ref={pdfRef}
+            style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '1123px', // 📏 pleine largeur A4 paysage
+            background: 'white',
+            zIndex: -1,
+            opacity: 0,
+            }}
             >
-                <div className="pdf-header">
-                    <h1>Rapport Acoustique</h1>
-                    {/* Vous pouvez ajouter un logo ici */}
-                    <img src="C:\Users\saada\Downloads\lpee logo.png" alt="Logo LPEE" class="pdf-logo" />
-                </div>
+            <div style={{ padding: "1rem" }}>
+                <h2>Affaire : {processedTracabiliteData?.numero_affaire}</h2>
+                <p>Objet : {processedTracabiliteData?.objet_affaire}</p>
+                <p>Salle : {processedTracabiliteData?.nom_salle}</p>
 
-                {/* Section Informations Affaire et Salle */}
-                <div className="pdf-section">
-                    <h2>Informations du Projet</h2>
-                    {processedTracabiliteData ? (
-                        <>
-                            <p><strong>Affaire :</strong> {processedTracabiliteData.numero_affaire} - {processedTracabiliteData.objet_affaire}</p>
-                            <p><strong>Salle :</strong> {processedTracabiliteData.nom_salle}</p>
-                        </>
-                    ) : (
-                        <p>Chargement des informations du projet...</p>
-                    )}
-                </div>
+                <h3>Résultats Acoustiques - Synthèse</h3>
+                <table style={{
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '9px',
+    tableLayout: 'fixed',
+    wordWrap: 'break-word',
+  }} className="affaires-table synthese-table">
+                <thead>
+                    <tr>
+                    <th style = {{width:'8%'}}>Type</th>
+                    {BANDES.map(freq => (
+                        <th key={freq} style={{ width: '5%' }}>{freq} Hz</th>
+                    ))}
+                    <th style={{ width: '11%' }}>GLOBAL dBA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {TYPES_LIGNES.map((type, idx) => (
+                    <tr key={idx}>
+                        <td>{type}</td>
+                        {BANDES.map(freq => (
+                        <td key={freq}>
+                            {
+                            type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
+                            type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
+                            type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
+                            type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
+                            ''
+                            }
+                        </td>
+                        ))}
+                        <td>
+                        {type === "reprise"
+                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
+                            : type === "extraction"
+                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
+                            : type === "Soufflage"
+                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
+                            : type === "Lp tot"
+                            ? (calculateLpTot(
+                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
+                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
+                                lpGlobalDBA["extraction"]
+                            )?.toFixed(3) ?? '')
+                            : ''}
+                        </td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
 
-                {/* Section Résultats Acoustiques - Synthèse */}
-                <div className="pdf-section">
-                    <h2>Résultats Acoustiques - Synthèse</h2>
-                    <table className="pdf-table"> 
-                        <thead>
-                            <tr>
-                                <th className="pdf-col-type">Type</th>
-                                {BANDES.map(freq => (
-                                    <th key={freq}>{freq} Hz</th>
-                                ))}
-                                <th className="pdf-col-global">GLOBAL dBA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {TYPES_LIGNES.map((type, idx) => (
-                                <tr key={idx}>
-                                    <td>{type}</td>
-                                    {BANDES.map(freq => (
-                                        <td key={freq}>
-                                            {
-                                                type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
-                                                type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
-                                                type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
-                                                type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
-                                                ''
-                                            }
-                                        </td>
-                                    ))}
-                                    <td>
-                                        {type === "reprise"
-                                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
-                                            : type === "extraction"
-                                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
-                                            : type === "Soufflage"
-                                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
-                                            : type === "Lp tot"
-                                            ? (calculateLpTot(
-                                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
-                                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
-                                                lpGlobalDBA["extraction"]
-                                              )?.toFixed(3) ?? '')
-                                            : ''}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                {/* ✅ Forcer un saut de page AVANT la courbe */}
+                <div style={{ pageBreakBefore: 'always' }} />
 
+                {/* ✅ Courbe sur une nouvelle page */}
                 {showChart && selectedNRForChart !== null && (
-                    <>
-                        {/* Force un saut de page AVANT la courbe */}
-                        <div className="pdf-page-break" /> {/* Nouvelle classe pour le saut de page */}
-                        <div className="pdf-section pdf-chart-section">
-                            <h2>Courbe de Niveau Sonore</h2>
-                            <div className="pdf-chart-container">
-                                <Line data={chartData} options={chartOptions} />
-                            </div>
-                        </div>
-                    </>
-                )}
-                {(!showChart || selectedNRForChart === null) && (
-                    <div className="pdf-section pdf-chart-section">
-                        <h2>Courbe de Niveau Sonore</h2>
-                        <p style={{textAlign: 'center', fontStyle: 'italic', color: '#666'}}>
-                            La courbe sera affichée ici si un NR est sélectionné sur la page et que le graphique est visible.
-                        </p>
-                    </div>
-                )}
+                                    <div className="chart-container">
+                                        <Line data={chartData} options={chartOptions} />
+                                    </div>
+                                )}
 
-                {/* Pied de page */}
-                <div className="pdf-footer">
-                    <p>Généré le: {new Date().toLocaleDateString()} à {new Date().toLocaleTimeString()}</p>
-                    <p>Logiciel Acoustique</p>
-                </div>
+            </div>
             </div>
 
         </>
