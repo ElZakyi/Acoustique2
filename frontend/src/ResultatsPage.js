@@ -581,19 +581,27 @@ const ResultatsPage = () => {
             opacity: 0,
             }}
             >
-            <div style={{ padding: "1rem" }}>
-                <h2>Affaire : {processedTracabiliteData?.numero_affaire}</h2>
-                <p>Objet : {processedTracabiliteData?.objet_affaire}</p>
-                <p>Salle : {processedTracabiliteData?.nom_salle}</p>
+            <div style={{ padding: "1rem", fontFamily: "Arial, sans-serif", color: "#1a1a1a" }}>
+            <h2 style={{ fontSize: "24px", marginBottom: "5px", fontWeight: "bold", color: "#222",textAlign:'center' }}>
+                Affaire : {processedTracabiliteData?.numero_affaire}
+            </h2>
+            <p style={{ fontSize: "16px", margin: "2px 0", fontWeight: "500" ,textAlign:'center'}}>
+                Objet : <span style={{ fontWeight: "normal" }}>{processedTracabiliteData?.objet_affaire}</span>
+            </p>
+            <p style={{ fontSize: "16px", margin: "2px 0", fontWeight: "500" ,textAlign:'center' }}>
+                Salle : <span style={{ fontWeight: "normal" }}>{processedTracabiliteData?.nom_salle}</span>
+            </p>
 
-                <h3>Résultats Acoustiques - Synthèse</h3>
+            <h3 style={{ fontSize: "18px", marginTop: "100px", marginBottom: "10px",textAlign:'center'}}>
+                Résultats Acoustiques - Synthèse
+            </h3>
                 <table style={{
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '9px',
-    tableLayout: 'fixed',
-    wordWrap: 'break-word',
-  }} className="affaires-table synthese-table">
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '9px',
+                    tableLayout: 'fixed',
+                    wordWrap: 'break-word',
+                }} className="affaires-table synthese-table">
                 <thead>
                     <tr>
                     <th style = {{width:'8%'}}>Type</th>
@@ -642,6 +650,10 @@ const ResultatsPage = () => {
                 <div style={{ pageBreakBefore: 'always' }} />
 
                 {/* ✅ Courbe sur une nouvelle page */}
+                <h3 style={{ fontSize: "18px", marginBottom: "1rem", textAlign: "center", fontWeight: "bold" }}>
+                Courbe du niveau sonore
+                </h3>
+
                 {showChart && selectedNRForChart !== null && (
                                     <div className="chart-container">
                                         <Line data={chartData} options={chartOptions} />
