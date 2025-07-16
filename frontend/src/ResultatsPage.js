@@ -582,19 +582,50 @@ const ResultatsPage = () => {
             }}
             >
             <div style={{ padding: "1rem", fontFamily: "Arial, sans-serif", color: "#1a1a1a" }}>
-            <h2 style={{ fontSize: "24px", marginBottom: "5px", fontWeight: "bold", color: "#222",textAlign:'center' }}>
+            <h2 style={{
+                fontSize: "26px",
+                marginBottom: "8px",
+                fontWeight: "bold",
+                color: "#004080",           // ✅ Couleur bleue professionnelle
+                textAlign: "center",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
+            }}>
                 Affaire : {processedTracabiliteData?.numero_affaire}
             </h2>
-            <p style={{ fontSize: "16px", margin: "2px 0", fontWeight: "500" ,textAlign:'center'}}>
+
+            <p style={{
+                fontSize: "16px",
+                margin: "2px 0",
+                fontWeight: "500",
+                textAlign: "center",
+                color: "#333"
+            }}>
                 Objet : <span style={{ fontWeight: "normal" }}>{processedTracabiliteData?.objet_affaire}</span>
             </p>
-            <p style={{ fontSize: "16px", margin: "2px 0", fontWeight: "500" ,textAlign:'center' }}>
+
+            <p style={{
+                fontSize: "16px",
+                margin: "2px 0 40px",
+                fontWeight: "500",
+                textAlign: "center",
+                color: "#333"
+            }}>
                 Salle : <span style={{ fontWeight: "normal" }}>{processedTracabiliteData?.nom_salle}</span>
             </p>
 
-            <h3 style={{ fontSize: "18px", marginTop: "100px", marginBottom: "10px",textAlign:'center'}}>
+            <h3 style={{
+                fontSize: "20px",
+                marginTop: "40px",
+                marginBottom: "15px",
+                textAlign: "center",
+                color: "#006666",          // ✅ Couleur secondaire douce
+                borderBottom: "2px solid #ccc",
+                paddingBottom: "5px"
+            }}>
                 Résultats Acoustiques - Synthèse
             </h3>
+
                 <table style={{
                     width: '100%',
                     borderCollapse: 'collapse',
@@ -650,9 +681,16 @@ const ResultatsPage = () => {
                 <div style={{ pageBreakBefore: 'always' }} />
 
                 {/* ✅ Courbe sur une nouvelle page */}
-                <h3 style={{ fontSize: "18px", marginBottom: "1rem", textAlign: "center", fontWeight: "bold" }}>
+                <h3 style={{
+                fontSize: "18px",
+                marginBottom: "1rem",
+                textAlign: "center",
+                fontWeight: "bold",
+                color: "#006666", // même code couleur secondaire   
+                }}>
                 Courbe du niveau sonore
                 </h3>
+
 
                 {showChart && selectedNRForChart !== null && (
                                     <div className="chart-container">
