@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import './AffairesListe.css';
+import html2pdf from 'html2pdf.js';
+import { useRef } from 'react';
 
 // Import pour Chart.js
 import {
@@ -68,6 +70,8 @@ const ResultatsPage = () => {
     const [openSidebarSections, setOpenSidebarSections] = useState({});
 
     const [rawTracabiliteData, setRawTracabiliteData] = useState([]);
+    const pdfRef = useRef();
+
 
     useEffect(() => {
         if (!id_salle) return;
@@ -359,6 +363,37 @@ const ResultatsPage = () => {
             },
         },
     };
+    const generatePDF = async () => {
+    const element = pdfRef.current;
+
+    // ✅ Rendre visible temporairement
+    element.style.opacity = '1';
+    element.style.zIndex = '9999';
+    element.style.position = 'relative';
+
+    // ✅ Attendre un cycle pour forcer le rendu du canvas Chart.js
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const opt = {
+        margin: 0.5,
+        filename: `Resultats_Affaire_${processedTracabiliteData?.numero_affaire || 'export'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    // ✅ Générer le PDF
+    await html2pdf().set(opt).from(element).save();
+
+    // ✅ Cacher à nouveau après génération
+    element.style.opacity = '0';
+    element.style.zIndex = '-1';
+    element.style.position = 'fixed';
+};
+
+
+
+
 
     return (
         <>
@@ -548,9 +583,96 @@ const ResultatsPage = () => {
                         <button className="btn-secondary" onClick={() => window.history.back()}>
                             Retour
                         </button>
+                        <button className="btn-primary" onClick={generatePDF}>
+                            Exporter en PDF
+                        </button>
+
                     </div>
                 </div>
             </div>
+            {/* CONTENU POUR PDF UNIQUEMENT */}
+           <div
+            ref={pdfRef}
+            style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '1123px', // 📏 pleine largeur A4 paysage
+            background: 'white',
+            zIndex: -1,
+            opacity: 0,
+            }}
+            >
+            <div style={{ padding: "1rem" }}>
+                <h2>Affaire : {processedTracabiliteData?.numero_affaire}</h2>
+                <p>Objet : {processedTracabiliteData?.objet_affaire}</p>
+                <p>Salle : {processedTracabiliteData?.nom_salle}</p>
+
+                <h3>Résultats Acoustiques - Synthèse</h3>
+                <table style={{
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '9px',
+    tableLayout: 'fixed',
+    wordWrap: 'break-word',
+  }} className="affaires-table synthese-table">
+                <thead>
+                    <tr>
+                    <th style = {{width:'8%'}}>Type</th>
+                    {BANDES.map(freq => (
+                        <th key={freq} style={{ width: '5%' }}>{freq} Hz</th>
+                    ))}
+                    <th style={{ width: '11%' }}>GLOBAL dBA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {TYPES_LIGNES.map((type, idx) => (
+                    <tr key={idx}>
+                        <td>{type}</td>
+                        {BANDES.map(freq => (
+                        <td key={freq}>
+                            {
+                            type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
+                            type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
+                            type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
+                            type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
+                            ''
+                            }
+                        </td>
+                        ))}
+                        <td>
+                        {type === "reprise"
+                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
+                            : type === "extraction"
+                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
+                            : type === "Soufflage"
+                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
+                            : type === "Lp tot"
+                            ? (calculateLpTot(
+                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
+                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
+                                lpGlobalDBA["extraction"]
+                            )?.toFixed(3) ?? '')
+                            : ''}
+                        </td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+
+                {/* ✅ Forcer un saut de page AVANT la courbe */}
+                <div style={{ pageBreakBefore: 'always' }} />
+
+                {/* ✅ Courbe sur une nouvelle page */}
+                {showChart && selectedNRForChart !== null && (
+                                    <div className="chart-container">
+                                        <Line data={chartData} options={chartOptions} />
+                                    </div>
+                                )}
+
+            </div>
+            </div>
+
         </>
     );
 };
