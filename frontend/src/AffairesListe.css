@@ -761,3 +761,145 @@ body, html {
         right: 10px;
     }
 }
+
+
+/* ========================================= */
+/* STYLES SPÉCIFIQUES POUR L'EXPORT PDF      */
+/* ========================================= */
+
+.pdf-report-container {
+    /* Cache le conteneur du PDF par défaut */
+    position: fixed; /* Ou absolute */
+    top: 0;
+    left: 0;
+    width: 100%; /* S'adapter à 100% de la fenêtre, le format A4 sera géré par jsPDF */
+    height: 100%;
+    z-index: -1;
+    opacity: 0;
+    background-color: white; /* Important pour que le fond soit blanc dans le PDF */
+    padding: 0; /* Les marges seront gérées par jsPDF */
+    font-family: 'Segoe UI', Arial, sans-serif; /* Police de caractère pour le PDF */
+    color: #333;
+    box-sizing: border-box;
+}
+
+.pdf-header {
+    text-align: center;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #5699df;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pdf-header h1 {
+    font-size: 24px;
+    color: #5699df;
+    margin-bottom: 10px;
+}
+
+/* Vous pouvez ajouter un logo */
+/* .pdf-logo {
+    max-width: 150px;
+    margin-bottom: 15px;
+} */
+
+.pdf-section {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #eee; /* Ligne de séparation légère */
+}
+
+.pdf-section h2 {
+    font-size: 18px;
+    color: #5699df;
+    margin-bottom: 15px;
+    border-left: 4px solid #d8b95a; /* Bande jaune sur le côté */
+    padding-left: 10px;
+}
+
+.pdf-section p {
+    font-size: 11px;
+    line-height: 1.6;
+    margin-bottom: 5px;
+    margin-left: 15px; /* Légère indentation */
+}
+
+.pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 9px; /* Taille de police réduite pour les tableaux */
+    table-layout: fixed; /* Aide à la gestion des largeurs de colonnes */
+}
+
+.pdf-table th, .pdf-table td {
+    border: 1px solid #ddd;
+    text-align: center;
+    padding: 6px 4px; /* Padding réduit */
+    word-wrap: break-word; /* Important pour les longs contenus */
+}
+
+.pdf-table thead {
+    background-color: #5699df;
+    color: white;
+}
+
+.pdf-table thead th {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 8px; /* Encore plus petite pour les en-têtes */
+}
+
+.pdf-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Largeurs de colonnes spécifiques pour le tableau de résultats */
+.pdf-table.synthese-table .pdf-col-type {
+    width: 10%; /* Type de ligne */
+}
+.pdf-table.synthese-table th:not(.pdf-col-type):not(.pdf-col-global),
+.pdf-table.synthese-table td:not(:first-child):not(:last-child) {
+    width: 11%; /* Colonnes de fréquences (7 colonnes * 11% = 77%) */
+}
+.pdf-table.synthese-table .pdf-col-global {
+    width: 13%; /* Colonne Global dBA */
+}
+
+/* Section graphique */
+.pdf-chart-section {
+    page-break-before: always; /* Force la courbe sur une nouvelle page */
+    margin-top: 50px; /* Espace après le saut de page */
+}
+
+.pdf-chart-section h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    border: none; /* Supprime la bordure latérale pour le titre du graphique */
+}
+
+.pdf-chart-container {
+    width: 90%; /* Occupe une grande partie de la largeur */
+    height: 450px; /* Hauteur fixe pour le graphique */
+    margin: 0 auto; /* Centrer le graphique */
+    /* Pas de bordure ou ombre ici, html2pdf.js gère la capture du canvas */
+    background-color: white; /* S'assurer d'un fond blanc pour le graphique */
+    display: flex; /* Utile pour le centrage de Chart.js si besoin */
+    justify-content: center;
+    align-items: center;
+}
+
+.pdf-footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    font-size: 10px;
+    color: #666;
+}
+
+.pdf-footer p {
+    margin: 3px 0;
+}

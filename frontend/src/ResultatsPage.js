@@ -64,7 +64,7 @@ const ResultatsPage = () => {
     const [showNRSelectSection, setShowNRSelectSection] = useState(false);
     const [tempSelectedNR, setTempSelectedNR] = useState('');
     const [selectedNRForChart, setSelectedNRForChart] = useState(null);
-    const [showChart, setShowChart] = useState(false);
+    const [showChart, setShowChart] = useState(false); // Cet état contrôle la visibilité du Chart sur la page et dans le PDF.
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [openSidebarSections, setOpenSidebarSections] = useState({});
@@ -72,19 +72,24 @@ const ResultatsPage = () => {
     const [rawTracabiliteData, setRawTracabiliteData] = useState([]);
     const pdfRef = useRef();
 
+    // Pour stocker les infos de l'affaire et de la salle (en dehors de la traçabilité)
+    // On peut les récupérer depuis processedTracabiliteData pour le PDF simplifié
+    // const [affaireInfo, setAffaireInfo] = useState(null);
+    //const [salleInfo, setSalleInfo] = useState(null);
 
     useEffect(() => {
         if (!id_salle) return;
         const fetchTracabilite = async () => {
             try {
-                const response = await axios.get(`http://localhost:5000/api/tracabilite/${id_salle}`);
-                setRawTracabiliteData(response.data); 
+                const tracabiliteResponse = await axios.get(`http://localhost:5000/api/tracabilite/${id_salle}`);
+                setRawTracabiliteData(tracabiliteResponse.data);
             } catch (error) {
-                console.error("Erreur chargement tracabilité :", error);
+                console.error("Erreur chargement des données pour le PDF :", error);
             }
         };
         fetchTracabilite();
     }, [id_salle]);
+
 
     // Traitement des données de traçabilité
     const processedTracabiliteData = useMemo(() => {
@@ -155,8 +160,7 @@ const ResultatsPage = () => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        localStorage.removeItem("email");
-        localStorage.removeItem("id_utilisateur");
+        localStorage.removeItem("utilisateur");
         navigate("/connexion");
     };
 
@@ -251,7 +255,7 @@ const ResultatsPage = () => {
         const nrValue = parseInt(tempSelectedNR);
         if (NR_OPTIONS.includes(nrValue)) {
             setSelectedNRForChart(nrValue);
-            setShowChart(true);
+            setShowChart(true); // Afficher le graphique sur la page
             setShowNRSelectSection(false);
         } else {
             alert("Veuillez sélectionner un NR valide.");
@@ -295,28 +299,19 @@ const ResultatsPage = () => {
         };
     }, [lpTotValues, selectedNRForChart, nrReference]);
 
-    // Chart options
+    // Chart options (pas de changement, elles sont déjà bien)
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                position: 'bottom',
-            },
-            title: {
-                display: true,
-                text: 'Courbe de Niveau Sonore',
-            },
+            legend: { position: 'bottom' },
+            title: { display: true, text: 'Courbe de Niveau Sonore' },
             tooltip: {
                 callbacks: {
                     label: function(context) {
                         let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null && !isNaN(context.parsed.y)) {
-                            label += context.parsed.y.toFixed(3);
-                        }
+                        if (label) label += ': ';
+                        if (context.parsed.y !== null && !isNaN(context.parsed.y)) label += context.parsed.y.toFixed(3);
                         return label;
                     }
                 }
@@ -326,73 +321,56 @@ const ResultatsPage = () => {
                 color: 'black',
                 align: 'end',
                 anchor: 'end',
-                formatter: function(value, context) {
-                    return value !== null && !isNaN(value) ? value.toFixed(3) : '';
-                },
-                font: {
-                    weight: 'bold',
-                    size: 10,
-                },
+                formatter: function(value, context) { return value !== null && !isNaN(value) ? value.toFixed(3) : ''; },
+                font: { weight: 'bold', size: 10 },
                 backgroundColor: 'rgba(255, 255, 255, 0.7)',
                 borderColor: 'rgba(0, 0, 0, 0.2)',
                 borderWidth: 0,
                 borderRadius: 4,
-                padding: {
-                    top: 4,
-                    bottom: 4,
-                    left: 6,
-                    right: 6
-                }
+                padding: { top: 4, bottom: 4, left: 6, right: 6 }
             }
         },
         scales: {
             x: {
-                title: {
-                    display: true,
-                    text: 'Fréquence (Hz)',
-                },
+                title: { display: true, text: 'Fréquence (Hz)' },
                 type: 'category',
                 labels: BANDES.map(String),
             },
             y: {
-                title: {
-                    display: true,
-                    text: 'Niveau Sonore (dB)',
-                },
+                title: { display: true, text: 'Niveau Sonore (dB)' },
                 beginAtZero: false,
             },
         },
     };
+
     const generatePDF = async () => {
-    const element = pdfRef.current;
+        const element = pdfRef.current;
 
-    // ✅ Rendre visible temporairement
-    element.style.opacity = '1';
-    element.style.zIndex = '9999';
-    element.style.position = 'relative';
+        // Temporairement, rendre le conteneur du PDF visible et le positionner correctement
+        // pour que html2canvas le capture, surtout pour le graphique.
+        element.style.opacity = '1';
+        element.style.zIndex = '9999';
+        element.style.position = 'relative'; // Important pour qu'il soit dans le flux de rendu
 
-    // ✅ Attendre un cycle pour forcer le rendu du canvas Chart.js
-    await new Promise(resolve => setTimeout(resolve, 1000));
+        // Petite attente pour s'assurer que Chart.js a fini de dessiner sur le canvas
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms devraient suffire
 
-    const opt = {
-        margin: 0.5,
-        filename: `Resultats_Affaire_${processedTracabiliteData?.numero_affaire || 'export'}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+        const opt = {
+            margin: [0.5, 0.5, 0.5, 0.5], // Top, Left, Bottom, Right margin (inches)
+            filename: `Resultats_Affaire_${processedTracabiliteData?.numero_affaire || 'export'}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, allowTaint: true }, // Scale 2 pour une meilleure résolution
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } // Format A4, orientation paysage
+        };
+
+        // Générer le PDF
+        await html2pdf().set(opt).from(element).save();
+
+        // Rendre le conteneur du PDF à nouveau invisible
+        element.style.opacity = '0';
+        element.style.zIndex = '-1';
+        element.style.position = 'fixed'; // Remettre en fixed ou absolute pour ne pas influencer le layout
     };
-
-    // ✅ Générer le PDF
-    await html2pdf().set(opt).from(element).save();
-
-    // ✅ Cacher à nouveau après génération
-    element.style.opacity = '0';
-    element.style.zIndex = '-1';
-    element.style.position = 'fixed';
-};
-
-
-
 
 
     return (
@@ -404,7 +382,7 @@ const ResultatsPage = () => {
 
             {/* Bouton Hamburger*/}
             <button className="hamburger-button" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                ☰ Tracabilité 
+                ☰ Tracabilité
             </button>
 
             {/* Sidebar de Traçabilité */}
@@ -586,91 +564,109 @@ const ResultatsPage = () => {
                         <button className="btn-primary" onClick={generatePDF}>
                             Exporter en PDF
                         </button>
-
                     </div>
                 </div>
             </div>
-            {/* CONTENU POUR PDF UNIQUEMENT */}
-           <div
-            ref={pdfRef}
-            style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '1123px', // 📏 pleine largeur A4 paysage
-            background: 'white',
-            zIndex: -1,
-            opacity: 0,
-            }}
+
+            {/*CONTENU POUR PDF */}
+            <div
+                ref={pdfRef}
+                className="pdf-report-container" // Nouvelle classe CSS pour le conteneur PDF
             >
-            <div style={{ padding: "1rem" }}>
-                <h2>Affaire : {processedTracabiliteData?.numero_affaire}</h2>
-                <p>Objet : {processedTracabiliteData?.objet_affaire}</p>
-                <p>Salle : {processedTracabiliteData?.nom_salle}</p>
+                <div className="pdf-header">
+                    <h1>Rapport Acoustique</h1>
+                    {/* Vous pouvez ajouter un logo ici */}
+                    <img src="C:\Users\saada\Downloads\lpee logo.png" alt="Logo LPEE" class="pdf-logo" />
+                </div>
 
-                <h3>Résultats Acoustiques - Synthèse</h3>
-                <table style={{
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '9px',
-    tableLayout: 'fixed',
-    wordWrap: 'break-word',
-  }} className="affaires-table synthese-table">
-                <thead>
-                    <tr>
-                    <th style = {{width:'8%'}}>Type</th>
-                    {BANDES.map(freq => (
-                        <th key={freq} style={{ width: '5%' }}>{freq} Hz</th>
-                    ))}
-                    <th style={{ width: '11%' }}>GLOBAL dBA</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {TYPES_LIGNES.map((type, idx) => (
-                    <tr key={idx}>
-                        <td>{type}</td>
-                        {BANDES.map(freq => (
-                        <td key={freq}>
-                            {
-                            type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
-                            type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
-                            type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
-                            type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
-                            ''
-                            }
-                        </td>
-                        ))}
-                        <td>
-                        {type === "reprise"
-                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
-                            : type === "extraction"
-                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
-                            : type === "Soufflage"
-                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
-                            : type === "Lp tot"
-                            ? (calculateLpTot(
-                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
-                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
-                                lpGlobalDBA["extraction"]
-                            )?.toFixed(3) ?? '')
-                            : ''}
-                        </td>
-                    </tr>
-                    ))}
-                </tbody>
-                </table>
+                {/* Section Informations Affaire et Salle */}
+                <div className="pdf-section">
+                    <h2>Informations du Projet</h2>
+                    {processedTracabiliteData ? (
+                        <>
+                            <p><strong>Affaire :</strong> {processedTracabiliteData.numero_affaire} - {processedTracabiliteData.objet_affaire}</p>
+                            <p><strong>Salle :</strong> {processedTracabiliteData.nom_salle}</p>
+                        </>
+                    ) : (
+                        <p>Chargement des informations du projet...</p>
+                    )}
+                </div>
 
-                {/* ✅ Forcer un saut de page AVANT la courbe */}
-                <div style={{ pageBreakBefore: 'always' }} />
+                {/* Section Résultats Acoustiques - Synthèse */}
+                <div className="pdf-section">
+                    <h2>Résultats Acoustiques - Synthèse</h2>
+                    <table className="pdf-table"> 
+                        <thead>
+                            <tr>
+                                <th className="pdf-col-type">Type</th>
+                                {BANDES.map(freq => (
+                                    <th key={freq}>{freq} Hz</th>
+                                ))}
+                                <th className="pdf-col-global">GLOBAL dBA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {TYPES_LIGNES.map((type, idx) => (
+                                <tr key={idx}>
+                                    <td>{type}</td>
+                                    {BANDES.map(freq => (
+                                        <td key={freq}>
+                                            {
+                                                type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
+                                                type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
+                                                type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
+                                                type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
+                                                ''
+                                            }
+                                        </td>
+                                    ))}
+                                    <td>
+                                        {type === "reprise"
+                                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
+                                            : type === "extraction"
+                                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
+                                            : type === "Soufflage"
+                                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
+                                            : type === "Lp tot"
+                                            ? (calculateLpTot(
+                                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
+                                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
+                                                lpGlobalDBA["extraction"]
+                                              )?.toFixed(3) ?? '')
+                                            : ''}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-                {/* ✅ Courbe sur une nouvelle page */}
                 {showChart && selectedNRForChart !== null && (
-                                    <div className="chart-container">
-                                        <Line data={chartData} options={chartOptions} />
-                                    </div>
-                                )}
+                    <>
+                        {/* Force un saut de page AVANT la courbe */}
+                        <div className="pdf-page-break" /> {/* Nouvelle classe pour le saut de page */}
+                        <div className="pdf-section pdf-chart-section">
+                            <h2>Courbe de Niveau Sonore</h2>
+                            <div className="pdf-chart-container">
+                                <Line data={chartData} options={chartOptions} />
+                            </div>
+                        </div>
+                    </>
+                )}
+                {(!showChart || selectedNRForChart === null) && (
+                    <div className="pdf-section pdf-chart-section">
+                        <h2>Courbe de Niveau Sonore</h2>
+                        <p style={{textAlign: 'center', fontStyle: 'italic', color: '#666'}}>
+                            La courbe sera affichée ici si un NR est sélectionné sur la page et que le graphique est visible.
+                        </p>
+                    </div>
+                )}
 
-            </div>
+                {/* Pied de page */}
+                <div className="pdf-footer">
+                    <p>Généré le: {new Date().toLocaleDateString()} à {new Date().toLocaleTimeString()}</p>
+                    <p>Logiciel Acoustique</p>
+                </div>
             </div>
 
         </>
