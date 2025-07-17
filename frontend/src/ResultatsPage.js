@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import './AffairesListe.css'; // Assurez-vous que ce fichier CSS est là
-import html2pdf from 'html2pdf.js'; // Assurez-vous que c'est bien importé
+import './AffairesListe.css'; 
+import html2pdf from 'html2pdf.js'; 
+import logo from './assets/logo.png';
 
-// Import pour Chart.js (inchangés)
+// Import pour Chart.js 
+
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -71,9 +73,9 @@ const ResultatsPage = () => {
     const [rawTracabiliteData, setRawTracabiliteData] = useState([]);
     const pdfRef = useRef();
 
-    // Pour stocker les infos de l'affaire et de la salle (en dehors de la traçabilité)
+    // Pour stocker les infos de l'affaire et de la salle
     const [affaireInfo, setAffaireInfo] = useState(null);
-    const [salleInfo, setSalleInfo] = useState(null); // On a besoin de salleInfo pour son nom
+    const [salleInfo, setSalleInfo] = useState(null);
 
 
     useEffect(() => {
@@ -134,6 +136,7 @@ const ResultatsPage = () => {
                     troncons: {},
                 };
             }
+            
 
             const currentSource = result.sources[row.id_source];
             if (!currentSource.troncons[row.id_troncon]) {
@@ -595,12 +598,11 @@ const ResultatsPage = () => {
             {/*CONTENU POUR PDF*/}
             <div
                 ref={pdfRef}
-                className="pdf-report-container" // Classe CSS pour le conteneur PDF
+                className="pdf-report-container" 
             >
                 <div className="pdf-header">
                     <h1>Rapport Acoustique</h1>
-                    {/* Vous pouvez ajouter un logo ici si vous le souhaitez, il recevra aussi les styles N&B */}
-                    {/* <img src="/path/to/your/logo.png" alt="Logo Entreprise" class="pdf-logo" /> */}
+                   {/* <img src="\frontend\src\assets\logo.png" alt="Logo Entreprise" class="pdf-logo" /> */}
                 </div>
 
                 {/* Section Informations Affaire et Nom de la Salle */}

@@ -1,11 +1,10 @@
-/* Variables CSS pour une meilleure gestion des couleurs et des tailles */
 :root {
-    --primary-blue: #137dda; /* Bleu principal (valeur mise à jour) */
-    --primary-blue-dark: #137dda; /* Bleu plus foncé pour le survol (valeur mise à jour) */
-    --accent-yellow: #f8c62f; /* Couleur d'accent (valeur mise à jour) */
+    --primary-blue: #137dda; /* Bleu principal */
+    --primary-blue-dark: #137dda; /* Bleu plus foncé pour le survol  */
+    --accent-yellow: #f8c62f; /* Couleur d'accent */
     --text-dark: #343a40; /* Texte foncé */
     --text-medium: #636365; /* Texte gris moyen */
-    --bg-light: #f8f9fa; /* Arrière-plan léger (pour alternance de lignes, etc.) */
+    --bg-light: #f8f9fa; /* Arrière-plan léger  */
     --border-light: #e0e0e0; /* Bordure légère */
     --success-green: #28a745;
     --error-red: #dc3545;
