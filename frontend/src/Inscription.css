@@ -1,67 +1,140 @@
-.box {
-  max-width: 400px;
-  margin: 80px auto;
-  padding: 30px;
-  border: 1px solid #ccc;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  font-family: sans-serif;
-  text-align: center;
+/* Styles pour le conteneur principal qui contient l'arrière-plan complet */
+.auth-page-wrapper {
+    background-image: url('./assets/background.jpg'); /* Assurez-vous que le chemin est correct */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh; /* Prend toute la hauteur de la vue */
+    display: flex;
+    justify-content: center; /* Centre horizontalement le bloc principal */
+    align-items: center; /* Centre verticalement le bloc principal */
+    overflow: hidden; /* Empêche le défilement si le contenu dépasse légèrement */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Police de caractères moderne */
 }
 
-.title {
-  margin-bottom: 20px;
-  color: #333;
+/* La carte principale avec l'effet glassmorphism */
+.glassmorphism-card {
+    display: flex; /* Permet d'aligner le panneau du logo et le panneau du formulaire côte à côte */
+    background: rgba(255, 255, 255, 0.1); /* Base légère pour le flou */
+    border-radius: 25px; /* Bordures arrondies pour toute la carte */
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* Ombre pour la profondeur */
+    backdrop-filter: blur(12px); /* L'effet de flou sur l'arrière-plan */
+    -webkit-backdrop-filter: blur(12px); /* Compatibilité Safari */
+    border: 1px solid rgba(255, 255, 255, 0.18); /* Bordure subtile */
+    
+    max-width: 900px; /* Largeur maximale de la carte */
+    width: 90%; /* Responsive : 90% de la largeur du parent */
+    min-height: 480px; /* Hauteur minimale de la carte */
+    padding: 30px; /* Espacement intérieur pour toute la carte */
+    overflow: hidden; /* Important pour que les contenus internes respectent le border-radius */
+    
+    justify-content: center; /* Centre les éléments logo et form horizontalement dans la carte */
+    align-items: center; /* Centre les éléments logo et form verticalement dans la carte */
 }
 
-/* On applique ce style à la fois aux inputs et aux selects qui ont la classe .input */
+
+/* Le panneau droit avec le motto et le formulaire */
+.form-panel {
+    flex: 1; /* Prend l'espace restant */
+    display: flex;
+    flex-direction: column; /* Empile motto et formulaire */
+    justify-content: center; /* Centre le contenu verticalement */
+    align-items: center; /* Centre les éléments horizontalement */
+    text-align: center;
+}
+
+/* La devise "Simplifiez vos calculs..." (MODIFIÉ) */
+.motto {
+    font-size: 1.6em; /* Taille du texte de la devise */
+    font-weight: 600;
+    color: #efe8e8; /* **MODIFIÉ : Changé pour une couleur plus foncée pour une meilleure lisibilité** */
+    margin-bottom: 25px; /* Espace sous la devise */
+    line-height: 1.4;
+    padding: 0 10px; /* Petit padding pour éviter que le texte ne touche les bords */
+}
+
+/* Styles pour les champs de saisie (inchangés) */
 .input {
-  /* AMÉLIORATION : 100% pour remplir tout l'espace disponible dans le conteneur */
-  width: 100%; 
-  padding: 12px; /* Un peu plus de padding pour un meilleur confort visuel */
-  margin-bottom: 15px;
-  border: 1px solid #aaa;
-  border-radius: 6px;
-  font-size: 16px;
-  text-align: center;
-  
-  /* ✅ CORRECTION PRINCIPALE : Cette ligne force tous les éléments
-     (input, select) à calculer leur largeur de la même manière, 
-     en incluant le padding et la bordure. */
-  box-sizing: border-box; 
+    width: calc(100% - 20px); /* Ajusté en fonction du padding de 10px sur le formulaire global */
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.5); /* Bordure semi-transparente */
+    border-radius: 10px;
+    font-size: 1.1em;
+    background-color: rgba(255, 255, 255, 0.7); /* Fond semi-transparent */
+    color: #333;
+    box-sizing: border-box; /* Inclut padding et border dans la largeur */
+    text-align: center; /* Texte et placeholder centrés */
+    outline: none; /* Supprime le contour au focus */
+    transition: all 0.3s ease;
 }
 
-/* Ajout d'une petite spécificité pour le select pour un meilleur rendu */
+.input:focus {
+    border-color: #2c7be5; /* Couleur de la bordure au focus */
+    background-color: rgba(255, 255, 255, 0.9); /* Plus opaque au focus */
+}
+
+.input::placeholder {
+    color: #666; /* Couleur du texte du placeholder */
+    opacity: 0.8;
+}
+
+/* Styles spécifiques pour le select (inchangés) */
 select.input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M205.66%2099.66L128%20177.34L50.34%2099.66z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 15px;
     cursor: pointer;
-    /* Assure que le texte est centré, même si c'est souvent le cas par défaut */
-    text-align-last: center; 
+    text-align-last: center;
 }
 
-
-.buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 10px; /* Ajoute un peu d'espace au-dessus des boutons */
+/* Groupe de boutons/liens (inchangés) */
+.buttons-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    margin-top: 10px;
 }
 
+/* Styles pour les boutons (inchangés) */
 .btn {
-  padding: 12px 20px; /* Un peu plus de hauteur */
-  background-color: #2c7be5;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  width: 50%; /* On augmente un peu la largeur pour un meilleur équilibre */
-  font-size: 16px;
-  font-weight: bold;
+    background-color: #2c7be5;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    width: calc(100% - 20px);
+    margin-bottom: 15px;
+    outline: none;
 }
 
 .btn:hover {
-  background-color: #1a5ec8;
+    background-color: #1a5ec8;
 }
 
+/* Styles pour le lien "Créer un compte" / "Retour à la page de connexion" (inchangés) */
+.link-text {
+    color: #2c7be5;
+    text-decoration: none;
+    font-size: 1em;
+    cursor: pointer;
+    display: inline-block;
+    transition: text-decoration 0.3s ease;
+}
+
+.link-text:hover {
+    text-decoration: underline;
+}
+
+/* Messages de succès et d'erreur (inchangés) */
 .success {
   color: green;
   margin-top: 15px;
@@ -72,4 +145,33 @@ select.input {
   color: red;
   margin-top: 15px;
   font-weight: bold;
+}
+
+/* Media Queries pour la responsivité sur les petits écrans (MODIFIÉ) */
+@media (max-width: 768px) {
+    .glassmorphism-card {
+        flex-direction: column; /* Empile le logo et le formulaire verticalement */
+        max-width: 450px;
+        min-height: auto;
+        padding: 30px 20px;
+    }
+    .logo-circle-wrapper {
+        margin-right: 0; /* Supprime l'espace horizontal sur mobile */
+        margin-bottom: 30px; /* Ajoute de l'espace vertical sur mobile */
+        width: 200px;
+        height: 200px;
+    }
+    .logo-circle-wrapper img {
+        max-width: 140px;
+    }
+    .form-panel {
+        width: 100%;
+    }
+    .motto {
+        font-size: 1.4em;
+        margin-bottom: 20px;
+    }
+    .input, .btn {
+        width: 100%;
+    }
 }

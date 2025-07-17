@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "./Inscription.css"; // Assurez-vous que ce fichier a les styles .box, .input, .btn
+import "./Inscription.css"; // Utilisez le CSS mis à jour
+import logo from './assets/logo.png'; // Importez le logo
 
 function Connexion() {
     const [email, setEmail] = useState("");
@@ -11,7 +12,6 @@ function Connexion() {
     
     const navigate = useNavigate();
 
-    // ✅ Version fusionnée et propre de la fonction
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -21,13 +21,10 @@ function Connexion() {
             });
 
             if (res.data.utilisateur) {
-                // On stocke l'objet utilisateur entier pour plus de flexibilité
                 localStorage.setItem("utilisateur", JSON.stringify(res.data.utilisateur));
-
                 setMessage(res.data.message);
                 setIsError(false);
                 
-                // Redirection après un court délai pour voir le message de succès
                 setTimeout(() => {
                   navigate("/affaires");
                 }, 500);
@@ -52,34 +49,42 @@ function Connexion() {
     }
 
     return (
-        <div className="box">
-            <h2 className="title">Connexion</h2>
-            <form onSubmit={handleSubmit}>
-                <input
-                    className="input"
-                    type="email"
-                    placeholder="Adresse e-mail"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-                <input
-                    className="input"
-                    type="password"
-                    placeholder="Mot de passe"
-                    value={motDePasse}
-                    onChange={(e) => setMotDePasse(e.target.value)}
-                />
-                <div className="buttons">
-                    <button className="btn" type="submit">Se connecter</button>
-                    <button className="btn" type="button" onClick={goToInscription}>
-                        Créer un compte
-                    </button>
+        <div className="auth-page-wrapper"> {/* Conteneur principal avec l'arrière-plan */}
+            <div className="glassmorphism-card"> {/* La carte principale avec le flou */}
+                <div className="logo-circle-wrapper"> {/* Conteneur circulaire du logo */}
+                    <img src={logo} alt="L.P.E.E Logo" />
                 </div>
-            </form>
-            {message && (
-                <p className={isError ? "error" : "success"}>{message}</p>
-            )}
+                <div className="form-panel"> {/* Panneau avec le motto et le formulaire */}
+                    <p className="motto">"Simplifiez vos calculs, accélérez vos projets"</p>
+                    <form onSubmit={handleSubmit}>
+                        <input
+                            className="input"
+                            type="email"
+                            placeholder="E-mail"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                        <input
+                            className="input"
+                            type="password"
+                            placeholder="Mot de passe"
+                            value={motDePasse}
+                            onChange={(e) => setMotDePasse(e.target.value)}
+                        />
+                        <div className="buttons-group">
+                            <button className="btn" type="submit">Se connecter</button>
+                            <span className="link-text" onClick={goToInscription}>
+                                Créer un compte
+                            </span>
+                        </div>
+                    </form>
+                    {message && (
+                        <p className={isError ? "error" : "success"}>{message}</p>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
+
 export default Connexion;

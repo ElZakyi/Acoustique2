@@ -22,35 +22,37 @@ const AffairesListe = () => {
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchAffaires = async () => {
-            try {
-                const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
-                if (!utilisateur || !utilisateur.id || !utilisateur.role) {
-                    setError("Utilisateur non identifié. Veuillez vous reconnecter.");
-                    setLoading(false);
-                    navigate('/connexion');
-                    return;
-                }
-
-                const response = await axios.get('http://localhost:5000/api/affaires', {
-                    params: {
-                        id_utilisateur: utilisateur.id,
-                        role: utilisateur.role
-                    }
-                });
-
-                setAffaires(response.data);
-            } catch (err) {
-                setError('Impossible de charger les données. Le serveur backend est-il lancé ?');
-                console.error("Erreur de récupération des affaires :", err);
-            } finally {
+    // Fonction pour récupérer les affaires
+    const fetchAffaires = async () => {
+        try {
+            const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
+            if (!utilisateur || !utilisateur.id || !utilisateur.role) {
+                setError("Utilisateur non identifié. Veuillez vous reconnecter.");
                 setLoading(false);
+                navigate('/connexion');
+                return;
             }
-        };
 
+            const response = await axios.get('http://localhost:5000/api/affaires', {
+                params: {
+                    id_utilisateur: utilisateur.id,
+                    role: utilisateur.role
+                }
+            });
+
+            setAffaires(response.data);
+            setError(null); // Réinitialise l'erreur si la récupération réussit
+        } catch (err) {
+            setError('Impossible de charger les données. Le serveur backend est-il lancé ?');
+            console.error("Erreur de récupération des affaires :", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchAffaires();
-    }, [navigate]);
+    }, [navigate]); // Exécute au montage et si 'navigate' change (rare)
 
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -60,7 +62,7 @@ const AffairesListe = () => {
         e.preventDefault();
         const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
         if (!utilisateur || !utilisateur.id) {
-            setMessage("Utilisateur non identifié. Impossible de créer l'affaire.");
+            setMessage("Utilisateur non identifié. Impossible de créer/modifier l'affaire.");
             setIsErreur(true);
             return;
         }
@@ -83,7 +85,7 @@ const AffairesListe = () => {
 
             setIsErreur(false);
             setShowForm(false);
-            window.location.reload();
+            fetchAffaires(); // Mettre à jour la liste après succès
         } catch (err) {
             console.error("Erreur soumission formulaire :", err);
             setIsErreur(true);
@@ -97,7 +99,7 @@ const AffairesListe = () => {
             await axios.delete(`http://localhost:5000/api/affaires/${id}`);
             setMessage("Affaire supprimée avec succès !");
             setIsErreur(false);
-            window.location.reload();
+            fetchAffaires(); // Mettre à jour la liste après suppression
         } catch (err) {
             console.error("Erreur lors de la suppression :", err);
             setIsErreur(true);
@@ -150,57 +152,60 @@ const AffairesListe = () => {
                     </form>
                 )}
 
-                <table className="affaires-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Numéro</th>
-                            <th>Objet</th>
-                            <th>Client</th>
-                            <th>Responsable</th>
-                            <th>Observation</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {affaires.map((affaire, index) => (
-                            <tr key={affaire.id_affaire}>
-                                <td>{index + 1}</td>
-                                <td>{affaire.numero_affaire}</td>
-                                <td>{affaire.objet}</td>
-                                <td>{affaire.client}</td>
-                                <td>{affaire.responsable}</td>
-                                <td>{affaire.observation}</td>
-                                <td className="actions-cell">
-                                    <Link
-                                        to={`/affaires/${affaire.id_affaire}/salles`}
-                                        state={{ numero_affaire: affaire.numero_affaire, ordre: index + 1 }}
-                                        className="btn-action"
-                                    >
-                                        Gérer les salles
-                                    </Link>
-                                    <div className="action-icons">
-                                        <FaEye
-                                            className="icon-action icon-view"
-                                            title="Voir les détails"
-                                            onClick={() => alert(`Détails de l'affaire:\n\nNuméro: ${affaire.numero_affaire}\nObjet: ${affaire.objet}\nClient: ${affaire.client}\nObservation: ${affaire.observation}`)}
-                                        />
-                                        <FaPencilAlt
-                                            className="icon-action icon-edit"
-                                            title="Modifier"
-                                            onClick={() => handleEdit(affaire)}
-                                        />
-                                        <FaTrash
-                                            className="icon-action icon-delete"
-                                            title="Supprimer"
-                                            onClick={() => handleDelete(affaire.id_affaire)}
-                                        />
-                                    </div>
-                                </td>
+                {/* Ajout d'un wrapper pour le tableau */}
+                <div className="table-wrapper">
+                    <table className="affaires-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Numéro</th>
+                                <th>Objet</th>
+                                <th>Client</th>
+                                <th>Responsable</th>
+                                <th>Observation</th>
+                                <th>Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {affaires.map((affaire, index) => (
+                                <tr key={affaire.id_affaire}>
+                                    <td>{index + 1}</td>
+                                    <td>{affaire.numero_affaire}</td>
+                                    <td>{affaire.objet}</td>
+                                    <td>{affaire.client}</td>
+                                    <td>{affaire.responsable}</td>
+                                    <td>{affaire.observation}</td>
+                                    <td className="actions-cell">
+                                        <Link
+                                            to={`/affaires/${affaire.id_affaire}/salles`}
+                                            state={{ numero_affaire: affaire.numero_affaire, ordre: index + 1 }}
+                                            className="btn-action"
+                                        >
+                                            Gérer les salles
+                                        </Link>
+                                        <div className="action-icons">
+                                            <FaEye
+                                                className="icon-action icon-view"
+                                                title="Voir les détails"
+                                                onClick={() => alert(`Détails de l'affaire:\n\nNuméro: ${affaire.numero_affaire}\nObjet: ${affaire.objet}\nClient: ${affaire.client}\nObservation: ${affaire.observation}`)}
+                                            />
+                                            <FaPencilAlt
+                                                className="icon-action icon-edit"
+                                                title="Modifier"
+                                                onClick={() => handleEdit(affaire)}
+                                            />
+                                            <FaTrash
+                                                className="icon-action icon-delete"
+                                                title="Supprimer"
+                                                onClick={() => handleDelete(affaire.id_affaire)}
+                                            />
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div> {/* Fin du table-wrapper */}
             </div>
         </>
     );

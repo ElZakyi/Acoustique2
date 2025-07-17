@@ -1,281 +1,422 @@
-.container-box {
-  background-color: white;
-  overflow-x: auto;  
-  width: 95%;
-  padding: 30px 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-width: 1200px;
-  margin: 50px auto;
+/* Variables CSS pour une meilleure gestion des couleurs et des tailles */
+:root {
+    --primary-blue: #137dda; /* Bleu principal (valeur mise à jour) */
+    --primary-blue-dark: #137dda; /* Bleu plus foncé pour le survol (valeur mise à jour) */
+    --accent-yellow: #f8c62f; /* Couleur d'accent (valeur mise à jour) */
+    --text-dark: #343a40; /* Texte foncé */
+    --text-medium: #636365; /* Texte gris moyen */
+    --bg-light: #f8f9fa; /* Arrière-plan léger (pour alternance de lignes, etc.) */
+    --border-light: #e0e0e0; /* Bordure légère */
+    --success-green: #28a745;
+    --error-red: #dc3545;
+    --font-family: 'Roboto', sans-serif;
+    --border-radius-base: 8px;
+    --border-radius-lg: 12px;
+    
+    /* Styles Glassmorphism pour le conteneur principal */
+    --glass-bg-color: rgba(255, 255, 255, 0.15); /* Fond très légèrement transparent */
+    --glass-border-color: rgba(255, 255, 255, 0.18); /* Bordure subtile */
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); /* Ombre pour la profondeur */
+
+    /* Couleurs spécifiques au tableau (fonds solides améliorés) */
+    --table-header-bg: #eaf6ff; /* Un bleu très clair pour l'en-tête */
+    --table-text-header: var(--primary-blue-dark); /* Texte bleu foncé pour l'en-tête */
+    --table-row-odd-bg: #ffffff; /* Blanc pur pour les lignes impaires */
+    --table-row-even-bg: #f5fafd; /* Un très léger bleu pour les lignes paires */
+    --table-row-hover-bg: #dff0ff; /* Un bleu plus vif au survol des lignes */
+    --table-border: #ccddee; /* Une bordure douce, bleutée pour le tableau */
 }
 
+/* Import de la police Roboto de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+/* Styles globaux pour la page */
+body, html {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    
+    /* Image de fond pour toute la page */
+    background-image: url('./assets/background.jpg'); /* Assurez-vous que le chemin est correct */
+    background-size: cover; /* L'image couvrira toute la zone */
+    background-position: center; /* L'image sera centrée */
+    background-repeat: no-repeat; /* Empêche la répétition de l'image */
+    background-attachment: fixed; /* L'image ne défile pas avec le contenu */
+    
+    font-family: var(--font-family);
+    color: var(--text-dark); /* Couleur de texte par défaut */
+    overflow-x: hidden; /* Empêche le défilement horizontal global */
+    position: relative; /* Nécessaire pour le pseudo-élément calque */
+}
+
+/* Calque semi-transparent par-dessus l'image de fond */
+body::before {
+    content: '';
+    position: fixed; /* Reste fixe même en défilant */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Un overlay sombre (40% d'opacité) */
+    z-index: -1; /* Place ce calque entre l'image de fond et le contenu */
+}
+
+/* Conteneur principal de la liste des affaires avec effet Glassmorphism */
+.container-box {
+  background: var(--glass-bg-color); /* Fond légèrement transparent */
+  backdrop-filter: blur(12px); /* Applique le flou sur ce qui est derrière */
+  -webkit-backdrop-filter: blur(12px); /* Compatibilité Safari */
+  border: 1px solid var(--glass-border-color); /* Bordure glassmorphism */
+  box-shadow: var(--glass-shadow); /* Ombre glassmorphism */
+
+  width: 95%;
+  max-width: 1400px;
+  padding: 40px 50px;
+  border-radius: var(--border-radius-lg);
+  margin: 60px auto;
+  position: relative; 
+  z-index: 0; /* Assure que ce conteneur est au-dessus de l'overlay du body */
+}
+
+/* En-tête de la page (Titre et bouton d'ajout) */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 15px;
+  margin-bottom: 30px; /* Plus d'espace */
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--glass-border-color); /* Bordure douce */
 }
 
+/* TITRE DE PAGE - Pour h1 ou h2 principal */
 .page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
+  font-size: 2.2em; /* Taille plus grande */
+  font-weight: 700; /* Plus gras */
+  color: white; /* BLANC */
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.4); /* Ombre pour lisibilité */
   margin: 0;
 }
 
+/* Styles généraux pour TOUS les boutons, s'assurer de box-sizing */
+button {
+  box-sizing: border-box; /* IMPORTANT: Inclut padding et border dans la largeur/hauteur */
+}
+
+/* Bouton principal (Ajouter une affaire) */
 .btn-primary {
-  background-color: #0d6efd;
+  background-color: var(--primary-blue);
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  font-size: 16px;
+  padding: 12px 25px; /* Plus de padding */
+  border-radius: var(--border-radius-base);
+  font-size: 1em;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-sizing: border-box; /* Ajout explicite pour robustesse */
 }
 
 .btn-primary:hover {
-  background-color: #0b5ed7;
+  background-color: var(--primary-blue-dark);
+  transform: translateY(-2px); /* Effet léger au survol */
 }
 
+/* NOUVEAU STYLE : Bouton vert pleine largeur pour "Voir les Résultats" et "Afficher la courbe" */
+.btn-full-width-green {
+    background-color: var(--success-green); /* Utilise la variable de vert pour la couleur de fond */
+    color: white; /* Texte blanc */
+    border: none;
+    padding: 15px 25px; /* Augmente le padding pour le rendre plus visible */
+    border-radius: var(--border-radius-base); /* Coins arrondis */
+    font-size: 1.1em; /* Taille de police légèrement plus grande */
+    font-weight: 700; /* Texte gras */
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease; /* Effets de transition */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* Ombre plus prononcée */
+    
+    width: 100%; /* Prend toute la largeur de son conteneur parent */
+    display: block; /* S'assure qu'il se comporte comme un bloc pour prendre toute la largeur */
+    text-align: center; /* Centre le texte du bouton */
+    margin-top: 40px; /* Ajoute un espace au-dessus du bouton */
+    margin-bottom: 20px; /* Ajoute un espace en dessous du bouton, avant le footer-actions */
+    box-sizing: border-box; /* Assure un comportement de largeur correct */
+}
+
+.btn-full-width-green:hover {
+    background-color: #218838; /* Vert plus foncé au survol */
+    transform: translateY(-2px); /* Léger effet de soulèvement au survol */
+    box-shadow: 0 6px 15px rgba(0,0,0,0.25); /* Ombre plus prononcée au survol */
+}
+
+/* Footer actions (le bouton retour restera stylisé normalement) */
+.footer-actions {
+  margin-top: 2rem; /* Cela s'applique après le nouveau bouton */
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Wrapper pour le tableau (fond blanc opaque, coins arrondis, bordure) */
+.table-wrapper {
+    overflow: hidden; /* TRÈS IMPORTANT pour appliquer le border-radius au contenu */
+    border-radius: var(--border-radius-lg); /* Coins arrondis pour l'ensemble du tableau */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* Ombre plus prononcée pour le tableau */
+    margin-top: 30px; /* Espace sous l'en-tête/formulaire */
+    border: 1px solid var(--table-border); /* Bordure autour du tableau */
+    background-color: white; /* Fond blanc opaque derrière le tableau */
+}
+
+/* Tableau des affaires (fonds solides et améliorés) */
 .affaires-table {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+  border-collapse: collapse; /* Supprime les bordures doubles */
+  margin-top: 0; /* Géré par le .table-wrapper */
 }
 
 .affaires-table th, .affaires-table td {
-  border: 1px solid #dddddd;
+  border: 1px solid var(--table-border); /* Bordures solides et légères */
   text-align: left;
-  padding: 12px;
+  padding: 15px 18px; /* Plus de padding */
+  font-size: 0.95em;
+  vertical-align: middle; /* Centre le contenu verticalement */
 }
 
 .affaires-table thead {
-  background-color: #f2f2f2;
+  background-color: var(--table-header-bg); /* Couleur d'en-tête améliorée */
+  color: var(--table-text-header); /* Couleur de texte d'en-tête améliorée */
 }
 
-.affaires-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+.affaires-table th {
+  font-weight: 600; /* En-têtes plus gras */
+  text-transform: uppercase; /* Texte en majuscules */
+  font-size: 0.9em;
 }
 
-.action-btn {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  margin-right: 5px;
-  border-radius: 4px;
-  cursor: pointer;
+/* Couleurs alternées pour les lignes du tableau */
+.affaires-table tbody tr:nth-child(odd) {
+  background-color: var(--table-row-odd-bg); /* Fond blanc pour les lignes impaires */
 }
 
-.action-btn:hover {
-  background-color: #5a6268;
+.affaires-table tbody tr:nth-child(even) {
+  background-color: var(--table-row-even-bg); /* Fond très léger bleu pour les lignes paires */
 }
 
+.affaires-table tbody tr:hover {
+    background-color: var(--table-row-hover-bg); /* Bleu plus vif au survol */
+    cursor: default; /* Changement du curseur pour les lignes normales */
+}
+
+/* Styles pour les lignes draggables (inchangés par rapport à votre version) */
+.affaires-table tbody tr {
+    cursor: grab;
+    transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+.affaires-table tbody tr.is-dragging {
+    cursor: grabbing; 
+}
+.affaires-table tbody tr.is-over {
+    background-color: #e0f7fa;
+    border-top: 2px solid var(--primary-blue);
+    border-bottom: 2px solid var(--primary-blue);
+}
+
+/* Formulaire d'ajout/modification d'affaire */
 .affaires-form {
   margin-top: 30px;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 30px;
+  background-color: rgba(255, 255, 255, 0.2); /* Fond légèrement plus opaque pour le formulaire lui-même */
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--glass-shadow); /* Ombre glassmorphism */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Bordure glassmorphism */
+  backdrop-filter: blur(10px); /* Petit flou sur le formulaire lui-même pour une meilleure séparation */
+  -webkit-backdrop-filter: blur(10px);
 }
 
+/* TITRE DU FORMULAIRE - Pour h2 ou h3 à l'intérieur d'un formulaire */
 .form-title {
-  margin-bottom: 20px;
-  font-size: 20px;
-  color: #333;
+  margin-bottom: 25px;
+  font-size: 1.6em;
+  font-weight: 600;
+  color: white; /* BLANC */
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.4); /* Ombre pour lisibilité */
+  text-align: center;
 }
 
 .form-input {
   display: block;
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  width: calc(100% - 24px); /* Ajusté pour le padding */
+  margin-bottom: 15px;
+  padding: 12px;
+  border: 1px solid var(--border-light); /* Bordure solide pour les inputs */
+  border-radius: var(--border-radius-base);
+  font-size: 1em;
+  background-color: rgba(255, 255, 255, 0.85); /* Fond semi-transparent plus opaque pour les inputs */
+  color: var(--text-dark);
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(51, 122, 183, 0.2); /* Ombre douce au focus */
+  outline: none;
+  background-color: rgba(255, 255, 255, 1); /* Devient entièrement opaque au focus */
+}
+
+.form-input::placeholder {
+  color: var(--text-medium);
+  opacity: 0.8;
 }
 
 .form-button {
-  background-color: #198754;
+  background-color: var(--success-green);
   color: white;
   border: none;
-  padding: 10px 18px;
-  border-radius: 4px;
+  padding: 12px 25px;
+  border-radius: var(--border-radius-base);
+  font-size: 1em;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-sizing: border-box; /* Ajout explicite pour robustesse */
 }
 
 .form-button:hover {
-  background-color: #157347;
+  background-color: #218838; /* Vert plus foncé */
+  transform: translateY(-2px);
 }
 
 .form-success {
-  color: green;
-  margin-top: 12px;
-  font-weight: bold;
+  color: var(--success-green);
+  margin-top: 15px;
+  font-weight: 600;
+  text-align: center;
 }
 
 .form-error {
-  color: red;
-  margin-top: 12px;
-  font-weight: bold;
-}
-.btn-view {
-  background-color: #0d6efd;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 5px;
-  margin-right: 5px;
-  cursor: pointer;
+  color: var(--error-red);
+  margin-top: 15px;
+  font-weight: 600;
+  text-align: center;
 }
 
-.btn-edit {
-  background-color: #ffc107;
-  color: black;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 5px;
-  margin-right: 5px;
-  cursor: pointer;
-}
-
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.btn-view:hover {
-  background-color: #0b5ed7;
-}
-
-.btn-edit:hover {
-  background-color: #e0a800;
-}
-
-.btn-delete:hover {
-  background-color: #bb2d3b;
-}
-
-/* Styles pour les nouvelles actions dans le tableau */
-
+/* Styles pour les actions dans le tableau */
 .actions-cell {
   display: flex;
   align-items: center;
-  gap: 15px; 
+  gap: 15px; /* Espacement entre les éléments */
 }
 
+/* Bouton "Gérer les salles" */
+.btn-action {
+  display: inline-block;
+  padding: 8px 15px;
+  background-color: var(--primary-blue);
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  border-radius: var(--border-radius-base);
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-sizing: border-box; /* Ajout explicite pour robustesse */
+}
+
+.btn-action:hover {
+  background-color: var(--primary-blue-dark);
+  transform: translateY(-2px);
+}
+
+/* Icônes d'action (Voir, Modifier, Supprimer) */
 .action-icons {
   display: flex;
   align-items: center;
-  gap: 15px; 
+  gap: 12px; /* Espacement entre les icônes */
 }
 
 .icon-action {
   cursor: pointer;
-  font-size: 1.2rem;
-  transition: transform 0.2s;
+  font-size: 1.3em; /* Taille légèrement plus grande pour les icônes */
+  transition: transform 0.2s ease;
 }
 
 .icon-action:hover {
-  transform: scale(1.25);
+  transform: scale(1.25); /* Zoom au survol */
 }
 
-.icon-view { color: #0d6efd; }
-.icon-edit { color: #ffc107; }
-.icon-delete { color: #dc3545; }
+.icon-view { color: var(--primary-blue); }
+.icon-edit { color: var(--accent-yellow); } /* Jaune pour modifier */
+.icon-delete { color: var(--error-red); } /* Rouge pour supprimer */
 
-.actions-cell .btn-primary {
-  padding: 5px 10px;
-  font-size: 14px;
-  white-space: nowrap;
-}
-.affaires-form {
-  background-color: #f8f9fa;
-  padding: 20px;
-  margin-top: 20px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.affaires-form h3 {
-  margin-bottom: 16px;
-  color: #333;
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.affaires-form input {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-.results p {
-  margin: 4px 0;
-  font-weight: 500;
-  color: #444;
-}
-
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
-}
-
-.btn-primary:hover {
-  background-color: #0056b3;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: bold;
-  color: #222;
-}
-.logout-container {
-  text-align: right;
-  margin-bottom: 10px;
-}
-
-.btn-logout {
-  padding: 8px 16px;
-  background-color: #d9534f;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-logout:hover {
-  background-color: #c9302c;
-}
+/* Bouton de déconnexion */
 .logout-global {
   display: flex;
   justify-content: flex-end;
-  padding: 20px 50px 0 0;
+  padding: 20px 50px 0 0; /* Plus de padding à droite */
+  position: absolute; /* Positionne en haut à droite du body/html */
+  top: 0;
+  right: 0;
+  z-index: 10; /* S'assure qu'il est au-dessus des autres éléments */
 }
 
+.btn-logout {
+  padding: 10px 20px;
+  background-color: var(--error-red);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-base);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-sizing: border-box; /* Ajout explicite pour robustesse */
+}
+
+.btn-logout:hover {
+  background-color: #a71d2a; /* Rouge plus foncé */
+  transform: translateY(-2px);
+}
+
+/* NOUVEAU STYLE : Affichage des résultats de calcul dans les formulaires */
+.results-display {
+    background-color: rgba(255, 255, 255, 0.85); /* Fond légèrement transparent pour les résultats */
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-base);
+    padding: 15px;
+    margin-top: 20px;
+    margin-bottom: 25px; /* Espace avant le bouton */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    text-align: left; /* Alignement du texte à gauche */
+}
+
+.results-display p {
+    margin: 5px 0;
+    font-size: 0.95em;
+    color: var(--text-dark);
+}
+
+.results-display p strong {
+    color: var(--primary-blue-dark); /* Mettre les labels en gras et bleu foncé */
+}
+
+/* NOUVEAU STYLE : Titres de sections (h3/h2) */
+.section-heading {
+    font-size: 1.8em; /* Taille légèrement plus petite que .page-title mais plus grande que .form-title */
+    font-weight: 600;
+    color: white; /* BLANC */
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4); /* Ombre pour la lisibilité */
+    margin-top: 30px; /* Espace au-dessus */
+    margin-bottom: 20px; /* Espace en-dessous */
+    text-align: left; /* Alignement à gauche par défaut */
+    padding-left: 5px; /* Petit décalage pour l'esthétique */
+}
+
+/* Styles pour d'autres composants du projet */
 
 .footer-actions {
   margin-top: 2rem; 
@@ -284,60 +425,38 @@
   justify-content: flex-start; 
 }
 
-
 .btn-secondary {
   padding: 10px 20px;
-  background-color: #6c757d; 
+  background-color: var(--text-medium); 
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--border-radius-base);
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 1em;
+  font-weight: 500;
   text-decoration: none; 
   display: inline-block;
   text-align: center;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-sizing: border-box; /* Ajout explicite pour robustesse */
 }
 
 .btn-secondary:hover {
   background-color: #5a6268;
+  transform: translateY(-2px);
 }
 
-
-
-
-
-
-
 .link-action {
-  color: #0d6efd; /* La même couleur bleue que vos boutons primaires */
-  text-decoration: underline; /* Le soulignement classique d'un lien */
-  font-weight: 600; /* Un peu plus gras pour être bien visible */
+  color: var(--primary-blue); 
+  text-decoration: underline; 
+  font-weight: 600; 
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .link-action:hover {
-  color: #0b5ed7; 
-}
-
-.btn-action {
-  display: inline-block;
-  padding: 6px 12px;
-  background-color: #0d6efd; /* Bleu, comme btn-primary */
-  color: white;
-  text-align: center;
-  text-decoration: none; /* Important pour enlever le soulignement du Link */
-  border: none;
-  border-radius: 5px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap; /* Empêche le texte de passer à la ligne */
-}
-
-.btn-action:hover {
-  background-color: #0b5ed7; /* Bleu plus foncé au survol */
+  color: var(--primary-blue-dark); 
 }
 
 /* Styles pour la fenêtre modale du spectre Lw */
@@ -355,88 +474,56 @@
   z-index: 1000;
 }
 
-.modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  width: 90%;
-  max-width: 800px;
-}
-
-.spectre-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.spectre-input-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.spectre-input-group label {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  font-size: 14px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
+/* Style pour la MODAL (amélioré) */
 .modal {
-    background: white;
+    background: white; /* Garde le fond blanc pour la modal */
     padding: 30px;
-    border-radius: 12px;
-    width: 400px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    border-radius: var(--border-radius-lg);
+    width: 450px; /* Légèrement plus large pour les champs de correction */
+    max-width: 90%; /* Pour la responsivité */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
     animation: fadeIn 0.3s ease-in-out;
 }
 
 .modal h3 {
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     text-align: center;
+    color: var(--text-dark); /* Titre de modal en couleur sombre */
+    font-size: 1.5em;
 }
 
-.modal label {
-    display: block;
+/* NOUVEAU STYLE : Champ dans la modal (label + input) */
+.modal-field {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-field label {
+    flex: 0 0 80px; /* Largeur fixe pour le label */
     font-weight: bold;
-    margin-bottom: 5px;
-    margin-top: 10px;
+    color: var(--text-dark);
+    margin-right: 15px;
+    text-align: right;
+    font-size: 0.95em;
 }
 
-.modal input[type="number"] {
-    width: 100%;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    margin-bottom: 10px;
+/* Inputs dans la modal - Utilisent la même classe que les inputs du formulaire principal */
+.modal-field .form-input { /* Applique les styles form-input aux inputs de la modal */
+    flex: 1; /* Prend l'espace restant */
+    margin-bottom: 0; /* Réinitialise la marge du form-input */
 }
 
-.modal button {
-    margin-right: 10px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
+/* Conteneur des actions dans la modal */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 25px;
 }
 
-.modal button:last-child {
-    background-color: #6c757d;
-}
-
-.modal button:hover {
-    opacity: 0.9;
-}
+/* Les boutons dans la modal utilisent déjà .btn-primary et .btn-secondary du JSX */
 
 @keyframes fadeIn {
     from {
@@ -449,80 +536,53 @@
     }
 }
 .btn-small {
-    background-color: #007bff;
+    background-color: var(--primary-blue);
     color: white;
     padding: 6px 10px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--border-radius-base);
     font-size: 0.85rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
 
 .btn-small:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-blue-dark);
 }
-.correction-field {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
+/* Ancienne classe .correction-field, remplacée par .modal-field */
+/* .correction-field { display: flex; align-items: center; margin-bottom: 10px; } */
+/* .correction-field label { width: 80px; margin-right: 10px; font-weight: bold; } */
 
-.correction-field label {
-  width: 80px;
-  margin-right: 10px;
-  font-weight: bold;
-}
 
-/*style draggable*/
-
-.affaires-table tbody tr {
-    cursor: grab;
-    transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
-}
-.affaires-table tbody tr.is-dragging {
-    cursor: grabbing; 
-}
-.affaires-table tbody tr.is-over {
-    background-color: #e0f7fa;
-    border-top: 2px solid #007bff;
-    border-bottom: 2px solid #007bff;
-}
-.affaires-table:not(.synthese-table) tbody tr {
-    cursor: grab;
-}
-
-/* Styles pour les lignes de tableau draggables */
+/* Style draggable */
 .affaires-table tbody tr {
     cursor: grab;
     transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
 }
 
-/* Styles pour l'élément glissé */
 .affaires-table tbody tr.is-dragging {
     cursor: grabbing;
 }
 
 .affaires-table tbody tr.is-over {
     background-color: #e0f7fa; 
-    border-top: 2px solid #007bff;
-    border-bottom: 2px solid #007bff;
+    border-top: 2px solid var(--primary-blue);
+    border-bottom: 2px solid var(--primary-blue);
 }
 
 .table-scroll-container {
     max-height: 500px;
     overflow-y: auto; 
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-base);
     margin-top: 20px;
 }
 
 /* Styles ResultatsPage courbe et NR */
-
 .chart-actions-container {
     margin-top: 20px;
-    justify-content: center;
-    flex-direction: column;
+    /* justify-content: center; */ /* Suppression du centrage horizontal car le bouton est pleine largeur */
+    flex-direction: column; /* Pour empiler les boutons si nécessaire */
     gap: 15px;
 }
 
@@ -552,8 +612,8 @@
     margin: 40px auto;
     border: 1px solid #ccc;
     padding: 20px;
-    border-radius: 8px;
-    background-color: #f9f9f9;
+    border-radius: var(--border-radius-base);
+    background-color: var(--bg-light);
     height: 400px;
     min-height: 300px;
 }
@@ -562,7 +622,7 @@
     margin-top: 40px;
 }
 
-
+/* Styles pour la barre latérale de traçabilité */
 .tracabilite-section {
   display: flex;
   flex-direction: column;
@@ -583,20 +643,16 @@
 }
 
 .tracabilite-box {
-  background-color: #f9f9f9;
+  background-color: var(--bg-light);
   padding: 1rem 1.5rem;
   border-radius: 10px;
   font-family: "Courier New", monospace;
   white-space: pre-wrap;
   font-size: 15px;
   line-height: 1.4;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-light);
   max-width: 100%;
   overflow-x: auto;
-}
-
-body, html {
-    overflow-x: hidden;
 }
 
 .hamburger-button {
@@ -604,7 +660,7 @@ body, html {
     top: 15px;
     left: 20px;
     z-index: 1001;
-    background-color: #007bff;
+    background-color: var(--primary-blue);
     color: white;
     border: none;
     border-radius: 5px;
@@ -616,7 +672,7 @@ body, html {
 }
 
 .hamburger-button:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-blue-dark);
 }
 
 .tracabilite-sidebar {
@@ -628,11 +684,11 @@ body, html {
     position: fixed;
     z-index: 999;
     left: 0;
-    background-color: #f8f9fa;
+    background-color: var(--bg-light);
     overflow-x: hidden;
     transition: width 0.3s ease-in-out;
     box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-    border-right: 1px solid #dee2e6;
+    border-right: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
 }
@@ -644,7 +700,7 @@ body, html {
 }
 
 .sidebar-title {
-    color: #333;
+    color: var(--text-dark);
     font-size: 1.3em;
     margin-bottom: 20px;
     padding-bottom: 10px;
@@ -666,14 +722,14 @@ body, html {
 
 .sidebar-label {
     font-size: 0.95em;
-    color: #343a40;
+    color: var(--text-dark);
     padding: 3px 0;
 }
 
 .sidebar-sub-item-indent {
     padding-left: 15px;
     font-size: 0.9em;
-    color: #5a5a5a;
+    color: var(--text-medium);
     line-height: 1.4;
 }
 
@@ -689,7 +745,7 @@ body, html {
     display: flex;
     align-items: center;
     font-weight: bold;
-    color: #495057;
+    color: var(--text-dark);
     transition: background-color 0.2s;
     margin-bottom: 2px;
 }
@@ -703,7 +759,7 @@ body, html {
     margin-right: 8px;
     transition: transform 0.2s ease-in-out;
     display: inline-block;
-    color: #007bff;
+    color: var(--primary-blue);
     min-width: 15px;
     text-align: center;
 }
@@ -715,14 +771,14 @@ body, html {
 .sidebar-nested-items {
     margin-top: 5px;
     padding-left: 20px;
-    border-left: 2px solid #007bff;
+    border-left: 2px solid var(--primary-blue);
     padding-top: 5px;
     padding-bottom: 5px;
 }
 
 .sidebar-simple-item {
     padding: 3px 0;
-    color: #6c757d;
+    color: var(--text-medium);
     font-size: 0.9em;
     line-height: 1.4;
 }
@@ -740,6 +796,67 @@ body, html {
 }
 
 @media (max-width: 768px) {
+    .container-box {
+        padding: 30px 20px;
+        margin: 30px auto;
+        backdrop-filter: blur(8px); /* Réduit le flou sur mobile pour la performance */
+        -webkit-backdrop-filter: blur(8px);
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .page-title {
+        font-size: 1.8em;
+        color: white; /* S'assurer que le titre reste blanc sur mobile si le fond est sombre */
+    }
+    .btn-primary {
+        width: 100%; /* Le bouton prend toute la largeur sur mobile */
+        text-align: center;
+    }
+    .affaires-table th, .affaires-table td {
+        padding: 10px;
+        font-size: 0.85em;
+    }
+    .actions-cell {
+        flex-direction: column; /* Empile les actions verticalement */
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .btn-action {
+        width: 100%; /* Le bouton d'action prend toute la largeur */
+        padding: 8px 10px;
+    }
+    .action-icons {
+        justify-content: flex-start; /* Aligne les icônes à gauche */
+        width: 100%;
+        gap: 10px;
+    }
+    .icon-action {
+        font-size: 1.1em;
+    }
+    .form-input, .form-button {
+        width: 100%;
+    }
+    .form-title {
+        color: white; /* S'assurer que le titre du formulaire reste blanc sur mobile */
+    }
+    /* Résultats du formulaire sur mobile */
+    .results-display {
+        padding: 10px;
+    }
+    .results-display p {
+        font-size: 0.9em;
+    }
+    /* Section heading sur mobile */
+    .section-heading {
+        font-size: 1.5em; /* Ajustement sur mobile */
+        text-align: center; /* Centrer sur mobile pour un meilleur look */
+        padding-left: 0;
+    }
+
+    /* Ajustements pour la barre latérale sur mobile */
     .tracabilite-sidebar.open {
         width: 250px;
     }
@@ -756,33 +873,69 @@ body, html {
         padding: 15px;
         padding-top: 60px;
     }
-        .logout-global {
-        top: 10px;
-        right: 10px;
+    .logout-global {
+        padding: 10px 10px 0 0; /* Ajuste le padding du bouton de déconnexion */
+    }
+
+    /* Modal sur mobile */
+    .modal {
+        width: 95%; /* Prend plus de largeur sur mobile */
+        padding: 20px;
+    }
+    .modal-field {
+        flex-direction: column; /* Empile label et input */
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+    .modal-field label {
+        width: auto; /* Largeur auto */
+        text-align: left;
+        margin-bottom: 5px;
+        margin-right: 0;
+    }
+    .modal-field .form-input {
+        width: 100%; /* Prend toute la largeur de la modal */
+    }
+    .modal-actions {
+        flex-direction: column; /* Empile les boutons */
+        gap: 10px;
+    }
+    .modal-actions .btn-primary, .modal-actions .btn-secondary {
+        width: 100%; /* Boutons prennent toute la largeur */
+    }
+    /* Bouton Afficher la courbe */
+    .btn-full-width-green {
+        margin-top: 20px; /* Moins d'espace sur mobile */
+        margin-bottom: 15px;
+        padding: 12px 15px; /* Moins de padding */
+        font-size: 1em;
     }
 }
 
-/* STYLES POUR L'EXPORT PDF*/
+
+/* STYLES POUR L'EXPORT PDF (inchangés ou ajustés légèrement pour les variables)*/
 .pdf-report-container {
-    position: fixed;
+    position: relative;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -1;
-    opacity: 0;
+     min-height: 100vh;
+    z-index: 1;
+    opacity: 1;
     background-color: white;
     padding: 0;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    color: #333;
+    font-family: var(--font-family);
+    color: var(--text-dark);
     box-sizing: border-box;
 }
+
 
 .pdf-header {
     text-align: center;
     padding-bottom: 20px;
     margin-bottom: 30px;
-    border-bottom: 2px solid #5699df;
+    border-bottom: 2px solid var(--primary-blue);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -790,21 +943,21 @@ body, html {
 
 .pdf-header h1 {
     font-size: 24px;
-    color: #5699df;
+    color: var(--primary-blue);
     margin-bottom: 10px;
 }
 
 .pdf-section {
     margin-bottom: 25px;
     padding-bottom: 15px;
-    border-bottom: 1px dashed #eee;
+    border-bottom: 1px dashed var(--border-light);
 }
 
 .pdf-section h2 {
     font-size: 18px;
-    color: #5699df;
+    color: var(--primary-blue);
     margin-bottom: 15px;
-    border-left: 4px solid #d8b95a;
+    border-left: 4px solid var(--accent-yellow);
     padding-left: 10px;
 }
 
@@ -824,14 +977,14 @@ body, html {
 }
 
 .pdf-table th, .pdf-table td {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-light);
     text-align: center;
     padding: 6px 4px;
     word-wrap: break-word;
 }
 
 .pdf-table thead {
-    background-color: #5699df;
+    background-color: var(--primary-blue);
     color: white;
 }
 
@@ -842,7 +995,7 @@ body, html {
 }
 
 .pdf-table tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: var(--bg-light);
 }
 
 .pdf-table.synthese-table .pdf-col-type {
@@ -857,8 +1010,9 @@ body, html {
 }
 
 .pdf-chart-section {
-    page-break-before: always;
     margin-top: 50px;
+    page-break-inside: avoid;
+    page-break-before: auto;
 }
 
 .pdf-chart-section h2 {
@@ -867,21 +1021,25 @@ body, html {
     border: none;
 }
 
-.pdf-chart-container {
-    width: 90%;
-    height: 450px;
+.pdf-chart-container canvas,
+.pdf-chart-container svg {
     margin: 0 auto;
     background-color: white;
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
 }
 
 .pdf-footer {
     text-align: center;
     margin-top: 40px;
     padding-top: 15px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-light);
     font-size: 10px;
     color: #666;
 }

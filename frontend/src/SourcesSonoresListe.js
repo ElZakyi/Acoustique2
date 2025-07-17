@@ -8,7 +8,7 @@ const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000];
 
 const LwSourceForm = ({ source, onClose, refreshLwData }) => {
     const [spectre, setSpectre] = useState({});
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = true;
     const [message, setMessage] = useState('');
     const [isError, setIsError] = useState(false);
 
@@ -260,7 +260,7 @@ const SourcesSonoresListe = () => {
                         <button type="submit" className="form-button">{formData.id_source ? "Mettre à jour" : "Enregistrer"}</button>
                     </form>
                 )}
-
+                <div className="table-wrapper"> 
                 <table className="affaires-table">
                     <thead>
                         <tr>
@@ -292,17 +292,19 @@ const SourcesSonoresListe = () => {
                         ))}
                     </tbody>
                 </table>
+                </div>
+                {/* BOUTON "Résultat" - MODIFIÉ ICI */}
                 <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                <button
-                    className="btn-primary"
-                    onClick={() => navigate(`/salles/${id_salle}/resultats`)}
-                >
-                    Résultat
-                </button>
-            </div>
+                    <button
+                        className="btn-full-width-green" // <--- Nouvelle classe appliquée ici
+                        onClick={() => navigate(`/salles/${id_salle}/resultats`)}
+                    >
+                        Résultat
+                    </button>
+                </div>
 
-
-                <h2 style={{ marginTop: '40px' }}>Tableau des spectres</h2>
+                <h2 className="section-heading" style={{ marginTop: '40px' }}>Tableau des spectres</h2> {/* Utilisation de section-heading */}
+                <div className="table-wrapper"> 
                  <table className="affaires-table">
                     <thead>
                         <tr>
@@ -337,6 +339,7 @@ const SourcesSonoresListe = () => {
                         })}
                     </tbody>
                 </table>
+                </div>
 
                 <div className="footer-actions">
                     <button className="btn-secondary" onClick={() => navigate(-1)}>

@@ -451,6 +451,7 @@ const ElementsReseau = () => {
 
                 {/* Tableau des paramètres des éléments- D&D appliqué */}
                 <h3 style={{ marginTop: '20px' }}>Paramètres des éléments</h3>
+                <div className="table-wrapper"> 
                 <table className="affaires-table">
                     <thead><tr><th>#</th><th>Type</th><th>Paramètres</th><th>Action</th></tr></thead>
                     <tbody>
@@ -474,6 +475,7 @@ const ElementsReseau = () => {
                         ))}
                     </tbody>
                 </table>
+                </div>
 
                 {/*pour l'atténuation et la régénération */}
                 {showAttenuationForm && (
@@ -497,7 +499,8 @@ const ElementsReseau = () => {
                 )}
 
                 {/* Tableau de synthèse acoustique*/}
-                <h3 style={{ marginTop: '30px' }}>Tableau de synthèse acoustique</h3>
+                <h3 className="section-heading">Tableau de synthèse acoustique</h3>
+                <div className="table-wrapper"> 
                 <table className="affaires-table synthese-table">
                     <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '15%' }}>Type</th><th style={{ width: '20%' }}>Valeurs</th>{BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}<th>GLOBAL dBA</th></tr></thead>
                     <tbody>
@@ -574,6 +577,7 @@ const ElementsReseau = () => {
                     </tbody>
 
                 </table>
+                </div>
 
                 <div className="footer-actions"><button className="btn-secondary" onClick={() => navigate(-1)}>Retour</button></div>
             </div>

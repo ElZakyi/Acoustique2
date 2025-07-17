@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import './AffairesListe.css';
-import html2pdf from 'html2pdf.js';
-import { useRef } from 'react';
+import './AffairesListe.css'; // Assurez-vous que ce fichier CSS est là
+import html2pdf from 'html2pdf.js'; // Assurez-vous que c'est bien importé
 
-// Import pour Chart.js
+// Import pour Chart.js (inchangés)
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -73,25 +72,48 @@ const ResultatsPage = () => {
     const pdfRef = useRef();
 
     // Pour stocker les infos de l'affaire et de la salle (en dehors de la traçabilité)
-    // On peut les récupérer depuis processedTracabiliteData pour le PDF simplifié
-    // const [affaireInfo, setAffaireInfo] = useState(null);
-    //const [salleInfo, setSalleInfo] = useState(null);
+    const [affaireInfo, setAffaireInfo] = useState(null);
+    const [salleInfo, setSalleInfo] = useState(null); // On a besoin de salleInfo pour son nom
+
 
     useEffect(() => {
         if (!id_salle) return;
-        const fetchTracabilite = async () => {
+
+        const fetchAllData = async () => {
             try {
+                // Fetch tracabilite (pour avoir numero_affaire, objet_affaire, nom_salle de la première ligne)
                 const tracabiliteResponse = await axios.get(`http://localhost:5000/api/tracabilite/${id_salle}`);
                 setRawTracabiliteData(tracabiliteResponse.data);
+
+                // Fetch salle details (pour son nom)
+                const salleResponse = await axios.get(`http://localhost:5000/api/salles/${id_salle}`);
+                setSalleInfo(salleResponse.data);
+
+                // Fetch affaire details (from salle.id_affaire)
+                if (salleResponse.data.id_affaire) {
+                    const utilisateur = JSON.parse(localStorage.getItem('utilisateur'));
+                    if (!utilisateur || !utilisateur.id || !utilisateur.role) {
+                        console.error("Utilisateur non identifié pour récupérer les infos de l'affaire.");
+                        return;
+                    }
+                    const affaireResponse = await axios.get(`http://localhost:5000/api/affaires`, {
+                        params: {
+                            id_utilisateur: utilisateur.id,
+                            role: utilisateur.role
+                        }
+                    });
+                    const foundAffaire = affaireResponse.data.find(aff => aff.id_affaire === salleResponse.data.id_affaire);
+                    setAffaireInfo(foundAffaire);
+                }
             } catch (error) {
                 console.error("Erreur chargement des données pour le PDF :", error);
             }
         };
-        fetchTracabilite();
+        fetchAllData();
     }, [id_salle]);
 
 
-    // Traitement des données de traçabilité
+    // Traitement des données de traçabilité (inchangé, toujours utile pour la sidebar)
     const processedTracabiliteData = useMemo(() => {
         if (!rawTracabiliteData || rawTracabiliteData.length === 0) return null;
 
@@ -122,7 +144,6 @@ const ResultatsPage = () => {
                 };
             }
 
-            // Ajouter l'élément au tronçon
             const currentTroncon = currentSource.troncons[row.id_troncon];
             const elementLabel = row.type_element === "vc" && row.type_vc
                 ? `${row.type_element} (${row.type_vc})`
@@ -138,7 +159,6 @@ const ResultatsPage = () => {
         return result;
     }, [rawTracabiliteData]);
 
-    // Fonction pour basculer l'état d'une section déplier et replier
     const toggleSidebarSection = (id) => {
         setOpenSidebarSections(prev => ({
             ...prev,
@@ -157,7 +177,7 @@ const ResultatsPage = () => {
         return values;
     }, [lpSoufflage, lpReprise, lpExtraction]);
 
-    const navigate = useNavigate();
+    const navigate = useNavigate(); // Déclaration de useNavigate ici
 
     const handleLogout = () => {
         localStorage.removeItem("utilisateur");
@@ -278,7 +298,7 @@ const ResultatsPage = () => {
                 {
                     label: `NR ${selectedNRForChart}`,
                     data: nrData,
-                    borderColor: '#ff7f0e', // Orange
+                    borderColor: '#ff7f0e', // Orange (reste la couleur originale pour la page web)
                     backgroundColor: '#ff7f0e',
                     tension: 0.1,
                     pointRadius: 0,
@@ -288,7 +308,7 @@ const ResultatsPage = () => {
                 {
                     label: 'Lp tot',
                     data: lpTotData,
-                    borderColor: '#1f77b4', // Blue
+                    borderColor: '#1f77b4', // Blue (reste la couleur originale pour la page web)
                     backgroundColor: '#1f77b4',
                     tension: 0.1,
                     pointRadius: 0,
@@ -299,7 +319,7 @@ const ResultatsPage = () => {
         };
     }, [lpTotValues, selectedNRForChart, nrReference]);
 
-    // Chart options (pas de changement, elles sont déjà bien)
+    // Chart options (inchangées)
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -347,17 +367,18 @@ const ResultatsPage = () => {
         const element = pdfRef.current;
 
         // Temporairement, rendre le conteneur du PDF visible et le positionner correctement
-        // pour que html2canvas le capture, surtout pour le graphique.
         element.style.opacity = '1';
         element.style.zIndex = '9999';
-        element.style.position = 'relative'; // Important pour qu'il soit dans le flux de rendu
+        element.style.position = 'relative';
+        // HTML2PDF.js calcule la largeur du contenu. Pas besoin de width: '100vw' ici,
+        // les dimensions seront gérées par les options de jsPDF (format A4 landscape).
 
         // Petite attente pour s'assurer que Chart.js a fini de dessiner sur le canvas
         await new Promise(resolve => setTimeout(resolve, 500)); // 500ms devraient suffire
 
         const opt = {
             margin: [0.5, 0.5, 0.5, 0.5], // Top, Left, Bottom, Right margin (inches)
-            filename: `Resultats_Affaire_${processedTracabiliteData?.numero_affaire || 'export'}.pdf`,
+            filename: `Resultats_Affaire_${affaireInfo?.numero_affaire || 'export'}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, allowTaint: true }, // Scale 2 pour une meilleure résolution
             jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } // Format A4, orientation paysage
@@ -369,7 +390,8 @@ const ResultatsPage = () => {
         // Rendre le conteneur du PDF à nouveau invisible
         element.style.opacity = '0';
         element.style.zIndex = '-1';
-        element.style.position = 'fixed'; // Remettre en fixed ou absolute pour ne pas influencer le layout
+        element.style.position = 'fixed';
+        // Remettre les styles qui le cachent et l'empêchent d'interférer avec le layout
     };
 
 
@@ -440,7 +462,7 @@ const ResultatsPage = () => {
                 )}
             </div>
 
-            {/* Contenu principal de la page */}
+            {/* Contenu principal de la page (reste en bleu/jaune) */}
             <div className={`main-page-content ${isSidebarOpen ? 'shifted' : ''}`}>
                 <div className="container-box">
                     <div className="page-header">
@@ -492,7 +514,8 @@ const ResultatsPage = () => {
                         </tbody>
                     </table>
 
-                    <h3 className="page-title margin-top-table">Tableau NR (Référence)</h3>
+                    <h3 className="section-heading margin-top-table">Tableau NR (Référence)</h3> {/* Utilisation de section-heading ici */}
+                    <div className="table-wrapper">
                     <table className="affaires-table synthese-table">
                         <thead>
                             <tr>
@@ -513,10 +536,11 @@ const ResultatsPage = () => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
 
-                    {/* Bouton Afficher courbe */}
-                    <div className="footer-actions chart-actions-container">
-                        <button className="btn-secondary btn-full-width" onClick={handleDisplayChartButtonClick}>
+                    {/* Bouton Afficher courbe - MODIFIÉ POUR UTILISER btn-full-width-green */}
+                    <div className="chart-actions-container"> {/* Conserve ce conteneur pour l'alignement */}
+                        <button className="btn-full-width-green" onClick={handleDisplayChartButtonClick}>
                             Afficher la courbe
                         </button>
 
@@ -568,137 +592,109 @@ const ResultatsPage = () => {
                 </div>
             </div>
 
-            {/* CONTENU POUR PDF UNIQUEMENT */}
-           <div
-            ref={pdfRef}
-            style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '1123px', // 📏 pleine largeur A4 paysage
-            background: 'white',
-            zIndex: -1,
-            opacity: 0,
-            }}
+            {/*CONTENU POUR PDF*/}
+            <div
+                ref={pdfRef}
+                className="pdf-report-container" // Classe CSS pour le conteneur PDF
             >
-            <div style={{ padding: "1rem", fontFamily: "Arial, sans-serif", color: "#1a1a1a" }}>
-            <h2 style={{
-                fontSize: "26px",
-                marginBottom: "8px",
-                fontWeight: "bold",
-                color: "#004080",           // ✅ Couleur bleue professionnelle
-                textAlign: "center",
-                textTransform: "uppercase",
-                letterSpacing: "1px"
-            }}>
-                Affaire : {processedTracabiliteData?.numero_affaire}
-            </h2>
+                <div className="pdf-header">
+                    <h1>Rapport Acoustique</h1>
+                    {/* Vous pouvez ajouter un logo ici si vous le souhaitez, il recevra aussi les styles N&B */}
+                    {/* <img src="/path/to/your/logo.png" alt="Logo Entreprise" class="pdf-logo" /> */}
+                </div>
 
-            <p style={{
-                fontSize: "16px",
-                margin: "2px 0",
-                fontWeight: "500",
-                textAlign: "center",
-                color: "#333"
-            }}>
-                Objet : <span style={{ fontWeight: "normal" }}>{processedTracabiliteData?.objet_affaire}</span>
-            </p>
+                {/* Section Informations Affaire et Nom de la Salle */}
+                <div className="pdf-section">
+                    <h2>Informations du Projet</h2>
+                    {affaireInfo ? (
+                        <>
+                            <p><strong>Numéro d'Affaire :</strong> {affaireInfo.numero_affaire}</p>
+                            <p><strong>Objet :</strong> {affaireInfo.objet}</p>
+                            <p><strong>Client :</strong> {affaireInfo.client}</p>
+                            <p><strong>Responsable :</strong> {affaireInfo.responsable}</p>
+                            <p><strong>Observation :</strong> {affaireInfo.observation}</p>
+                        </>
+                    ) : (
+                        <p>Chargement des informations de l'affaire...</p>
+                    )}
+                    {salleInfo ? (
+                        <p><strong>Nom de la Salle :</strong> {salleInfo.nom}</p>
+                    ) : (
+                        <p>Chargement du nom de la salle...</p>
+                    )}
+                </div>
 
-            <p style={{
-                fontSize: "16px",
-                margin: "2px 0 40px",
-                fontWeight: "500",
-                textAlign: "center",
-                color: "#333"
-            }}>
-                Salle : <span style={{ fontWeight: "normal" }}>{processedTracabiliteData?.nom_salle}</span>
-            </p>
+                {/* Section Résultats Acoustiques - Synthèse */}
+                <div className="pdf-section">
+                    <h2>Résultats Acoustiques - Synthèse</h2>
+                    <div className="table-wrapper">
+                    <table className="pdf-table pdf-table-results"> {/* Classe pour le tableau PDF */}
+                        <thead>
+                            <tr>
+                                <th className="pdf-col-type">Type</th>
+                                {BANDES.map(freq => (
+                                    <th key={freq}>{freq} Hz</th>
+                                ))}
+                                <th className="pdf-col-global">GLOBAL dBA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {TYPES_LIGNES.map((type, idx) => (
+                                <tr key={idx}>
+                                    <td>{type}</td>
+                                    {BANDES.map(freq => (
+                                        <td key={freq}>
+                                            {
+                                                type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
+                                                type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
+                                                type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
+                                                type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
+                                                ''
+                                            }
+                                        </td>
+                                    ))}
+                                    <td>
+                                        {type === "reprise"
+                                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
+                                            : type === "extraction"
+                                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
+                                            : type === "Soufflage"
+                                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
+                                            : type === "Lp tot"
+                                            ? (calculateLpTot(
+                                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
+                                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
+                                                lpGlobalDBA["extraction"]
+                                              )?.toFixed(3) ?? '')
+                                            : ''}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
 
-            <h3 style={{
-                fontSize: "20px",
-                marginTop: "100px",
-                marginBottom: "15px",
-                textAlign: "center",
-                color: "#006666",          // ✅ Couleur secondaire douce
-                borderBottom: "2px solid #ccc",
-                paddingBottom: "5px"
-            }}>
-                Résultats Acoustiques - Synthèse
-            </h3>
+                {/* Force le saut de page avant la courbe */}
+                <div className="pdf-page-break" />
 
-                <table style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: '9px',
-                    tableLayout: 'fixed',
-                    wordWrap: 'break-word',
-                }} className="affaires-table synthese-table">
-                <thead>
-                    <tr>
-                    <th style = {{width:'8%'}}>Type</th>
-                    {BANDES.map(freq => (
-                        <th key={freq} style={{ width: '5%' }}>{freq} Hz</th>
-                    ))}
-                    <th style={{ width: '11%' }}>GLOBAL dBA</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {TYPES_LIGNES.map((type, idx) => (
-                    <tr key={idx}>
-                        <td>{type}</td>
-                        {BANDES.map(freq => (
-                        <td key={freq}>
-                            {
-                            type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
-                            type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
-                            type === "Soufflage" ? (lpSoufflage[freq]?.toFixed(3) ?? '') :
-                            type === "Lp tot" ? (calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq])?.toFixed(3) ?? '') :
-                            ''
-                            }
-                        </td>
-                        ))}
-                        <td>
-                        {type === "reprise"
-                            ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
-                            : type === "extraction"
-                            ? (lpGlobalDBA["extraction"]?.toFixed(3) ?? '')
-                            : type === "Soufflage"
-                            ? (lpGlobalDBA["vc crsl-ecm 2 /soufflage"]?.toFixed(3) ?? '')
-                            : type === "Lp tot"
-                            ? (calculateLpTot(
-                                lpGlobalDBA["vc crsl-ecm 2 /soufflage"],
-                                lpGlobalDBA["vc crsl-ecm 2 /reprise"],
-                                lpGlobalDBA["extraction"]
-                            )?.toFixed(3) ?? '')
-                            : ''}
-                        </td>
-                    </tr>
-                    ))}
-                </tbody>
-                </table>
+                {/* Section Courbe de Niveau Sonore */}
+                <div className="pdf-section pdf-chart-section">
+                    <h2>Courbe de Niveau Sonore</h2>
+                    {showChart && selectedNRForChart !== null ? (
+                        <div className="pdf-chart-container"> {/* Conteneur spécifique pour le graphique dans le PDF */}
+                            <Line data={chartData} options={chartOptions} />
+                        </div>
+                    ) : (
+                        <p>Graphique non disponible. Veuillez sélectionner un NR et valider pour générer la courbe.</p>
+                    )}
+                </div>
 
-                {/* ✅ Forcer un saut de page AVANT la courbe */}
-                <div style={{ pageBreakBefore: 'always' }} />
-
-                {/* ✅ Courbe sur une nouvelle page */}
-                <h3 style={{
-                fontSize: "18px",
-                marginBottom: "1rem",
-                textAlign: "center",
-                fontWeight: "bold",
-                color: "#006666", // même code couleur secondaire   
-                }}>
-                Courbe sonore
-                </h3>
-
-
-                {showChart && selectedNRForChart !== null && (
-                                    <div className="chart-container">
-                                        <Line data={chartData} options={chartOptions} />
-                                    </div>
-                                )}
-
-            </div>
+                {/* Pied de page */}
+                <div className="pdf-footer">
+                    <p>Généré le: {new Date().toLocaleDateString()} à {new Date().toLocaleTimeString()}</p>
+                    <p>Logiciel Acoustique V1.0</p>
+                </div>
             </div>
 
         </>
