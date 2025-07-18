@@ -985,7 +985,7 @@ app.get('/api/regenerations', async (req, res) => {
                             regenerationValue = 10 + 50 * Math.log10(vitesse_ms) + 10 * Math.log10(surface_m2) + correctionValeur;
                         }
                     }
-                    calculatedSpectre[bande] = parseFloat(regenerationValue.toFixed(0)); 
+                    calculatedSpectre[bande] = parseFloat(regenerationValue.toFixed(3)); 
                 }
                 finalRegenerations[id_element] = calculatedSpectre;
                 elementsToCalculateAndSave.push({ id_element, spectre: calculatedSpectre });
