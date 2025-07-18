@@ -4,7 +4,7 @@ import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import './AffairesListe.css';
 
-// Imports pour React DnD 
+// Imports pour React DnD
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import update from 'immutability-helper';
@@ -14,7 +14,7 @@ const ItemTypes = {
   TRONCON: 'troncon',
 };
 
-//Composant DraggableTronconRow
+// Composant DraggableTronconRow 
 const DraggableTronconRow = ({
     troncon,
     index,
@@ -111,8 +111,9 @@ const TronconsListe = () => {
         debit: ''
     });
 
-    const debouncedSaveNewOrderRef = useRef();
-    const scrollContainerRef = useRef(null); 
+    // useRef pour stocker l'ID du setTimeout pour le debounce de la sauvegarde de l'ordre
+    const saveOrderDebounceRef = useRef(null);
+
     const fetchTroncons = useCallback(async () => {
         try {
             const res = await axios.get(`http://localhost:5000/api/sources/${id_source}/troncons`);
@@ -123,34 +124,23 @@ const TronconsListe = () => {
         } finally {
             setLoading(false);
         }
-    },[id_source]);
+    }, [id_source]);
 
     const fetchSourceInfo = useCallback(async () => {
         try {
             const res = await axios.get(`http://localhost:5000/api/sources/${id_source}`);
             setSourceInfo({
                 nom: res.data.nom,
-                ordre: res.data.ordre  
+                ordre: res.data.ordre
             });
         } catch (err) {
             console.error("Erreur lors de la récupération des infos source :", err);
         }
-    },[id_source]);
+    }, [id_source]);
 
-    // Drag & Drop : Fonctions de déplacement et de sauvegarde
-    const moveTroncon = useCallback((dragIndex, hoverIndex) => {
-        setTroncons((prevTroncons) =>
-            update(prevTroncons, {
-                $splice: [
-                    [dragIndex, 1],
-                    [hoverIndex, 0, prevTroncons[dragIndex]],
-                ],
-            }),
-        );
-    }, []);
-
-    const saveNewOrder = useCallback(async () => {
-        const newOrder = troncons.map((troncon, index) => ({
+    // fonction pour sauvegarder l'ordre, elle prend les tronçons actuels en argument
+    const executeSaveOrder = useCallback(async (currentTroncons) => {
+        const newOrder = currentTroncons.map((troncon, index) => ({
             id_troncon: troncon.id_troncon,
             ordre: index,
         }));
@@ -159,28 +149,55 @@ const TronconsListe = () => {
             await axios.put(`http://localhost:5000/api/sources/${id_source}/troncons/reorder`, newOrder);
             setMessage("Ordre des tronçons mis à jour avec succès !");
             setIsErreur(false);
-            await fetchTroncons(); 
         } catch (err) {
-            console.error("Erreur lors de la sauvegarde du nouvel ordre :", err)
-            setMessage("Erreur lors de la sauvegarde de l'ordre.")
+            console.error("Erreur lors de la sauvegarde du nouvel ordre :", err);
+            setMessage("Erreur lors de la sauvegarde de l'ordre.");
             setIsErreur(true);
         }
-    }, [troncons, id_source, fetchTroncons]);
+    }, [id_source]); // id_source est une dépendance stable
+
+    // Drag & Drop
+    const moveTroncon = useCallback((dragIndex, hoverIndex) => {
+        setTroncons((prevTroncons) => {
+            const newTroncons = update(prevTroncons, {
+                $splice: [
+                    [dragIndex, 1],
+                    [hoverIndex, 0, prevTroncons[dragIndex]],
+                ],
+            });
+
+            if (saveOrderDebounceRef.current) {
+                clearTimeout(saveOrderDebounceRef.current);
+            }
+            saveOrderDebounceRef.current = setTimeout(() => {
+                executeSaveOrder(newTroncons); 
+            }, 500);
+
+            return newTroncons;
+        });
+    }, [executeSaveOrder]);
 
     // EFFETS
     useEffect(() => {
         const utilisateur = localStorage.getItem("utilisateur");
         if (!utilisateur) {
-            navigate('/connexion')
-            return; 
+            navigate('/connexion');
+            return;
         }
         const loadData = async () => {
             await fetchTroncons();
             await fetchSourceInfo();
         };
         loadData();
-    }, [fetchTroncons, fetchSourceInfo, navigate]); 
 
+        return () => {
+            if (saveOrderDebounceRef.current) {
+                clearTimeout(saveOrderDebounceRef.current);
+            }
+        };
+    }, [fetchTroncons, fetchSourceInfo, navigate]);
+
+    /*
     useEffect(() => {
         if (debouncedSaveNewOrderRef.current) {
             clearTimeout(debouncedSaveNewOrderRef.current);
@@ -197,6 +214,7 @@ const TronconsListe = () => {
             }
         };
     }, [troncons, saveNewOrder]);
+    */
 
     const handleLogout = () => {
         localStorage.removeItem("utilisateur");
@@ -246,7 +264,7 @@ const TronconsListe = () => {
             setIsErreur(false);
             setFormData({ forme: 'rectangulaire', largeur: '', hauteur: '', 'diametre': '', debit: '' });
             setShowForm(false);
-            fetchTroncons();
+            fetchTroncons(); 
 
         } catch (error) {
             setMessage(error.response?.data?.message || "Une erreur est survenue.");
@@ -270,10 +288,10 @@ const TronconsListe = () => {
     const handleDelete = async (id_troncon) => {
         if (window.confirm("Êtes-vous sûr de vouloir supprimer ce tronçon ?")) {
             try {
-                await axios.delete(`http://localhost:5000/api/troncons/${id_troncon}`);           
+                await axios.delete(`http://localhost:5000/api/troncons/${id_troncon}`);
                 setMessage("Tronçon supprimé avec succès !");
                 setIsErreur(false);
-                fetchTroncons();     
+                fetchTroncons(); 
             } catch (error) {
                 setMessage(error.response?.data?.message || "Erreur lors de la suppression.");
                 setIsErreur(true);
@@ -289,7 +307,7 @@ const TronconsListe = () => {
             <div className="logout-global">
                 <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
             </div>
-        
+
             <div className='container-box'>
                 <div className="page-header">
                     <h1 className="page-title">
@@ -322,7 +340,7 @@ const TronconsListe = () => {
                     </form>
                 )}
 
-                <div ref={scrollContainerRef} className="table-scroll-container">
+                <div className="table-scroll-container">
                     <table className='affaires-table'>
                         <thead>
                             <tr>
@@ -348,8 +366,8 @@ const TronconsListe = () => {
                             ))}
                         </tbody>
                     </table>
-                </div> 
-                
+                </div>
+
                 <div className="footer-actions">
                     <button onClick={() => navigate(-1)} className="btn-secondary">Retour</button>
                 </div>
