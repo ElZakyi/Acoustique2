@@ -139,7 +139,9 @@ const DraggableElementRow = ({
                         <FaPencilAlt className="icon-action icon-edit" onClick={() => handleEditClick(element)} />
                         <FaTrash className="icon-action icon-delete" onClick={() => handleDeleteElement(element.id_element)} />
                     </div>
-                    <button className="btn-small" onClick={() => openAttenuationForm(element, index)}>Atténuation</button>
+                    {element.type !== 'piecetransformation' && (
+                        <button className="btn-small" onClick={() => openAttenuationForm(element, index)}>Atténuation</button>
+                    )}
                     {(element.type === 'grillesoufflage' || element.type === 'vc') && (
                         <button className="btn-small" style={{ marginLeft: '5px' }} onClick={() => openRegenerationForm(element, index)}>
                             Regénération
