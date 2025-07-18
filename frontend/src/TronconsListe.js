@@ -171,7 +171,7 @@ const TronconsListe = () => {
     useEffect(() => {
         const utilisateur = localStorage.getItem("utilisateur");
         if (!utilisateur) {
-            navigate('/connexion');
+            navigate('/connexion')
             return; 
         }
         const loadData = async () => {
