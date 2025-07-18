@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react"; 
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import './AffairesListe.css';
@@ -183,6 +183,29 @@ const ElementsReseau = () => {
     const [regenerationValues, setRegenerationValues] = useState(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, ''])));
     const saveOrderDebounceRef = useRef(null);
 
+    const calculerGlobalDBA = useCallback((spectre) => {
+        const bandes = ['63', '125', '250', '500', '1000', '2000', '4000'];
+        const pondA = { 63: -26.2, 125: -16.1, 250: -8.6, 500: -3.2, 1000: 0, 2000: 1.2, 4000: 1 };
+        let somme = 0;
+        for (const bande of bandes) {
+            const val = spectre?.[bande];
+            if (val !== undefined && val !== null && !isNaN(val)) {
+                somme += Math.pow(10, (val + pondA[bande]) / 10);
+            }
+        }
+        return somme > 0 ? (10 * Math.log10(somme)).toFixed(2) : "-";
+    }, []);
+
+    // Make this function stable with useCallback
+    const enregistrerGlobalDbaLp = useCallback(async (id_element, global_dba_lp) => {
+        try {
+            await axios.post('http://localhost:5000/api/lp-dba', { id_element, global_dba_lp });
+            console.log(`✅ Global DBA Lp enregistré pour l’élément ${id_element}`);
+        } catch (err) {
+            console.error('❌ Erreur lors de l’enregistrement du Global DBA Lp', err);
+        }
+    }, []);
+
     // logique de chargement de toutes les données
     const loadAllData = useCallback(async () => {
         if (!localStorage.getItem("utilisateur")) {
@@ -192,27 +215,26 @@ const ElementsReseau = () => {
 
         try {
             //console.log("--- DÉBUT DU CHARGEMENT GLOBAL DES DONNÉES ---");
-            const [elementsRes,attenuationsRes,regenerationsRes,attTronconRes,ordreTronconRes,lpRes,lwTotalRes] = await Promise.all([
+            const [elementsRes, ordreTronconRes] = await Promise.all([
                 axios.get(`http://localhost:5000/api/troncons/${id_troncon}/elements`),
+                axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`)
+            ]);
+            setElements(elementsRes.data);
+            setOrdreTroncon(ordreTronconRes.data.ordre_troncon);
+            const [attenuationsRes, regenerationsRes, attTronconRes] = await Promise.all([
                 axios.get('http://localhost:5000/api/attenuations'),
                 axios.get('http://localhost:5000/api/regenerations'),
                 axios.get('http://localhost:5000/api/attenuationtroncons'),
-                axios.get(`http://localhost:5000/api/troncons/${id_troncon}/ordre`),
-                axios.get('http://localhost:5000/api/niveaux_lp'),
-                axios.get('http://localhost:5000/api/lw_total'),
             ]);
-
-            const fetchedElements = elementsRes.data;
-            setElements(fetchedElements);
-            setOrdreTroncon(ordreTronconRes.data.ordre_troncon);
-
             let calculsDeChainage = [];
-            if (fetchedElements.length > 0) {
+            if (elementsRes.data.length > 0) { 
                 const calculsRes = await axios.get(`http://localhost:5000/api/lwresultants/troncon/${id_troncon}`);
                 calculsDeChainage = calculsRes.data;
             }
+            const lwTotalRes = await axios.get('http://localhost:5000/api/lw_total');
+            const lpRes = await axios.get('http://localhost:5000/api/niveaux_lp');
 
-            // Chargement conditionnel de lw_sortie_air_neuf
+            // Conditional loading of lw_sortie_air_neuf
             let lwSortieAirNeufData = {};
             if (id_source) {
                 try {
@@ -220,10 +242,8 @@ const ElementsReseau = () => {
                      lwSortieAirNeufData = lwSortieAirNeufRes.data;
                 } catch (error) {
                     console.warn("Impossible de charger le spectre d'air neuf pour cette source.", error);
-                    lwSortieAirNeufData = {};
                 }
             }
-
 
             const finalSpectra = {
                 attenuation: attenuationsRes.data,
@@ -232,7 +252,7 @@ const ElementsReseau = () => {
                 lp: lpRes.data,
                 lw_total: lwTotalRes.data,
                 lw_sortie_air_neuf: lwSortieAirNeufData,
-                lw_resultant: {},
+                lw_resultant: {}, 
                 lw_entrant: {},
                 lw_sortie: {}
             };
@@ -241,7 +261,8 @@ const ElementsReseau = () => {
                 if (item.lwEntrant) finalSpectra.lw_entrant[item.id_element] = item.lwEntrant;
                 if (item.lw_sortie) finalSpectra.lw_sortie[item.id_element] = item.lw_sortie;
             });
-            console.log(" Spectre lw_sortie_air_neuf chargé :", finalSpectra.lw_sortie_air_neuf);
+            
+            // console.log(" Spectre lw_sortie_air_neuf chargé :", finalSpectra.lw_sortie_air_neuf); // For debugging
             setAllSpectra(finalSpectra);
             //console.log("--- CHARGEMENT COMPLET ---", finalSpectra);
 
@@ -261,15 +282,6 @@ const ElementsReseau = () => {
         };
     }, [loadAllData]);
 
-    const enregistrerGlobalDbaLp = async (id_element, global_dba_lp) => {
-        try {
-            await axios.post('http://localhost:5000/api/lp-dba', { id_element, global_dba_lp });
-            console.log(`✅ Global DBA Lp enregistré pour l’élément ${id_element}`);
-        } catch (err) {
-            console.error('❌ Erreur lors de l’enregistrement du Global DBA Lp', err);
-        }
-    };
-
     useEffect(() => {
         elements.forEach((el) => {
             const lpSpectre = allSpectra.lp?.[el.id_element];
@@ -280,7 +292,7 @@ const ElementsReseau = () => {
                 }
             }
         });
-    }, [elements, allSpectra.lp]);
+    }, [elements, allSpectra.lp, calculerGlobalDBA, enregistrerGlobalDbaLp]);
 
 
     const handleLogout = () => { localStorage.removeItem("utilisateur"); navigate('/connexion'); };
@@ -369,25 +381,12 @@ const ElementsReseau = () => {
             };
             await axios.post('http://localhost:5000/api/regenerations', payload);
             setMessage("Régénération enregistrée !");
-            await loadAllData();
+            await loadAllData(); 
             setShowRegenerationForm(false);
         } catch (error) {
             console.error("Erreur sauvegarde régénération:", error);
             setMessage("Erreur lors de la sauvegarde de la régénération.");
         }
-    };
-
-    const calculerGlobalDBA = (spectre) => {
-        const bandes = ['63', '125', '250', '500', '1000', '2000', '4000'];
-        const pondA = { 63: -26.2, 125: -16.1, 250: -8.6, 500: -3.2, 1000: 0, 2000: 1.2, 4000: 1 };
-        let somme = 0;
-        for (const bande of bandes) {
-            const val = spectre?.[bande];
-            if (val !== undefined && val !== null && !isNaN(val)) {
-                somme += Math.pow(10, (val + pondA[bande]) / 10);
-            }
-        }
-        return somme > 0 ? (10 * Math.log10(somme)).toFixed(2) : "-";
     };
 
     // Fonction pour sauvegarder le nouvel ordre, elle prend les éléments actuels en argument
@@ -531,7 +530,7 @@ const ElementsReseau = () => {
                                         type="number"
                                         value={regenerationValues[freq]}
                                         onChange={(e) => setRegenerationValues({ ...regenerationValues, [freq]: e.target.value })}
-                                        className="form-input" // 🎯 AJOUTÉ : Pour le style de l'input
+                                        className="form-input" 
                                     />
                                 </div>
                             ))}
