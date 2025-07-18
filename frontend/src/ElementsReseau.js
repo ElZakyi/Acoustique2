@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import './AffairesListe.css'; // Assurez-vous que le chemin est correct
+import './AffairesListe.css';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 
 //Imports pour React DnD
@@ -9,7 +9,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import update from 'immutability-helper';
 
-// CONFIGURATIONS
+// CONFIGURATIONS 
 const ELEMENT_CONFIG = {
     silencieux: { label: 'Silencieux', fields: [] },
     conduit: { label: 'Conduit', fields: [{ name: 'longueur', label: 'Longueur (m)', type: 'number' }, { name: 'materiau', label: 'Matériau', type: 'text' }] },
@@ -43,11 +43,11 @@ const ItemTypes = {
   ELEMENT: 'element',
 };
 
-//Composant DraggableElementRow
+//Composant DraggableElementRow (Keep as is)
 const DraggableElementRow = ({
     element,
     index,
-    moveElement, 
+    moveElement,
     handleEditClick,
     handleDeleteElement,
     openAttenuationForm,
@@ -74,7 +74,7 @@ const DraggableElementRow = ({
             if (!ref.current) {
                 return;
             }
-            const dragIndex = item.index; 
+            const dragIndex = item.index;
             const hoverIndex = index;
 
             if (dragIndex === hoverIndex) {
@@ -179,6 +179,7 @@ const ElementsReseau = () => {
     const [attenuationValues, setAttenuationValues] = useState(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, ''])));
     const [showRegenerationForm, setShowRegenerationForm] = useState(false);
     const [regenerationValues, setRegenerationValues] = useState(Object.fromEntries(BANDES_FREQUENCE.map(f => [f, ''])));
+    const saveOrderDebounceRef = useRef(null);
 
     // logique de chargement de toutes les données
     const loadAllData = useCallback(async () => {
@@ -198,7 +199,7 @@ const ElementsReseau = () => {
                 axios.get('http://localhost:5000/api/niveaux_lp'),
                 axios.get('http://localhost:5000/api/lw_total'),
             ]);
-            
+
             const fetchedElements = elementsRes.data;
             setElements(fetchedElements);
             setOrdreTroncon(ordreTronconRes.data.ordre_troncon);
@@ -208,16 +209,16 @@ const ElementsReseau = () => {
                 const calculsRes = await axios.get(`http://localhost:5000/api/lwresultants/troncon/${id_troncon}`);
                 calculsDeChainage = calculsRes.data;
             }
-            
+
             // Chargement conditionnel de lw_sortie_air_neuf
             let lwSortieAirNeufData = {};
-            if (id_source) { 
+            if (id_source) {
                 try {
                      const lwSortieAirNeufRes = await axios.get(`http://localhost:5000/api/lw_sortie_air_neuf/${id_source}`);
                      lwSortieAirNeufData = lwSortieAirNeufRes.data;
                 } catch (error) {
                     console.warn("Impossible de charger le spectre d'air neuf pour cette source.", error);
-                    lwSortieAirNeufData = {}; 
+                    lwSortieAirNeufData = {};
                 }
             }
 
@@ -228,7 +229,7 @@ const ElementsReseau = () => {
                 attenuation_troncon: attTronconRes.data,
                 lp: lpRes.data,
                 lw_total: lwTotalRes.data,
-                lw_sortie_air_neuf: lwSortieAirNeufData, 
+                lw_sortie_air_neuf: lwSortieAirNeufData,
                 lw_resultant: {},
                 lw_entrant: {},
                 lw_sortie: {}
@@ -238,7 +239,7 @@ const ElementsReseau = () => {
                 if (item.lwEntrant) finalSpectra.lw_entrant[item.id_element] = item.lwEntrant;
                 if (item.lw_sortie) finalSpectra.lw_sortie[item.id_element] = item.lw_sortie;
             });
-            console.log("✅ Spectre lw_sortie_air_neuf chargé :", finalSpectra.lw_sortie_air_neuf);
+            console.log(" Spectre lw_sortie_air_neuf chargé :", finalSpectra.lw_sortie_air_neuf);
             setAllSpectra(finalSpectra);
             //console.log("--- CHARGEMENT COMPLET ---", finalSpectra);
 
@@ -246,10 +247,16 @@ const ElementsReseau = () => {
             console.error("Une erreur est survenue lors du chargement des données:", error);
             setMessage("Erreur de chargement des données. Vérifiez la console.");
         }
-    }, [id_troncon, id_source, navigate]); 
-    
+    }, [id_troncon, id_source, navigate]);
+
     useEffect(() => {
         loadAllData();
+        // Nettoyage au démontage du composant pour annuler le dernier debounce si nécessaire
+        return () => {
+            if (saveOrderDebounceRef.current) {
+                clearTimeout(saveOrderDebounceRef.current);
+            }
+        };
     }, [loadAllData]);
 
     const enregistrerGlobalDbaLp = async (id_element, global_dba_lp) => {
@@ -287,7 +294,7 @@ const ElementsReseau = () => {
             else await axios.post(`http://localhost:5000/api/troncons/${id_troncon}/elements`, payload);
             setMessage(`Élément ${editingId ? 'mis à jour' : 'ajouté'} !`);
             setShowForm(false); setEditingId(null); setSelectedType(''); setFormData({});
-            await loadAllData();
+            await loadAllData(); 
         } catch (err) { setMessage(err.response?.data?.message || "Une erreur est survenue."); }
     };
 
@@ -297,9 +304,9 @@ const ElementsReseau = () => {
             await axios.delete(`http://localhost:5000/api/elements/${id_element}`);
             setMessage("Élément supprimé avec succès.");
             await loadAllData(); 
-        } catch (err) { 
+        } catch (err) {
             console.error("Erreur de suppression:", err);
-            setMessage(err.response?.data?.message || "Erreur lors de la suppression."); 
+            setMessage(err.response?.data?.message || "Erreur lors de la suppression.");
         }
     };
 
@@ -324,7 +331,7 @@ const ElementsReseau = () => {
             return (<input key={field.name} type={field.type} name={field.name} placeholder={field.label} value={formData[field.name] || ''} onChange={handleFormInputChange} className="form-input" required />);
         });
     };
-    
+
     const openAttenuationForm = (element, index) => {
         setSelectedElement(element); setSelectedElementOrder(index + 1);
         const existingValues = allSpectra.attenuation[element.id_element] || {};
@@ -338,7 +345,7 @@ const ElementsReseau = () => {
             const payload = { id_element: selectedElement.id_element, ...Object.fromEntries(Object.entries(attenuationValues).map(([k, v]) => [k, parseFloat(v) || 0])) };
             await axios.post('http://localhost:5000/api/attenuations', payload);
             setMessage("Atténuation enregistrée !");
-            await loadAllData(); 
+            await loadAllData();
             setShowAttenuationForm(false);
         } catch (error) { console.error("Erreur sauvegarde atténuation:", error); setMessage("Erreur de sauvegarde."); }
     };
@@ -360,19 +367,19 @@ const ElementsReseau = () => {
             };
             await axios.post('http://localhost:5000/api/regenerations', payload);
             setMessage("Régénération enregistrée !");
-            await loadAllData(); 
+            await loadAllData();
             setShowRegenerationForm(false);
         } catch (error) {
             console.error("Erreur sauvegarde régénération:", error);
             setMessage("Erreur lors de la sauvegarde de la régénération.");
         }
-    }; 
+    };
 
     const calculerGlobalDBA = (spectre) => {
         const bandes = ['63', '125', '250', '500', '1000', '2000', '4000'];
         const pondA = { 63: -26.2, 125: -16.1, 250: -8.6, 500: -3.2, 1000: 0, 2000: 1.2, 4000: 1 };
         let somme = 0;
-        for (const bande of bandes) { 
+        for (const bande of bandes) {
             const val = spectre?.[bande];
             if (val !== undefined && val !== null && !isNaN(val)) {
                 somme += Math.pow(10, (val + pondA[bande]) / 10);
@@ -380,34 +387,43 @@ const ElementsReseau = () => {
         }
         return somme > 0 ? (10 * Math.log10(somme)).toFixed(2) : "-";
     };
-    // Fonction de déplacement pour le drag and drop
-    const moveElement = useCallback((dragIndex, hoverIndex) => {
-        setElements((prevElements) =>
-            update(prevElements, {
-                $splice: [
-                    [dragIndex, 1],
-                    [hoverIndex, 0, prevElements[dragIndex]],
-                ],
-            }),
-        );
-    }, []);
 
-    // Fonction pour sauvegarder le nouvel ordre après un drop 
-    const saveNewOrder = useCallback(async () => {
-        const newOrder = elements.map((element, index) => ({
+    // Fonction pour sauvegarder le nouvel ordre, elle prend les éléments actuels en argument
+    const executeSaveOrder = useCallback(async (currentElements) => {
+        const newOrder = currentElements.map((element, index) => ({
             id_element: element.id_element,
-            ordre: index, 
+            ordre: index,
         }));
 
         try {
             await axios.put(`http://localhost:5000/api/troncons/${id_troncon}/elements/reorder`, newOrder);
             setMessage("Ordre des éléments mis à jour avec succès !");
-            await loadAllData(); 
         } catch (err) {
             console.error("Erreur lors de la sauvegarde du nouvel ordre :", err);
             setMessage("Erreur lors de la sauvegarde du nouvel ordre.");
         }
-    }, [elements, id_troncon, loadAllData]);
+    }, [id_troncon]); 
+
+    const moveElement = useCallback((dragIndex, hoverIndex) => {
+        setElements((prevElements) => {
+            const newElements = update(prevElements, {
+                $splice: [
+                    [dragIndex, 1],
+                    [hoverIndex, 0, prevElements[dragIndex]],
+                ],
+            });
+
+            if (saveOrderDebounceRef.current) {
+                clearTimeout(saveOrderDebounceRef.current);
+            }
+            saveOrderDebounceRef.current = setTimeout(() => {
+                executeSaveOrder(newElements); 
+            }, 500);
+
+            return newElements; // Retourne le nouvel état
+        });
+    }, [executeSaveOrder]); 
+    /*
     const debouncedSaveNewOrderRef = useRef();
 
     useEffect(() => {
@@ -415,7 +431,7 @@ const ElementsReseau = () => {
             clearTimeout(debouncedSaveNewOrderRef.current);
         }
         debouncedSaveNewOrderRef.current = setTimeout(() => {
-            if (elements.length > 0) { 
+            if (elements.length > 0) {
                 saveNewOrder();
             }
         }, 500);
@@ -425,7 +441,8 @@ const ElementsReseau = () => {
                 clearTimeout(debouncedSaveNewOrderRef.current);
             }
         };
-    }, [elements, saveNewOrder]); 
+    }, [elements, saveNewOrder]);
+    */
 
     //AFFICHAGE
     return (
@@ -451,7 +468,7 @@ const ElementsReseau = () => {
 
                 {/* Tableau des paramètres des éléments- D&D appliqué */}
                 <h3 style={{ marginTop: '20px' }}>Paramètres des éléments</h3>
-                <div className="table-wrapper"> 
+                <div className="table-wrapper">
                 <table className="affaires-table">
                     <thead><tr><th>#</th><th>Type</th><th>Paramètres</th><th>Action</th></tr></thead>
                     <tbody>
@@ -482,8 +499,21 @@ const ElementsReseau = () => {
                     <div className="modal-overlay">
                         <div className="modal">
                             <h3>Saisir les atténuations pour l'élément n°{selectedElementOrder}</h3>
-                            {BANDES_FREQUENCE.map(freq => (<div className="modal-field" key={freq}><label>{freq}Hz</label><input type="number" value={attenuationValues[freq]} onChange={(e) => setAttenuationValues({ ...attenuationValues, [freq]: e.target.value })} /></div>))}
-                            <div className="modal-actions"><button onClick={saveAttenuation}>Enregistrer</button><button onClick={() => setShowAttenuationForm(false)}>Fermer</button></div>
+                            {BANDES_FREQUENCE.map(freq => (
+                                <div className="modal-field" key={freq}>
+                                    <label>{freq}Hz</label>
+                                    <input
+                                        type="number"
+                                        value={attenuationValues[freq]}
+                                        onChange={(e) => setAttenuationValues({ ...attenuationValues, [freq]: e.target.value })}
+                                        className="form-input" 
+                                    />
+                                </div>
+                            ))}
+                            <div className="modal-actions">
+                                <button onClick={saveAttenuation} className="btn-primary">Enregistrer</button>
+                                <button onClick={() => setShowAttenuationForm(false)} className="btn-secondary">Fermer</button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -492,15 +522,28 @@ const ElementsReseau = () => {
                     <div className="modal-overlay">
                         <div className="modal">
                             <h3>Saisir la régénération pour l'élément n°{selectedElementOrder}</h3>
-                            {BANDES_FREQUENCE.map(freq => (<div className="modal-field" key={freq}><label>{freq}Hz</label><input type="number" value={regenerationValues[freq]} onChange={(e) => setRegenerationValues({ ...regenerationValues, [freq]: e.target.value })} /></div>))}
-                            <div className="modal-actions"><button onClick={saveRegeneration}>Enregistrer</button><button onClick={() => setShowRegenerationForm(false)}>Fermer</button></div>
+                            {BANDES_FREQUENCE.map(freq => (
+                                <div className="modal-field" key={freq}>
+                                    <label>{freq}Hz</label>
+                                    <input
+                                        type="number"
+                                        value={regenerationValues[freq]}
+                                        onChange={(e) => setRegenerationValues({ ...regenerationValues, [freq]: e.target.value })}
+                                        className="form-input" // 🎯 AJOUTÉ : Pour le style de l'input
+                                    />
+                                </div>
+                            ))}
+                            <div className="modal-actions">
+                                <button onClick={saveRegeneration} className="btn-primary">Enregistrer</button> {/* 🎯 AJOUTÉ : Pour le style du bouton */}
+                                <button onClick={() => setShowRegenerationForm(false)} className="btn-secondary">Fermer</button> {/* 🎯 AJOUTÉ : Pour le style du bouton */}
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {/* Tableau de synthèse acoustique*/}
                 <h3 className="section-heading">Tableau de synthèse acoustique</h3>
-                <div className="table-wrapper"> 
+                <div className="table-wrapper">
                 <table className="affaires-table synthese-table">
                     <thead><tr><th style={{ width: '5%' }}>#</th><th style={{ width: '15%' }}>Type</th><th style={{ width: '20%' }}>Valeurs</th>{BANDES_FREQUENCE.map(freq => <th key={freq}>{freq}Hz</th>)}<th>GLOBAL dBA</th></tr></thead>
                     <tbody>
@@ -517,7 +560,7 @@ const ElementsReseau = () => {
                         const rowSpan = spectraToShow.length > 0 ? spectraToShow.length : 1;
 
                         return (
-                        <React.Fragment key={`synth-${el.id_element}`}> 
+                        <React.Fragment key={`synth-${el.id_element}`}>
                             <tr>
                             <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{i + 1}</td>
                             <td rowSpan={rowSpan} style={{ verticalAlign: 'middle' }}>{ELEMENT_CONFIG[el.type]?.label || el.type}</td>
@@ -535,14 +578,14 @@ const ElementsReseau = () => {
                                     let key = null;
                                     if (el.type === 'piecetransformation') key = 'lw_entrant';
                                     else if (el.type === 'grillesoufflage') key = 'lw_sortie';
-                                    else if (el.type === 'vc') key = 'lw_sortie'; 
+                                    else if (el.type === 'vc') key = 'lw_sortie';
 
                                     if (el.type === 'vc' && el.type_vc === 'Soufflage') {
-                                        key = 'lw_total'; 
+                                        key = 'lw_total';
                                     } else if (el.type !== 'piecetransformation' && el.type !== 'grillesoufflage' && el.type !== 'vc') {
                                         key = 'lw_resultant';
                                     }
-                                    
+
                                     const spectre = allSpectra[key]?.[el.id_element];
                                     return spectre ? calculerGlobalDBA(spectre) : "-";
                                 })()
@@ -566,7 +609,7 @@ const ElementsReseau = () => {
                                     }
                                     return <td key={`${spectrumKey}-${freq}`}>{spectre?.[freq] ?? '-'}</td>;
                                 })}
-                                
+
                                 {isLp && <td>{globalDBA_LP}</td>}
                                 </tr>
                             );

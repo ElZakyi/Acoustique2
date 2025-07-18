@@ -471,7 +471,6 @@ const ResultatsPage = () => {
                     <div className="page-header">
                         <h2 className="page-title">Résultats Acoustiques - Synthèse</h2>
                     </div>
-
                     <table className="affaires-table synthese-table">
                         <thead>
                             <tr>
@@ -630,7 +629,7 @@ const ResultatsPage = () => {
                 <div className="pdf-section">
                     <h2>Résultats Acoustiques - Synthèse</h2>
                     <div className="table-wrapper">
-                    <table className="pdf-table pdf-table-results"> {/* Classe pour le tableau PDF */}
+                    <table className="pdf-table pdf-table-results">
                         <thead>
                             <tr>
                                 <th className="pdf-col-type">Type</th>

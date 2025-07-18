@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
-import './AffairesListe.css'; // Assurez-vous que le chemin est correct
+import './AffairesListe.css';
 
 const SallesListe = () => {
   const location = useLocation();

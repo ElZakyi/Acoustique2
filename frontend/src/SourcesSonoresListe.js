@@ -8,7 +8,7 @@ const BANDES_FREQUENCE = [63, 125, 250, 500, 1000, 2000, 4000];
 
 const LwSourceForm = ({ source, onClose, refreshLwData }) => {
     const [spectre, setSpectre] = useState({});
-    const [loading, setLoading] = true;
+    const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [isError, setIsError] = useState(false);
 
@@ -55,19 +55,19 @@ const LwSourceForm = ({ source, onClose, refreshLwData }) => {
 
     if (loading) return (
         <div className="modal-overlay">
-            <div className="modal-content">Chargement du spectre...</div>
+            <div className="modal">Chargement du spectre...</div>
         </div>
     );
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Spectre Lw pour la source "{source.nom}"</h3>
                 {message && <p className={isError ? 'form-error' : 'form-success'}>{message}</p>}
                 <form onSubmit={handleSubmit}>
-                    <div className="spectre-grid">
+                    <div className="modal-fields-grid"> 
                         {BANDES_FREQUENCE.map(bande => (
-                            <div key={bande} className="spectre-input-group">
+                            <div key={bande} className="modal-field">
                                 <label>{bande} Hz</label>
                                 <input type="number" step="0.1" className="form-input"
                                     value={spectre[bande] || ''}
@@ -249,7 +249,7 @@ const SourcesSonoresListe = () => {
                 {message && <p className={isErreur ? "form-error" : "form-success"}>{message}</p>}
                 {showForm && (
                     <form onSubmit={handleFormSubmit} className="affaires-form">
-                        <h3>{formData.id_source ? "Modifier la Source" : "Nouvelle Source Sonore"}</h3>
+                        <h3 className="form-title">{formData.id_source ? "Modifier la Source" : "Nouvelle Source Sonore"}</h3>
                         <input className="form-input" type="text" name="nom" placeholder="Nom de la source" value={formData.nom} onChange={handleInputChange} required />
                         <select className="form-input" name="type" value={formData.type} onChange={handleInputChange} required >
                             <option value="soufflage">Soufflage</option>
@@ -260,7 +260,7 @@ const SourcesSonoresListe = () => {
                         <button type="submit" className="form-button">{formData.id_source ? "Mettre à jour" : "Enregistrer"}</button>
                     </form>
                 )}
-                <div className="table-wrapper"> 
+                <div className="table-wrapper">
                 <table className="affaires-table">
                     <thead>
                         <tr>
@@ -293,18 +293,18 @@ const SourcesSonoresListe = () => {
                     </tbody>
                 </table>
                 </div>
-                {/* BOUTON "Résultat" - MODIFIÉ ICI */}
+                {/* BOUTON "Résultat"*/}
                 <div style={{ marginTop: '20px', textAlign: 'center' }}>
                     <button
-                        className="btn-full-width-green" // <--- Nouvelle classe appliquée ici
+                        className="btn-full-width-green"
                         onClick={() => navigate(`/salles/${id_salle}/resultats`)}
                     >
                         Résultat
                     </button>
                 </div>
 
-                <h2 className="section-heading" style={{ marginTop: '40px' }}>Tableau des spectres</h2> {/* Utilisation de section-heading */}
-                <div className="table-wrapper"> 
+                <h2 className="section-heading" style={{ marginTop: '40px' }}>Tableau des spectres</h2>
+                <div className="table-wrapper">
                  <table className="affaires-table">
                     <thead>
                         <tr>
