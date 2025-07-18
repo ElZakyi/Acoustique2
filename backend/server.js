@@ -1227,55 +1227,90 @@ app.get('/api/niveaux_lp', async (req, res) => {
 
 app.get('/api/lw_total', async (req, res) => {
     try {
-        //Récupération des données
         const [lwSortieVcRows] = await db.promise().query('SELECT * FROM lwsortie_vc');
-        
-        const [[sourceAirNeuf]] = await db.promise().query(
-            "SELECT id_source FROM sourcesonore WHERE nom LIKE '%air neuf%' LIMIT 1"
-        );
-        let spectreAirNeuf = {};
-        if (sourceAirNeuf) {
-            const [[grilleAirNeuf]] = await db.promise().query(
-                `SELECT e.id_element FROM elementreseau e JOIN troncon t ON e.id_troncon = t.id_troncon WHERE t.id_source = ? AND e.type = 'grillesoufflage' LIMIT 1`,
-                [sourceAirNeuf.id_source]
-            );
-            if (grilleAirNeuf) {
-                const [valeursAirNeuf] = await db.promise().query(
-                    'SELECT bande, valeur FROM lwsortie WHERE id_element = ?',
-                    [grilleAirNeuf.id_element]
-                );
-                valeursAirNeuf.forEach(row => spectreAirNeuf[row.bande] = row.valeur);
-            }
-        }
-        
-        //Organisation des données
         const lwSortieVcMap = lwSortieVcRows.reduce((acc, row) => {
             if (!acc[row.id_element]) acc[row.id_element] = {};
             acc[row.id_element][row.bande] = row.valeur;
             return acc;
         }, {});
 
-        // Calcul 
-        const lwTotalSpectres = {};
-        for (const id_element in lwSortieVcMap) {
-            const spectreLwSortie = lwSortieVcMap[id_element];
-            
-                    if (!spectreLwSortie) {
-            //console.warn(`[Backend-LwTotal] Aucune donnée 'lw_sortie' pour la VC avec id_element ${id_element}. Calcul de Lw Total ignoré.`);
-            continue; 
+        const [vcSoufflageElements] = await db.promise().query(`
+            SELECT 
+                er.id_element, 
+                ss.id_salle
+            FROM elementreseau er
+            JOIN vc ON er.id_element = vc.id_element
+            JOIN troncon t ON er.id_troncon = t.id_troncon
+            JOIN sourcesonore ss ON t.id_source = ss.id_source
+            WHERE er.type = 'vc' AND vc.type_vc = 'Soufflage'
+        `);
+
+        const freshAirSpectraPerSalle = {};
+
+        const uniqueSalleIds = [...new Set(vcSoufflageElements.map(el => el.id_salle))];
+
+        for (const salleId of uniqueSalleIds) {
+            const [[soufflageSource]] = await db.promise().query(
+                `SELECT id_source FROM sourcesonore WHERE id_salle = ? AND type = 'Soufflage' LIMIT 1`,
+                [salleId]
+            );
+
+            if (soufflageSource) {
+                const [[grilleSoufflage]] = await db.promise().query(
+                    `SELECT e.id_element FROM elementreseau e JOIN troncon t ON e.id_troncon = t.id_troncon WHERE t.id_source = ? AND e.type = 'grillesoufflage' LIMIT 1`,
+                    [soufflageSource.id_source]
+                );
+
+                if (grilleSoufflage) {
+                    const [valeursAirNeuf] = await db.promise().query(
+                        'SELECT bande, valeur FROM lwsortie WHERE id_element = ?',
+                        [grilleSoufflage.id_element]
+                    );
+                    const spectre = {};
+                    valeursAirNeuf.forEach(row => spectre[row.bande] = row.valeur);
+                    freshAirSpectraPerSalle[salleId] = spectre;
+                } else {
+                    console.warn(`[Backend-LwTotal] No 'grillesoufflage' found for Soufflage source ${soufflageSource.id_source} in salle ${salleId}.`);
+                }
+            } else {
+                console.warn(`[Backend-LwTotal] No 'Soufflage' type source found in salle ${salleId}.`);
+            }
         }
-            
+        
+        // calcule lwTotalSpectres 
+        const lwTotalSpectres = {};
+        const BANDES_FREQUENCE = ['63', '125', '250', '500', '1000', '2000', '4000']; 
+
+        for (const element of vcSoufflageElements) {
+            const id_element = element.id_element;
+            const id_salle = element.id_salle; 
+
+            const spectreLwSortie = lwSortieVcMap[id_element]; 
+            const spectreAirNeuf = freshAirSpectraPerSalle[id_salle] || {}; 
+
+            if (!spectreLwSortie) {
+                //console.warn(`No 'lw_sortie' data for VC element ${id_element}`);
+                continue;
+            }
+
             lwTotalSpectres[id_element] = {};
-            for (const bande in spectreLwSortie) {
-                const lw_sortie = parseFloat(spectreLwSortie[bande]);
-                const lw_air_neuf = parseFloat(spectreAirNeuf[bande]) || 0; 
-                const sommePuissances = Math.pow(10, lw_sortie / 10) + Math.pow(10, lw_air_neuf / 10);
-                const lw_total_valeur = 10 * Math.log10(sommePuissances);
+            for (const bande of BANDES_FREQUENCE) {
+                const lw_sortie = parseFloat(spectreLwSortie[bande]) || 0;
+                const lw_air_neuf = parseFloat(spectreAirNeuf[bande]) || 0;
+                
+                let lw_total_valeur;
+                if (lw_air_neuf === 0 && lw_sortie === 0) {
+                    lw_total_valeur = 0;
+                } else {
+                    const sommePuissances = Math.pow(10, lw_sortie / 10) + Math.pow(10, lw_air_neuf / 10);
+                    lw_total_valeur = 10 * Math.log10(sommePuissances);
+                }
+                
                 lwTotalSpectres[id_element][bande] = parseFloat(lw_total_valeur.toFixed(1));
             }
         }
         
-        // Sauvegarde dans lwtotal
+        // sauvegarder Lw Total dans la table 'lwtotal'
         for (const [id_element, spectre] of Object.entries(lwTotalSpectres)) {
             for (const [bande, valeur] of Object.entries(spectre)) {
                 await db.promise().query(
@@ -1286,7 +1321,7 @@ app.get('/api/lw_total', async (req, res) => {
             }
         }
         
-        // On renvoie les résultats
+        // envoyer les resultats au front
         res.status(200).json(lwTotalSpectres);
 
     } catch (error) {
@@ -1294,7 +1329,6 @@ app.get('/api/lw_total', async (req, res) => {
         res.status(500).json({ message: "Erreur serveur lors du calcul de Lw Total" });
     }
 });
-
 
 // SAISIE 
 //sauvegarder l'atténuation
