@@ -161,8 +161,8 @@ const TronconsListe = () => {
             setIsErreur(false);
             await fetchTroncons(); 
         } catch (err) {
-            console.error("Erreur lors de la sauvegarde du nouvel ordre :", err);
-            setMessage("Erreur lors de la sauvegarde de l'ordre.");
+            console.error("Erreur lors de la sauvegarde du nouvel ordre :", err)
+            setMessage("Erreur lors de la sauvegarde de l'ordre.")
             setIsErreur(true);
         }
     }, [troncons, id_source, fetchTroncons]);
