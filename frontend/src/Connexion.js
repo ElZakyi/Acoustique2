@@ -50,12 +50,12 @@ function Connexion() {
     
 
     return (
-        <div className="auth-page-wrapper"> {/* Conteneur principal avec l'arrière-plan */}
-            <div className="glassmorphism-card"> {/* La carte principale avec le flou */}
-                <div className="logo-circle-wrapper"> {/* Conteneur circulaire du logo */}
+        <div className="auth-page-wrapper">
+            <div className="glassmorphism-card">
+                <div className="logo-circle-wrapper">
                     <img src={logo} alt="L.P.E.E Logo" />
                 </div>
-                <div className="form-panel"> {/* Panneau avec le motto et le formulaire */}
+                <div className="form-panel">
                     <p className="motto">"Simplifiez vos calculs, accélérez vos projets"</p>
                     <form onSubmit={handleSubmit}>
                         <input
@@ -74,7 +74,6 @@ function Connexion() {
                         />
                         <div className="buttons-group">
                             <button className="btn" type="submit">Se connecter</button>
-                            {/* Le lien "Créer un compte" est déplacé pour être accessible par l'admin après connexion */}
                         </div>
                     </form>
                     {message && (
