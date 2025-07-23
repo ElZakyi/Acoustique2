@@ -32,6 +32,18 @@ db.connect((err) => {
 // ==================
 // AUTHENTIFICATION
 // ==================
+//check si un utilsateur est insérér dans la base donnée si la reponse est nom un compte est creer automatique lors de connexion 
+app.get('/api/utilisateurs/exist', async (req, res) => {
+    try {
+        const [rows] = await db.promise().query("SELECT COUNT(*) as total FROM utilisateur");
+        const count = rows[0].total;
+        res.json({ existe: count > 0 });
+    } catch (err) {
+        console.error("Erreur lors de la vérification des utilisateurs :", err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
 
 // Création d'un utilisateur
 app.post("/api/connexion", (req, res) => {

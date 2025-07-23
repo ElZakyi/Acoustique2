@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./Inscription.css";
@@ -11,6 +11,22 @@ function Connexion() {
     const [isError, setIsError] = useState(false);
     
     const navigate = useNavigate();
+    const [aucunUtilisateur, setAucunUtilisateur] = useState(false);
+    //checkc si y'a un utilisateur inscrit dans la base donnée 
+    useEffect(() => {
+        const verifierUtilisateurs = async () => {
+            try {
+                const res = await axios.get("http://localhost:5000/api/utilisateurs/exist");
+                if (!res.data.existe) {
+                    setAucunUtilisateur(true);
+                }
+            } catch (error) {
+                console.error("Erreur lors de la vérification des utilisateurs :", error);
+            }
+        };
+        verifierUtilisateurs();
+    }, []);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -57,6 +73,11 @@ function Connexion() {
                 </div>
                 <div className="form-panel">
                     <p className="motto">"Simplifiez vos calculs, accélérez vos projets"</p>
+                    {aucunUtilisateur && (
+                        <p className="info-message">
+                            Aucun utilisateur enregistré. Un compte sera créé automatiquement lors de votre connexion.
+                        </p>
+                    )}
                     <form onSubmit={handleSubmit}>
                         <input
                             className="input"
