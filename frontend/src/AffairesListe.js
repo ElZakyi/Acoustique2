@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEye, FaPencilAlt, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
-import './AffairesListe.css';
+import './AffairesListe.css'; // S'assure que le CSS est importé
 
 const AffairesListe = () => {
+    // --- États pour la gestion des affaires ---
     const [affaires, setAffaires] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({
+    const [showAffaireForm, setShowAffaireForm] = useState(false); // Renommé pour clarté
+    const [affaireFormData, setAffaireFormData] = useState({ // Renommé pour clarté
         id_affaire: null,
         numero_affaire: '',
         objet: '',
@@ -17,21 +18,48 @@ const AffairesListe = () => {
         responsable: '',
         observation: ''
     });
-    const [message, setMessage] = useState('');
-    const [isErreur, setIsErreur] = useState(false);
+    const [affaireMessage, setAffaireMessage] = useState(''); // Renommé pour clarté
+    const [isAffaireErreur, setIsAffaireErreur] = useState(false); // Renommé pour clarté
+
+    // --- États pour la gestion des utilisateurs ---
+    const [users, setUsers] = useState([]);
+    const [showUserForm, setShowUserForm] = useState(false);
+    const [userFormData, setUserFormData] = useState({
+        id: null,
+        email: '',
+        mot_de_passe: '',
+        role: 'technicien' // Rôle par défaut pour la création
+    });
+    const [userMessage, setUserMessage] = useState('');
+    const [isUserError, setIsUserError] = useState(false);
+
+    const [currentUser, setCurrentUser] = useState(null); // Pour stocker les infos de l'utilisateur connecté
 
     const navigate = useNavigate();
 
-    // Fonction pour récupérer les affaires
-    const fetchAffaires = async () => {
+    useEffect(() => {
+        const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
+        if (!utilisateur || !utilisateur.id || !utilisateur.role) {
+            setError("Utilisateur non identifié. Veuillez vous reconnecter.");
+            setLoading(false);
+            navigate('/connexion');
+            return;
+        }
+        setCurrentUser(utilisateur);
+        
+        fetchAffaires(utilisateur);
+        if (utilisateur.role === "administrateur") {
+            fetchUsers(utilisateur);
+        }
+    }, [navigate]); // Les dépendances de useEffect devraient inclure les fonctions si elles ne sont pas stables
+
+    // --- Fonctions de récupération des données ---
+
+    // Récupérer les affaires
+    const fetchAffaires = async (utilisateur) => {
         try {
-            const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
-            if (!utilisateur || !utilisateur.id || !utilisateur.role) {
-                setError("Utilisateur non identifié. Veuillez vous reconnecter.");
-                setLoading(false);
-                navigate('/connexion');
-                return;
-            }
+            // Assurez-vous que l'utilisateur est défini
+            if (!utilisateur) return;
 
             const response = await axios.get('http://localhost:5000/api/affaires', {
                 params: {
@@ -41,83 +69,194 @@ const AffairesListe = () => {
             });
 
             setAffaires(response.data);
-            setError(null); // Réinitialise l'erreur si la récupération réussit
+            setError(null);
         } catch (err) {
-            setError('Impossible de charger les données. Le serveur backend est-il lancé ?');
+            setError('Impossible de charger les affaires. Le serveur backend est-il lancé ?');
             console.error("Erreur de récupération des affaires :", err);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchAffaires();
-    }, [navigate]); // Exécute au montage et si 'navigate' change (rare)
-
-    const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Récupérer les utilisateurs (Admin seulement)
+    const fetchUsers = async (utilisateur) => {
+        if (!utilisateur || utilisateur.role !== "administrateur") {
+            setUserMessage("Accès non autorisé pour lister les utilisateurs.");
+            setIsUserError(true);
+            return;
+        }
+        try {
+            const response = await axios.get('http://localhost:5000/api/utilisateurs', {
+                params: {
+                    id_utilisateur: utilisateur.id, // Envoyer l'ID de l'admin pour l'autorisation backend
+                    role: utilisateur.role // Envoyer le rôle de l'admin pour l'autorisation backend
+                }
+            });
+            setUsers(response.data);
+            setUserMessage(""); // Réinitialise le message d'erreur utilisateur
+        } catch (err) {
+            console.error("Erreur de récupération des utilisateurs :", err);
+            setIsUserError(true);
+            setUserMessage(err.response?.data?.message || "Erreur lors du chargement des utilisateurs.");
+        }
     };
 
-    const handleFormSubmit = async (e) => {
+    // --- Fonctions de gestion des affaires ---
+
+    const handleAffaireInputChange = (e) => {
+        setAffaireFormData({ ...affaireFormData, [e.target.name]: e.target.value });
+    };
+
+    const handleAffaireFormSubmit = async (e) => {
         e.preventDefault();
-        const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
-        if (!utilisateur || !utilisateur.id) {
-            setMessage("Utilisateur non identifié. Impossible de créer/modifier l'affaire.");
-            setIsErreur(true);
+        if (!currentUser || !currentUser.id) {
+            setAffaireMessage("Utilisateur non identifié. Impossible de créer/modifier l'affaire.");
+            setIsAffaireErreur(true);
             return;
         }
 
         const dataToSend = {
-            ...formData,
-            id_utilisateur: utilisateur.id,
-            responsable: formData.responsable || utilisateur.email
+            ...affaireFormData,
+            id_utilisateur: currentUser.id,
+            responsable: affaireFormData.responsable || currentUser.email
         };
 
         try {
             let response;
-            if (formData.id_affaire) {
-                response = await axios.put(`http://localhost:5000/api/affaires/${formData.id_affaire}`, dataToSend);
-                setMessage(response.data.message);
+            if (affaireFormData.id_affaire) {
+                response = await axios.put(`http://localhost:5000/api/affaires/${affaireFormData.id_affaire}`, dataToSend);
+                setAffaireMessage(response.data.message);
             } else {
                 response = await axios.post('http://localhost:5000/api/affaires', dataToSend);
-                setMessage(response.data.message);
+                setAffaireMessage(response.data.message);
             }
 
-            setIsErreur(false);
-            setShowForm(false);
-            fetchAffaires(); // Mettre à jour la liste après succès
+            setIsAffaireErreur(false);
+            setShowAffaireForm(false);
+            fetchAffaires(currentUser); // Mettre à jour la liste après succès
         } catch (err) {
-            console.error("Erreur soumission formulaire :", err);
-            setIsErreur(true);
-            setMessage(err.response?.data?.message || "Erreur lors de l'opération.");
+            console.error("Erreur soumission formulaire affaire :", err);
+            setIsAffaireErreur(true);
+            setAffaireMessage(err.response?.data?.message || "Erreur lors de l'opération sur l'affaire.");
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleAffaireDelete = async (id) => {
         if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette affaire ? Cela supprimera aussi toutes les salles associées.")) return;
         try {
             await axios.delete(`http://localhost:5000/api/affaires/${id}`);
-            setMessage("Affaire supprimée avec succès !");
-            setIsErreur(false);
-            fetchAffaires(); // Mettre à jour la liste après suppression
+            setAffaireMessage("Affaire supprimée avec succès !");
+            setIsAffaireErreur(false);
+            fetchAffaires(currentUser); // Mettre à jour la liste après suppression
         } catch (err) {
-            console.error("Erreur lors de la suppression :", err);
-            setIsErreur(true);
-            setMessage(err.response?.data?.message || "Erreur lors de la suppression.");
+            console.error("Erreur lors de la suppression de l'affaire :", err);
+            setIsAffaireErreur(true);
+            setAffaireMessage(err.response?.data?.message || "Erreur lors de la suppression de l'affaire.");
         }
     };
 
-    const handleEdit = (affaire) => {
-        setFormData(affaire);
-        setShowForm(true);
-        setMessage("");
+    const handleAffaireEdit = (affaire) => {
+        setAffaireFormData(affaire);
+        setShowAffaireForm(true);
+        setAffaireMessage("");
     };
 
+    // --- Fonctions de gestion des utilisateurs (Admin seulement) ---
+
+    const handleUserInputChange = (e) => {
+        setUserFormData({ ...userFormData, [e.target.name]: e.target.value });
+    };
+
+    const handleUserFormSubmit = async (e) => {
+        e.preventDefault();
+        if (!currentUser || currentUser.role !== "administrateur") {
+            setUserMessage("Accès non autorisé pour gérer les utilisateurs.");
+            setIsUserError(true);
+            return;
+        }
+
+        const dataToSend = {
+            email: userFormData.email,
+            mot_de_passe: userFormData.mot_de_passe,
+            role: userFormData.role,
+            // Pour l'autorisation côté serveur lors de la modification/suppression
+            current_user_id: currentUser.id, 
+            current_user_role: currentUser.role
+        };
+        
+        try {
+            let response;
+            if (userFormData.id) { // Modification d'un utilisateur existant
+                response = await axios.put(`http://localhost:5000/api/utilisateurs/${userFormData.id}`, dataToSend);
+                setUserMessage(response.data.message);
+            } else { // Création d'un nouvel utilisateur
+                // Assurez-vous que le mot de passe est fourni pour la création
+                if (!dataToSend.mot_de_passe) {
+                    setUserMessage("Le mot de passe est requis pour la création d'un utilisateur.");
+                    setIsUserError(true);
+                    return;
+                }
+                response = await axios.post('http://localhost:5000/api/utilisateurs', dataToSend);
+                setUserMessage(response.data.message);
+            }
+
+            setIsUserError(false);
+            setShowUserForm(false);
+            fetchUsers(currentUser); // Mettre à jour la liste après succès
+            // Réinitialiser le formulaire après succès
+            setUserFormData({ id: null, email: '', mot_de_passe: '', role: 'technicien' });
+        } catch (err) {
+            console.error("Erreur soumission formulaire utilisateur :", err);
+            setIsUserError(true);
+            setUserMessage(err.response?.data?.message || "Erreur lors de l'opération sur l'utilisateur.");
+        }
+    };
+
+    const handleUserEdit = (user) => {
+        // Ne pas pré-remplir le mot de passe pour des raisons de sécurité
+        setUserFormData({ id: user.id, email: user.email, mot_de_passe: '', role: user.role });
+        setShowUserForm(true);
+        setUserMessage("");
+    };
+
+    const handleUserDelete = async (id) => {
+        if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) return;
+        if (!currentUser || currentUser.role !== "administrateur") {
+            setUserMessage("Accès non autorisé pour supprimer les utilisateurs.");
+            setIsUserError(true);
+            return;
+        }
+        // Empêcher un admin de se supprimer lui-même
+        if (id === currentUser.id) {
+            setUserMessage("Vous ne pouvez pas supprimer votre propre compte !");
+            setIsUserError(true);
+            return;
+        }
+
+        try {
+            await axios.delete(`http://localhost:5000/api/utilisateurs/${id}`, {
+                params: { // Envoyer l'ID et le rôle de l'admin pour l'autorisation backend
+                    current_user_id: currentUser.id, 
+                    current_user_role: currentUser.role
+                }
+            });
+            setUserMessage("Utilisateur supprimé avec succès !");
+            setIsUserError(false);
+            fetchUsers(currentUser); // Mettre à jour la liste
+        } catch (err) {
+            console.error("Erreur lors de la suppression de l'utilisateur :", err);
+            setIsUserError(true);
+            setUserMessage(err.response?.data?.message || "Erreur lors de la suppression de l'utilisateur.");
+        }
+    };
+
+    // --- Fonction de déconnexion ---
     const handleLogout = () => {
         localStorage.removeItem("utilisateur");
         navigate('/connexion');
     };
 
+    // --- Rendu conditionnel ---
     if (loading) return <div className="container-box"><h1 className="page-title">Chargement...</h1></div>;
     if (error) return <div className="container-box"><h1 className="page-title error">{error}</h1></div>;
 
@@ -126,33 +265,33 @@ const AffairesListe = () => {
             <div className="logout-global">
                 <button className="btn-logout" onClick={handleLogout}>Déconnexion</button>
             </div>
+
+            {/* Section de gestion des affaires */}
             <div className="container-box">
                 <div className="page-header">
                     <h1 className="page-title">Liste des Affaires</h1>
-                    {message && <p className={isErreur ? "form-error" : "form-success"}>{message}</p>}
+                    {affaireMessage && <p className={isAffaireErreur ? "form-error" : "form-success"}>{affaireMessage}</p>}
                     <button className="btn-primary" onClick={() => {
-                        setShowForm(!showForm);
-                        const utilisateur = JSON.parse(localStorage.getItem("utilisateur"));
-                        setFormData({ id_affaire: null, numero_affaire: '', objet: '', client: '', responsable: utilisateur?.email || '', observation: '' });
-                        setMessage("");
+                        setShowAffaireForm(!showAffaireForm);
+                        setAffaireFormData({ id_affaire: null, numero_affaire: '', objet: '', client: '', responsable: currentUser?.email || '', observation: '' });
+                        setAffaireMessage("");
                     }}>
-                        {showForm ? "Annuler" : "Ajouter une affaire"}
+                        {showAffaireForm ? "Annuler" : "Ajouter une affaire"}
                     </button>
                 </div>
 
-                {showForm && (
-                    <form onSubmit={handleFormSubmit} className="affaires-form">
-                        <h3 className="form-title">{formData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
-                        <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={formData.numero_affaire} onChange={handleInputChange} required />
-                        <input className="form-input" type="text" name="objet" placeholder="Objet" value={formData.objet} onChange={handleInputChange} required />
-                        <input className="form-input" type="text" name="client" placeholder="Client" value={formData.client} onChange={handleInputChange} required />
-                        <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={formData.responsable} onChange={handleInputChange} required />
-                        <input className="form-input" type="text" name="observation" placeholder="Observation" value={formData.observation} onChange={handleInputChange} />
-                        <button className="form-button" type="submit">{formData.id_affaire ? "Mettre à jour" : "Valider"}</button>
+                {showAffaireForm && (
+                    <form onSubmit={handleAffaireFormSubmit} className="affaires-form">
+                        <h3 className="form-title">{affaireFormData.id_affaire ? "Modifier l'affaire" : "Nouvelle affaire"}</h3>
+                        <input className="form-input" type="text" name="numero_affaire" placeholder="Numéro d'affaire" value={affaireFormData.numero_affaire} onChange={handleAffaireInputChange} required />
+                        <input className="form-input" type="text" name="objet" placeholder="Objet" value={affaireFormData.objet} onChange={handleAffaireInputChange} required />
+                        <input className="form-input" type="text" name="client" placeholder="Client" value={affaireFormData.client} onChange={handleAffaireInputChange} required />
+                        <input className="form-input" type="text" name="responsable" placeholder="Responsable" value={affaireFormData.responsable} onChange={handleAffaireInputChange} required />
+                        <input className="form-input" type="text" name="observation" placeholder="Observation" value={affaireFormData.observation} onChange={handleAffaireInputChange} />
+                        <button className="form-button" type="submit">{affaireFormData.id_affaire ? "Mettre à jour" : "Valider"}</button>
                     </form>
                 )}
 
-                {/* Ajout d'un wrapper pour le tableau */}
                 <div className="table-wrapper">
                     <table className="affaires-table">
                         <thead>
@@ -192,12 +331,12 @@ const AffairesListe = () => {
                                             <FaPencilAlt
                                                 className="icon-action icon-edit"
                                                 title="Modifier"
-                                                onClick={() => handleEdit(affaire)}
+                                                onClick={() => handleAffaireEdit(affaire)}
                                             />
                                             <FaTrash
                                                 className="icon-action icon-delete"
                                                 title="Supprimer"
-                                                onClick={() => handleDelete(affaire.id_affaire)}
+                                                onClick={() => handleAffaireDelete(affaire.id_affaire)}
                                             />
                                         </div>
                                     </td>
@@ -205,8 +344,72 @@ const AffairesListe = () => {
                             ))}
                         </tbody>
                     </table>
-                </div> {/* Fin du table-wrapper */}
+                </div>
             </div>
+
+            {/* Section de gestion des utilisateurs (visible uniquement pour les administrateurs) */}
+            {currentUser && currentUser.role === "administrateur" && (
+                <div className="container-box user-management-section">
+                    <div className="page-header">
+                        <h1 className="page-title">Gestion des Utilisateurs</h1>
+                        {userMessage && <p className={isUserError ? "form-error" : "form-success"}>{userMessage}</p>}
+                        <button className="btn-primary" onClick={() => {
+                            setShowUserForm(!showUserForm);
+                            setUserFormData({ id: null, email: '', mot_de_passe: '', role: 'technicien' });
+                            setUserMessage("");
+                        }}>
+                            {showUserForm ? "Annuler" : "Créer un utilisateur"}
+                        </button>
+                    </div>
+
+                    {showUserForm && (
+                        <form onSubmit={handleUserFormSubmit} className="affaires-form"> {/* Réutilisation du style de formulaire */}
+                            <h3 className="form-title">{userFormData.id ? "Modifier l'utilisateur" : "Nouvel utilisateur"}</h3>
+                            <input className="form-input" type="email" name="email" placeholder="E-mail" value={userFormData.email} onChange={handleUserInputChange} required />
+                            <input className="form-input" type="password" name="mot_de_passe" placeholder={userFormData.id ? "Nouveau mot de passe (laisser vide pour ne pas changer)" : "Mot de passe"} value={userFormData.mot_de_passe} onChange={handleUserInputChange} required={!userFormData.id} />
+                            <select className="form-input" name="role" value={userFormData.role} onChange={handleUserInputChange} required>
+                                <option value="technicien">Technicien</option>
+                                <option value="administrateur">Administrateur</option>
+                            </select>
+                            <button className="form-button" type="submit">{userFormData.id ? "Mettre à jour" : "Valider"}</button>
+                        </form>
+                    )}
+
+                    <div className="table-wrapper">
+                        <table className="affaires-table"> {/* Réutilisation du style de tableau */}
+                            <thead>
+                                <tr>
+                                    <th>E-mail</th>
+                                    <th>Rôle</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {users.map(user => (
+                                    <tr key={user.id}>
+                                        <td>{user.email}</td>
+                                        <td>{user.role}</td>
+                                        <td className="actions-cell">
+                                            <div className="action-icons">
+                                                <FaPencilAlt
+                                                    className="icon-action icon-edit"
+                                                    title="Modifier l'utilisateur"
+                                                    onClick={() => handleUserEdit(user)}
+                                                />
+                                                <FaTrash
+                                                    className="icon-action icon-delete"
+                                                    title="Supprimer l'utilisateur"
+                                                    onClick={() => handleUserDelete(user.id)}
+                                                />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

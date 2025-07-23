@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "./Inscription.css"; // Utilisez le CSS mis à jour
-import logo from './assets/logo.png'; // Importez le logo
+import "./Inscription.css";
+import logo from './assets/logo.png';
 
 function Connexion() {
     const [email, setEmail] = useState("");
@@ -14,6 +14,9 @@ function Connexion() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setMessage("");
+        setIsError(false);
+
         try {
             const res = await axios.post("http://localhost:5000/api/connexion", {
                 email,
@@ -25,8 +28,9 @@ function Connexion() {
                 setMessage(res.data.message);
                 setIsError(false);
                 
+                // Redirige vers la page des affaires après une connexion réussie
                 setTimeout(() => {
-                  navigate("/affaires");
+                  navigate("/affaires"); 
                 }, 500);
             } else {
                 setMessage("Réponse inattendue du serveur.");
@@ -44,17 +48,14 @@ function Connexion() {
         }
     }
     
-    const goToInscription = () => {
-        navigate("/inscription");
-    }
 
     return (
-        <div className="auth-page-wrapper"> {/* Conteneur principal avec l'arrière-plan */}
-            <div className="glassmorphism-card"> {/* La carte principale avec le flou */}
-                <div className="logo-circle-wrapper"> {/* Conteneur circulaire du logo */}
+        <div className="auth-page-wrapper">
+            <div className="glassmorphism-card">
+                <div className="logo-circle-wrapper">
                     <img src={logo} alt="L.P.E.E Logo" />
                 </div>
-                <div className="form-panel"> {/* Panneau avec le motto et le formulaire */}
+                <div className="form-panel"> 
                     <p className="motto">"Simplifiez vos calculs, accélérez vos projets"</p>
                     <form onSubmit={handleSubmit}>
                         <input
@@ -73,9 +74,6 @@ function Connexion() {
                         />
                         <div className="buttons-group">
                             <button className="btn" type="submit">Se connecter</button>
-                            <span className="link-text" onClick={goToInscription}>
-                                Créer un compte
-                            </span>
                         </div>
                     </form>
                     {message && (

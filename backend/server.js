@@ -33,33 +33,59 @@ db.connect((err) => {
 // AUTHENTIFICATION
 // ==================
 
+// Création d'un utilisateur
 app.post("/api/utilisateurs", (req, res) => {
-    const { email, mot_de_passe, role } = req.body;
+    let { email, mot_de_passe, role } = req.body; 
+
     if (!email || !mot_de_passe || !role) {
         return res.status(400).json({ message: "Tous les champs (email, mot de passe, rôle) sont requis." });
     }
-    if (role !== 'technicien' && role !== 'administrateur') {
-        return res.status(400).json({ message: "Le rôle fourni est invalide." });
-    }
-    const checkSql = "SELECT * FROM utilisateur WHERE email = ?";
-    db.query(checkSql, [email], (err, results) => {
-        if (err) {
-            console.error("Erreur lors de la vérification de l'email :", err);
+
+    //Vérifier si des utilisateurs existent déjà dans la base de données
+    const countSql = "SELECT COUNT(*) AS userCount FROM utilisateur";
+    db.query(countSql, (countErr, countResults) => {
+        if (countErr) {
+            console.error("Erreur lors de la vérification du nombre d'utilisateurs :", countErr);
             return res.status(500).json({ message: "Erreur Serveur" });
         }
-        if (results.length > 0) {
-            return res.status(409).json({ message: "Cet email est déjà utilisé !" });
-        }
-        const sql = "INSERT INTO utilisateur (email, mot_de_passe, role) VALUES (?, ?, ?)";
-        db.query(sql, [email, mot_de_passe, role], (err, result) => {
-            if (err) {
-                console.error("Erreur lors de l'inscription :", err);
-                return res.status(500).json({ message: "Erreur serveur" });
+
+        const userCount = countResults[0].userCount;
+
+        // Si aucun utilisateur n'existe, forcez le rôle à 'administrateur' pour le premier
+        if (userCount === 0) {
+            role = 'administrateur';
+            console.log("Premier utilisateur créé, rôle forcé à 'administrateur'.");
+        } else {
+            // Si des utilisateurs existent déjà, valider le rôle fourni
+            if (role !== 'technicien' && role !== 'administrateur') {
+                return res.status(400).json({ message: "Le rôle fourni est invalide." });
             }
-            return res.status(201).json({ message: "Utilisateur créé avec succès !" });
+        }
+
+        //Vérifier si l'email est déjà utilisé
+        const checkSql = "SELECT * FROM utilisateur WHERE email = ?";
+        db.query(checkSql, [email], (err, results) => {
+            if (err) {
+                console.error("Erreur lors de la vérification de l'email :", err);
+                return res.status(500).json({ message: "Erreur Serveur" });
+            }
+            if (results.length > 0) {
+                return res.status(409).json({ message: "Cet email est déjà utilisé !" });
+            }
+
+            //Insérer le nouvel utilisateur avec le rôle déterminé
+            const insertSql = "INSERT INTO utilisateur (email, mot_de_passe, role) VALUES (?, ?, ?)";
+            db.query(insertSql, [email, mot_de_passe, role], (insertErr, result) => {
+                if (insertErr) {
+                    console.error("Erreur lors de l'inscription :", insertErr);
+                    return res.status(500).json({ message: "Erreur serveur" });
+                }
+                return res.status(201).json({ message: "Utilisateur créé avec succès !" });
+            });
         });
     });
 });
+
 
 app.post("/api/connexion", (req, res) => {
     const { email, mot_de_passe } = req.body;
@@ -79,6 +105,102 @@ app.post("/api/connexion", (req, res) => {
         }
     });
 });
+
+//Lister tous les utilisateurs
+// Accessible uniquement par les administrateurs
+app.get("/api/utilisateurs", (req, res) => {
+    const { id_utilisateur, role } = req.query; // Récupérer l'ID et le rôle de l'utilisateur connecté
+    
+    // Vérifier si l'utilisateur est un administrateur
+    if (!id_utilisateur || role !== 'administrateur') {
+        return res.status(403).json({ message: "Accès refusé. Seuls les administrateurs peuvent lister les utilisateurs." });
+    }
+
+    // Sélectionner tous les utilisateurs, EXCLURE LE MOT DE PASSE pour la sécurité
+    const sql = "SELECT id, email, role FROM utilisateur"; 
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("Erreur lors de la récupération des utilisateurs :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        res.status(200).json(results);
+    });
+});
+
+//Modifier un utilisateur (PUT /api/utilisateurs/:id)
+// Accessible uniquement par les administrateurs
+app.put("/api/utilisateurs/:id", (req, res) => {
+    const { id } = req.params; // ID de l'utilisateur à modifier
+    const { email, mot_de_passe, role, current_user_id, current_user_role } = req.body; // Informations du compte administrateur effectuant l'action
+
+    // Vérifier si l'utilisateur qui fait la requête est un administrateur
+    if (!current_user_id || current_user_role !== 'administrateur') {
+        return res.status(403).json({ message: "Accès refusé. Seuls les administrateurs peuvent modifier les utilisateurs." });
+    }
+    
+    // Validation des champs
+    if (!email || !role) {
+        return res.status(400).json({ message: "L'email et le rôle sont requis." });
+    }
+    if (role !== 'technicien' && role !== 'administrateur') {
+        return res.status(400).json({ message: "Le rôle fourni est invalide." });
+    }
+
+    let sql;
+    let values;
+
+    // Si un nouveau mot de passe est fourni, le mettre à jour
+    if (mot_de_passe) {
+        sql = "UPDATE utilisateur SET email = ?, mot_de_passe = ?, role = ? WHERE id = ?";
+        values = [email, mot_de_passe, role, id];
+    } else {
+        // Sinon, mettre à jour uniquement l'email et le rôle
+        sql = "UPDATE utilisateur SET email = ?, role = ? WHERE id = ?";
+        values = [email, role, id];
+    }
+    
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error("Erreur lors de la mise à jour de l'utilisateur :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Utilisateur non trouvé." });
+        }
+        res.status(200).json({ message: "Utilisateur mis à jour avec succès." });
+    });
+});
+
+//Supprimer un utilisateur
+// Accessible uniquement par les administrateurs
+app.delete("/api/utilisateurs/:id", (req, res) => {
+    const { id } = req.params; // ID de l'utilisateur à supprimer
+    const { current_user_id, current_user_role } = req.query; // Informations du compte administrateur effectuant l'action
+
+    // Vérifier si l'utilisateur qui fait la requête est un administrateur
+    if (!current_user_id || current_user_role !== 'administrateur') {
+        return res.status(403).json({ message: "Accès refusé. Seuls les administrateurs peuvent supprimer les utilisateurs." });
+    }
+
+    // Empêcher un administrateur de supprimer son propre compte
+    if (parseInt(id) === parseInt(current_user_id)) {
+        return res.status(403).json({ message: "Vous ne pouvez pas supprimer votre propre compte !" });
+    }
+
+    const sql = "DELETE FROM utilisateur WHERE id = ?";
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Erreur lors de la suppression de l'utilisateur :", err);
+            return res.status(500).json({ message: "Erreur serveur" });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Utilisateur non trouvé." });
+        }
+        res.status(200).json({ message: "Utilisateur supprimé avec succès." });
+    });
+});
+
+
 
 // ======================
 // GESTION DES AFFAIRES
