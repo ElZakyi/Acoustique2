@@ -297,8 +297,9 @@ const ResultatsPage = () => {
 
     // Prepare chart data en se basant sur lp total et NR
     const chartData = useMemo(() => {
-        const nrData = nrReference.map(row => row[`nr${selectedNRForChart}`] || null); // Gérer les valeurs null
+        const nrData = nrReference.map(row => row[`nr${selectedNRForChart}`] ?? 0); // Gérer les valeurs null
         const lpTotData = BANDES.map(band => lpTotValues[band] || null); // Gérer les valeurs null
+        console.log("NR Data:", nrData);
 
         return {
             labels: BANDES.map(String),
