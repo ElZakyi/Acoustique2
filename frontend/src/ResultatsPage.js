@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import './AffairesListe.css'; 
-import html2pdf from 'html2pdf.js'; 
+import './AffairesListe.css';
+import html2pdf from 'html2pdf.js';
 import logo from './assets/logo.png';
 
-// Import pour Chart.js 
-
+// Import pour Chart.js
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -36,17 +35,20 @@ const TYPES_LIGNES = ["Soufflage", "reprise", "extraction", "Lp tot"];
 const NR_OPTIONS = [0, 10, 20, 30, 35, 40, 45, 50, 60];
 
 const calculateLpTot = (lpSoufflageVal, lpRepriseVal, lpExtractionVal) => {
-    const val1 = parseFloat(lpSoufflageVal);
-    const val2 = parseFloat(lpRepriseVal);
-    const val3 = parseFloat(lpExtractionVal);
+    // S'assurer que les entrées sont des nombres
+    const val1 = parseFloat(lpSoufflageVal) || 0;
+    const val2 = parseFloat(lpRepriseVal) || 0;
+    const val3 = parseFloat(lpExtractionVal) || 0;
 
-    if (isNaN(val1) || isNaN(val2) || isNaN(val3)) {
-        return null;
+    // Si toutes les valeurs sont 0, le LpTot est 0
+    if (val1 === 0 && val2 === 0 && val3 === 0) {
+        return 0;
     }
 
     const sumPowers = Math.pow(10, val1 / 10) + Math.pow(10, val2 / 10) + Math.pow(10, val3 / 10);
+    // Si la somme des puissances est très petite ou nulle, cela peut indiquer des problèmes
     if (sumPowers <= 0) {
-        return null;
+        return null; // Retourne null si le calcul est impossible ou non significatif
     }
 
     return 10 * Math.log10(sumPowers);
@@ -77,6 +79,7 @@ const ResultatsPage = () => {
     const [affaireInfo, setAffaireInfo] = useState(null);
     const [salleInfo, setSalleInfo] = useState(null);
 
+    const navigate = useNavigate(); // Déclaration de useNavigate ici
 
     useEffect(() => {
         if (!id_salle) return;
@@ -136,7 +139,7 @@ const ResultatsPage = () => {
                     troncons: {},
                 };
             }
-            
+
 
             const currentSource = result.sources[row.id_source];
             if (!currentSource.troncons[row.id_troncon]) {
@@ -173,14 +176,12 @@ const ResultatsPage = () => {
         const values = {};
         BANDES.forEach(freq => {
             const lpTot = calculateLpTot(lpSoufflage[freq], lpReprise[freq], lpExtraction[freq]);
-            if (lpTot !== null) {
+            if (lpTot !== null) { // Seulement si le calcul est valide
                 values[freq] = lpTot;
             }
         });
         return values;
     }, [lpSoufflage, lpReprise, lpExtraction]);
-
-    const navigate = useNavigate(); // Déclaration de useNavigate ici
 
     const handleLogout = () => {
         localStorage.removeItem("utilisateur");
@@ -199,6 +200,7 @@ const ResultatsPage = () => {
         fetchNR();
     }, []);
 
+    // MODIFICATION : Conversion de item.valeur en nombre
     useEffect(() => {
         if (!id_salle) return;
         const fetchLpSoufflage = async () => {
@@ -206,7 +208,7 @@ const ResultatsPage = () => {
                 const response = await axios.get(`http://localhost:5000/api/lp-vc-soufflage/${id_salle}`);
                 const valeurs = {};
                 response.data.forEach(item => {
-                    valeurs[item.bande] = item.valeur;
+                    valeurs[item.bande] = parseFloat(item.valeur) || 0; // Convertir en nombre, défaut 0
                 });
                 setLpSoufflage(valeurs);
             } catch (error) {
@@ -216,6 +218,7 @@ const ResultatsPage = () => {
         fetchLpSoufflage();
     }, [id_salle]);
 
+    // MODIFICATION : Conversion de item.valeur en nombre
     useEffect(() => {
         if (!id_salle) return;
         const fetchLpReprise = async () => {
@@ -223,7 +226,7 @@ const ResultatsPage = () => {
                 const response = await axios.get(`http://localhost:5000/api/lp-vc-reprise/${id_salle}`);
                 const valeurs = {};
                 response.data.forEach(item => {
-                    valeurs[item.bande] = item.valeur;
+                    valeurs[item.bande] = parseFloat(item.valeur) || 0; // Convertir en nombre, défaut 0
                 });
                 setLpReprise(valeurs);
             } catch (error) {
@@ -233,6 +236,7 @@ const ResultatsPage = () => {
         fetchLpReprise();
     }, [id_salle]);
 
+    // MODIFICATION : Conversion de item.valeur en nombre
     useEffect(() => {
         if (!id_salle) return;
         const fetchLpExtraction = async () => {
@@ -240,7 +244,7 @@ const ResultatsPage = () => {
                 const response = await axios.get(`http://localhost:5000/api/lp-extraction/${id_salle}`);
                 const valeurs = {};
                 response.data.forEach(item => {
-                    valeurs[item.bande] = item.valeur;
+                    valeurs[item.bande] = parseFloat(item.valeur) || 0; // Convertir en nombre, défaut 0
                 });
                 setLpExtraction(valeurs);
             } catch (error) {
@@ -250,6 +254,7 @@ const ResultatsPage = () => {
         fetchLpExtraction();
     }, [id_salle]);
 
+    // MODIFICATION : Conversion de item.valeur en nombre
     useEffect(() => {
         if (!id_salle) return;
         const fetchLpGlobalDBA = async () => {
@@ -257,7 +262,8 @@ const ResultatsPage = () => {
                 const response = await axios.get(`http://localhost:5000/api/lp-dba/${id_salle}`);
                 const valeurs = {};
                 response.data.forEach(item => {
-                    valeurs[item.type_source.toLowerCase()] = item.valeur;
+                    // Convertir en nombre. Utilisation de toLowerCase() est correcte ici.
+                    valeurs[item.type_source.toLowerCase()] = parseFloat(item.valeur) || 0;
                 });
                 setLpGlobalDBA(valeurs);
             } catch (error) {
@@ -276,7 +282,7 @@ const ResultatsPage = () => {
 
     const handleConfirmNRSelection = () => {
         const nrValue = parseInt(tempSelectedNR);
-        if (NR_OPTIONS.includes(nrValue)) {
+        if (!isNaN(nrValue) && NR_OPTIONS.includes(nrValue)) { // Vérifier si c'est un nombre valide
             setSelectedNRForChart(nrValue);
             setShowChart(true); // Afficher le graphique sur la page
             setShowNRSelectSection(false);
@@ -292,8 +298,8 @@ const ResultatsPage = () => {
 
     // Prepare chart data en se basant sur lp total et NR
     const chartData = useMemo(() => {
-        const nrData = nrReference.map(row => row[`nr${selectedNRForChart}`]);
-        const lpTotData = BANDES.map(band => lpTotValues[band] || null);
+        const nrData = nrReference.map(row => row[`nr${selectedNRForChart}`] || null); // Gérer les valeurs null
+        const lpTotData = BANDES.map(band => lpTotValues[band] || null); // Gérer les valeurs null
 
         return {
             labels: BANDES.map(String),
@@ -373,8 +379,6 @@ const ResultatsPage = () => {
         element.style.opacity = '1';
         element.style.zIndex = '9999';
         element.style.position = 'relative';
-        // HTML2PDF.js calcule la largeur du contenu. Pas besoin de width: '100vw' ici,
-        // les dimensions seront gérées par les options de jsPDF (format A4 landscape).
 
         // Petite attente pour s'assurer que Chart.js a fini de dessiner sur le canvas
         await new Promise(resolve => setTimeout(resolve, 500)); // 500ms devraient suffire
@@ -471,6 +475,7 @@ const ResultatsPage = () => {
                     <div className="page-header">
                         <h2 className="page-title">Résultats Acoustiques - Synthèse</h2>
                     </div>
+                    {/* Correction des espaces blancs autour de <table> */}
                     <table className="affaires-table synthese-table">
                         <thead>
                             <tr>
@@ -487,6 +492,7 @@ const ResultatsPage = () => {
                                     <td>{type}</td>
                                     {BANDES.map(freq => (
                                         <td key={freq}>
+                                            {/* S'assurer que les valeurs sont des nombres avant toFixed */}
                                             {
                                                 type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
                                                 type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
@@ -497,6 +503,7 @@ const ResultatsPage = () => {
                                         </td>
                                     ))}
                                     <td>
+                                        {/* S'assurer que les valeurs sont des nombres avant toFixed */}
                                         {type === "reprise"
                                             ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
                                             : type === "extraction"
@@ -516,8 +523,9 @@ const ResultatsPage = () => {
                         </tbody>
                     </table>
 
-                    <h3 className="section-heading margin-top-table">Tableau NR (Référence)</h3> {/* Utilisation de section-heading ici */}
+                    <h3 className="section-heading margin-top-table">Tableau NR (Référence)</h3>
                     <div className="table-wrapper">
+                    {/* Correction des espaces blancs autour de <table> */}
                     <table className="affaires-table synthese-table">
                         <thead>
                             <tr>
@@ -540,8 +548,8 @@ const ResultatsPage = () => {
                     </table>
                     </div>
 
-                    {/* Bouton Afficher courbe - MODIFIÉ POUR UTILISER btn-full-width-green */}
-                    <div className="chart-actions-container"> {/* Conserve ce conteneur pour l'alignement */}
+                    {/* Bouton Afficher courbe*/}
+                    <div className="chart-actions-container">
                         <button className="btn-full-width-green" onClick={handleDisplayChartButtonClick}>
                             Afficher la courbe
                         </button>
@@ -597,11 +605,10 @@ const ResultatsPage = () => {
             {/*CONTENU POUR PDF*/}
             <div
                 ref={pdfRef}
-                className="pdf-report-container" 
+                className="pdf-report-container"
             >
                 <div className="pdf-header">
                     <h1>Rapport Acoustique</h1>
-                   {/* <img src="\frontend\src\assets\logo.png" alt="Logo Entreprise" class="pdf-logo" /> */}
                 </div>
 
                 {/* Section Informations Affaire et Nom de la Salle */}
@@ -629,6 +636,7 @@ const ResultatsPage = () => {
                 <div className="pdf-section">
                     <h2>Résultats Acoustiques - Synthèse</h2>
                     <div className="table-wrapper">
+                    {/* Correction des espaces blancs autour de <table> */}
                     <table className="pdf-table pdf-table-results">
                         <thead>
                             <tr>
@@ -645,6 +653,7 @@ const ResultatsPage = () => {
                                     <td>{type}</td>
                                     {BANDES.map(freq => (
                                         <td key={freq}>
+                                            {/* S'assurer que les valeurs sont des nombres avant toFixed */}
                                             {
                                                 type === "reprise" ? (lpReprise[freq]?.toFixed(3) ?? '') :
                                                 type === "extraction" ? (lpExtraction[freq]?.toFixed(3) ?? '') :
@@ -655,6 +664,7 @@ const ResultatsPage = () => {
                                         </td>
                                     ))}
                                     <td>
+                                        {/* S'assurer que les valeurs sont des nombres avant toFixed */}
                                         {type === "reprise"
                                             ? (lpGlobalDBA["vc crsl-ecm 2 /reprise"]?.toFixed(3) ?? '')
                                             : type === "extraction"
