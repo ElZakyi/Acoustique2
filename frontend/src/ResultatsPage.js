@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import './AffairesListe.css';
 import html2pdf from 'html2pdf.js';
-import logo from './assets/logo.png';
 
 // Import pour Chart.js
 import {

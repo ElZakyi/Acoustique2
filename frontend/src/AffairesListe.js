@@ -376,7 +376,7 @@ const AffairesListe = () => {
                     )}
 
                     <div className="table-wrapper">
-                        <table className="affaires-table"> {/* Réutilisation du style de tableau */}
+                        <table className="affaires-table"> 
                             <thead>
                                 <tr>
                                     <th>E-mail</th>
