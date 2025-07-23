@@ -34,11 +34,10 @@ db.connect((err) => {
 // ==================
 
 // Création d'un utilisateur
-app.post("/api/utilisateurs", (req, res) => {
-    let { email, mot_de_passe, role } = req.body; 
-
-    if (!email || !mot_de_passe || !role) {
-        return res.status(400).json({ message: "Tous les champs (email, mot de passe, rôle) sont requis." });
+app.post("/api/connexion", (req, res) => {
+    const { email, mot_de_passe } = req.body;
+    if (!email || !mot_de_passe) {
+        return res.status(400).json({ message: "Champs manquants" });
     }
 
     //Vérifier si des utilisateurs existent déjà dans la base de données
@@ -51,60 +50,78 @@ app.post("/api/utilisateurs", (req, res) => {
 
         const userCount = countResults[0].userCount;
 
-        // Si aucun utilisateur n'existe, forcez le rôle à 'administrateur' pour le premier
         if (userCount === 0) {
-            role = 'administrateur';
-            console.log("Premier utilisateur créé, rôle forcé à 'administrateur'.");
-        } else {
-            // Si des utilisateurs existent déjà, valider le rôle fourni
-            if (role !== 'technicien' && role !== 'administrateur') {
-                return res.status(400).json({ message: "Le rôle fourni est invalide." });
-            }
-        }
-
-        //Vérifier si l'email est déjà utilisé
-        const checkSql = "SELECT * FROM utilisateur WHERE email = ?";
-        db.query(checkSql, [email], (err, results) => {
-            if (err) {
-                console.error("Erreur lors de la vérification de l'email :", err);
-                return res.status(500).json({ message: "Erreur Serveur" });
-            }
-            if (results.length > 0) {
-                return res.status(409).json({ message: "Cet email est déjà utilisé !" });
-            }
-
-            //Insérer le nouvel utilisateur avec le rôle déterminé
-            const insertSql = "INSERT INTO utilisateur (email, mot_de_passe, role) VALUES (?, ?, ?)";
-            db.query(insertSql, [email, mot_de_passe, role], (insertErr, result) => {
+            // S'il n'y a aucun utilisateur, c'est la première connexion.
+            // On crée un administrateur avec les informations fournies.
+            const insertSql = "INSERT INTO utilisateur (email, mot_de_passe, role) VALUES (?, ?, 'administrateur')";
+            db.query(insertSql, [email, mot_de_passe], (insertErr, insertResult) => {
                 if (insertErr) {
-                    console.error("Erreur lors de l'inscription :", insertErr);
+                    // Gérer les erreurs
+                    console.error("Erreur lors de la création du premier administrateur :", insertErr);
+                    return res.status(500).json({ message: "Erreur lors de la création du compte administrateur." });
+                }
+                // Retourner l'utilisateur nouvellement créé
+                return res.status(200).json({
+                    message: "Premier administrateur créé et connecté avec succès !",
+                    utilisateur: { id: insertResult.insertId, email: email, role: 'administrateur' }
+                });
+            });
+        } else {
+            // Des utilisateurs existent déjà, procéder à la connexion normale
+            const sql = "SELECT * FROM utilisateur WHERE email = ? AND mot_de_passe = ? ";
+            db.query(sql, [email, mot_de_passe], (err, results) => {
+                if (err) {
+                    console.error("Erreur lors de la connexion : ", err);
                     return res.status(500).json({ message: "Erreur serveur" });
                 }
-                return res.status(201).json({ message: "Utilisateur créé avec succès !" });
+                if (results.length > 0) {
+                    // Connexion réussie, renvoyer les détails de l'utilisateur
+                    return res.status(200).json({ message: "Connexion réussie", utilisateur: results[0] });
+                } else {
+                    // Email ou mot de passe incorrect pour les utilisateurs existants
+                    return res.status(401).json({ message: "Email ou mot de passe incorrect" });
+                }
             });
+        }
+    });
+});
+
+
+app.post("/api/utilisateurs", (req, res) => {
+    let { email, mot_de_passe, role } = req.body; 
+
+    if (!email || !mot_de_passe || !role) {
+        return res.status(400).json({ message: "Tous les champs (email, mot de passe, rôle) sont requis." });
+    }
+
+    // Validation du rôle fourni
+    if (role !== 'technicien' && role !== 'administrateur') {
+        return res.status(400).json({ message: "Le rôle fourni est invalide." });
+    }
+
+    // Vérifier si l'email est déjà utilisé
+    const checkSql = "SELECT * FROM utilisateur WHERE email = ?";
+    db.query(checkSql, [email], (err, results) => {
+        if (err) {
+            console.error("Erreur lors de la vérification de l'email :", err);
+            return res.status(500).json({ message: "Erreur Serveur" });
+        }
+        if (results.length > 0) {
+            return res.status(409).json({ message: "Cet email est déjà utilisé !" });
+        }
+
+        // Insérer le nouvel utilisateur avec le rôle spécifié
+        const insertSql = "INSERT INTO utilisateur (email, mot_de_passe, role) VALUES (?, ?, ?)";
+        db.query(insertSql, [email, mot_de_passe, role], (insertErr, result) => {
+            if (insertErr) {
+                console.error("Erreur lors de l'inscription :", insertErr);
+                return res.status(500).json({ message: "Erreur serveur" });
+            }
+            return res.status(201).json({ message: "Utilisateur créé avec succès !" });
         });
     });
 });
 
-
-app.post("/api/connexion", (req, res) => {
-    const { email, mot_de_passe } = req.body;
-    if (!email || !mot_de_passe) {
-        return res.status(400).json({ message: "Champs manquants" });
-    }
-    const sql = "SELECT * FROM utilisateur WHERE email = ? AND mot_de_passe = ? ";
-    db.query(sql, [email, mot_de_passe], (err, results) => {
-        if (err) {
-            console.error("Erreur lors de la connexion : ", err);
-            return res.status(500).json({ message: "Erreur serveur" });
-        }
-        if (results.length > 0) {
-            return res.status(200).json({ message: "Connexion réussie", utilisateur: results[0] });
-        } else {
-            return res.status(401).json({ message: "Email ou mot de passe incorrect" });
-        }
-    });
-});
 
 //Lister tous les utilisateurs
 // Accessible uniquement par les administrateurs

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./Inscription.css";
-import logo from './assets/logo.png'; 
+import logo from './assets/logo.png';
 
 function Connexion() {
     const [email, setEmail] = useState("");
@@ -14,6 +14,9 @@ function Connexion() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setMessage("");
+        setIsError(false);
+
         try {
             const res = await axios.post("http://localhost:5000/api/connexion", {
                 email,
@@ -25,8 +28,9 @@ function Connexion() {
                 setMessage(res.data.message);
                 setIsError(false);
                 
+                // Redirige vers la page des affaires après une connexion réussie
                 setTimeout(() => {
-                  navigate("/affaires");
+                  navigate("/affaires"); 
                 }, 500);
             } else {
                 setMessage("Réponse inattendue du serveur.");
@@ -44,9 +48,6 @@ function Connexion() {
         }
     }
     
-    const goToInscription = () => {
-        navigate("/inscription");
-    }
 
     return (
         <div className="auth-page-wrapper"> {/* Conteneur principal avec l'arrière-plan */}
@@ -73,9 +74,7 @@ function Connexion() {
                         />
                         <div className="buttons-group">
                             <button className="btn" type="submit">Se connecter</button>
-                            <span className="link-text" onClick={goToInscription}>
-                                Créer un compte
-                            </span>
+                            {/* Le lien "Créer un compte" est déplacé pour être accessible par l'admin après connexion */}
                         </div>
                     </form>
                     {message && (

@@ -72,7 +72,6 @@ function Inscription() {
                             onChange={(e) => setRole(e.target.value)}
                             className="input"
                         >
-                            <option value="technicien">Technicien</option>
                             <option value="administrateur">Administrateur</option>
                         </select>
 
