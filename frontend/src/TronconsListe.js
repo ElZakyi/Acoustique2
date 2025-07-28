@@ -149,6 +149,9 @@ const TronconsListe = () => {
             await axios.put(`http://localhost:5000/api/sources/${id_source}/troncons/reorder`, newOrder);
             setMessage("Ordre des tronçons mis à jour avec succès !");
             setIsErreur(false);
+            setTimeout(() => {
+         window.location.reload();
+         }, 500); 
         } catch (err) {
             console.error("Erreur lors de la sauvegarde du nouvel ordre :", err);
             setMessage("Erreur lors de la sauvegarde de l'ordre.");

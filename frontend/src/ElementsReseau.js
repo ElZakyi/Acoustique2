@@ -399,6 +399,9 @@ const ElementsReseau = () => {
         try {
             await axios.put(`http://localhost:5000/api/troncons/${id_troncon}/elements/reorder`, newOrder);
             setMessage("Ordre des éléments mis à jour avec succès !");
+                setTimeout(() => {
+        window.location.reload(); 
+    }, 500); 
         } catch (err) {
             console.error("Erreur lors de la sauvegarde du nouvel ordre :", err);
             setMessage("Erreur lors de la sauvegarde du nouvel ordre.");
